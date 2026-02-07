@@ -40,3 +40,7 @@ vim.o.cursorline = true
 vim.o.scrolloff = 10
 
 vim.o.confirm = true
+
+vim.opt.winborder = 'double'
+
+vim.api.nvim_set_hl(0, 'DiagnosticUnnecessary', { undercurl = true })

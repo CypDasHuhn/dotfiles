@@ -35,3 +35,10 @@ end, { desc = 'Subword backward', silent = true })
 -- endregion
 
 vim.keymap.set('n', '<CR>', 'i<CR><Esc>', { desc = 'Split line at cursor' })
+
+-- region Diagnostics
+vim.keymap.set('n', '<leader>td', function()
+  local new_config = not vim.diagnostic.config().virtual_lines
+  vim.diagnostic.config { virtual_lines = new_config, virtual_text = not new_config }
+end, { desc = '[T]oggle [D]iagnostic lines' })
+-- endregion
