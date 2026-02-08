@@ -6,7 +6,7 @@ local specs = {}
 for _, path in ipairs(vim.fn.glob(dir .. '/*', false, true)) do
   if vim.fn.isdirectory(path) == 1 then
     local name = vim.fn.fnamemodify(path, ':t')
-    table.insert(specs, { import = 'modules.plugins.' .. name })
+    table.insert(specs, { import = 'plugins.' .. name })
   end
 end
 

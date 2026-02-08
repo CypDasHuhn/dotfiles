@@ -1,4 +1,4 @@
-local langs = require 'modules.languages'
+local langs = require 'languages'
 
 return {
   'stevearc/conform.nvim',

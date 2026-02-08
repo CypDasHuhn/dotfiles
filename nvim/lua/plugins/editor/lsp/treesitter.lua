@@ -1,4 +1,4 @@
-local langs = require 'modules.languages'
+local langs = require 'languages'
 
 return {
   'nvim-treesitter/nvim-treesitter',
