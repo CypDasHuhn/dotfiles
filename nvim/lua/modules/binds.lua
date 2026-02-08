@@ -42,3 +42,7 @@ vim.keymap.set('n', '<leader>td', function()
   vim.diagnostic.config { virtual_lines = new_config, virtual_text = not new_config }
 end, { desc = '[T]oggle [D]iagnostic lines' })
 -- endregion
+
+vim.keymap.set('n', 'Q', ':q<CR>', { noremap = true, silent = true })
+vim.keymap.set('n', '<A-Q>', ':qa<CR>', { noremap = true, silent = true })
+vim.keymap.set('n', '<A-w>', ':w<CR>', { noremap = true, silent = true })
