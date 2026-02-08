@@ -42,3 +42,5 @@ vim.keymap.set('n', '<leader>td', function()
   vim.diagnostic.config { virtual_lines = new_config, virtual_text = not new_config }
 end, { desc = '[T]oggle [D]iagnostic lines' })
 -- endregion
+
+vim.keymap.set('n', '<leader>cc', '<cmd>ClaudeCode<CR>', { desc = 'Toggle Claude Code' })
