@@ -3,7 +3,7 @@ return {
   config = function()
     require('dotnet_explorer').setup {
       renderer = {
-        width = 40,
+        width = 60,
         side = 'right',
       },
     }
