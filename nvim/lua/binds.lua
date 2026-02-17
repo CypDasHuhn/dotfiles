@@ -26,10 +26,10 @@ vim.keymap.set('v', '<A-k>', ":m '<-2<CR>gv=gv", { desc = 'Move selection up' })
 -- endregion
 
 -- region Case dependent Motion
-vim.keymap.set('n', 's', function()
+vim.keymap.set({ 'n', 'v', 'o' }, 's', function()
   vim.fn.search('[^a-zA-Z]\\zs[a-zA-Z]\\|[A-Z]', 'W')
 end, { desc = 'Subword forward', silent = true })
-vim.keymap.set('n', 'S', function()
+vim.keymap.set({ 'n', 'v', 'o' }, 'S', function()
   vim.fn.search('[^a-zA-Z]\\zs[a-zA-Z]\\|[A-Z]', 'bW')
 end, { desc = 'Subword backward', silent = true })
 -- endregion
@@ -46,3 +46,29 @@ end, { desc = '[T]oggle [D]iagnostic lines' })
 vim.keymap.set('n', 'Q', ':q<CR>', { noremap = true, silent = true })
 vim.keymap.set('n', '<A-Q>', ':qa<CR>', { noremap = true, silent = true })
 vim.keymap.set('n', '<A-w>', ':w<CR>', { noremap = true, silent = true })
+
+vim.keymap.set('n', 'q', '<nop>')
+vim.keymap.set('n', '<leader>m', 'q')
+
+-- Bind $ to g_. This is since i dont like $ including new line char.
+vim.keymap.set({ 'n', 'v', 'o' }, '$', 'g_', { noremap = true })
+-- When pasting, makes it so that whatever you pasted wont get saved into your clipboard
+vim.keymap.set('v', 'p', '"_dP', { noremap = true })
+-- region LSP Actions
+vim.keymap.set('n', 'grI', function()
+  vim.lsp.buf.code_action {
+    filter = function(action)
+      return action.kind and (action.kind:match 'quickfix' or action.kind:match 'source.addMissingImports' or action.kind:match 'source.organizeImports')
+    end,
+    apply = true,
+  }
+end, { desc = '[I]mport actions' })
+-- endregion
+
+vim.keymap.set('n', '<leader>sf', function()
+  vim.ui.input({ prompt = 'Grep in directory: ', completion = 'dir' }, function(dir)
+    if dir then
+      require('telescope.builtin').live_grep { search_dirs = { dir } }
+    end
+  end)
+end)

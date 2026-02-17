@@ -32,8 +32,24 @@ return {
 
     sources = {
       default = { 'lsp', 'path', 'snippets', 'lazydev' },
+      per_filetype = {
+        -- SQL files use dadbod completion instead of LSP
+        sql = { 'dadbod', 'buffer', 'path', 'snippets' },
+        mysql = { 'dadbod', 'buffer', 'path', 'snippets' },
+        plsql = { 'dadbod', 'buffer', 'path', 'snippets' },
+      },
       providers = {
         lazydev = { module = 'lazydev.integrations.blink', score_offset = 100 },
+        dadbod = {
+          name = 'Dadbod',
+          module = 'blink.cmp.sources.complete_func',
+          score_offset = 85,
+          opts = {
+            complete_func = function()
+              return vim.bo.omnifunc
+            end,
+          },
+        },
       },
     },
 
