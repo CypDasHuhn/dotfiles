@@ -20,7 +20,7 @@ return {
         indicator = {
           style = 'underline',
         },
-        buffer_close_icon = '󰅖',
+        buffer_close_icon = '',
         modified_icon = '●',
         close_icon = '',
         left_trunc_marker = '',
@@ -34,8 +34,8 @@ return {
             separator = true,
           },
         },
-        show_buffer_close_icons = true,
-        show_close_icon = true,
+        show_buffer_close_icons = false,
+        show_close_icon = false,
         persist_buffer_sort = true,
       },
     }
@@ -86,11 +86,8 @@ return {
     -- Move buffers
     map('n', '<A-H>', '<cmd>BufferLineMovePrev<cr>', { desc = 'Move buffer left' })
     map('n', '<A-L>', '<cmd>BufferLineMoveNext<cr>', { desc = 'Move buffer right' })
-    -- Pick buffers
-    map('n', '<leader>bp', '<cmd>BufferLinePick<cr>', { desc = 'Pick buffer' })
-    map('n', '<leader>bc', '<cmd>BufferLinePickClose<cr>', { desc = 'Pick close' })
     -- Pin buffer
-    map('n', '<leader>bP', '<cmd>BufferLineTogglePin<cr>', { desc = 'Toggle pin' })
+    map('n', '<leader>bp', '<cmd>BufferLineTogglePin<cr>', { desc = 'Toggle pin' })
     -- Close buffers
     map('n', '<leader>bd', '<cmd>Bdelete<cr>', { desc = 'Delete buffer' })
     map('n', '<leader>bD', '<cmd>Bdelete!<cr>', { desc = 'Delete buffer (force)' })

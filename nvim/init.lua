@@ -1,6 +1,6 @@
 -- region Modules
-require 'modules/settings'
-require 'modules/binds'
+require 'settings'
+require 'binds'
 -- endregion
 
 -- region Yank
@@ -36,7 +36,7 @@ rtp:prepend(lazypath)
 require('lazy').setup({
   'NMAC427/guess-indent.nvim',
   { 'folke/todo-comments.nvim', event = 'VimEnter', dependencies = { 'nvim-lua/plenary.nvim' }, opts = { signs = false } },
-  { import = 'modules.plugins' },
+  { import = 'plugins' },
 }, {
   -- region icons
   ui = {

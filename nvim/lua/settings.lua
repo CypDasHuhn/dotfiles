@@ -31,6 +31,14 @@ vim.o.splitright = true
 vim.o.splitbelow = true
 
 vim.o.list = true
+
+vim.opt.expandtab = true
+--TODO: Find a way to have this be .editorconfig/prettier dependent.
+-- For now not critical since when actually formetting, these will get respected.
+vim.opt.shiftwidth = 4
+vim.opt.tabstop = 4
+vim.opt.softtabstop = 4
+
 vim.opt.listchars = { tab = '» ', trail = '·', nbsp = '␣' }
 
 vim.o.inccommand = 'split'

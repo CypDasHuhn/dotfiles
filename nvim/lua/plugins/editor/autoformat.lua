@@ -1,4 +1,4 @@
-local langs = require 'modules.languages'
+local langs = require 'languages'
 
 local path_sep = vim.fn.has 'win32' == 1 and ';' or ':'
 local mason_bin = vim.fn.stdpath 'data' .. '/mason/bin'

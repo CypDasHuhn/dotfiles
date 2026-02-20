@@ -18,6 +18,7 @@ return {
       window = {
         mappings = {
           ['<leader>E'] = 'close_window',
+          ['Z'] = 'expand_all_nodes',
           y = function(state)
             local node = state.tree:get_node()
             local path = node:get_id()
@@ -76,7 +77,7 @@ return {
             if clip.action == 'cut' then
               vim.fn.delete(clipboard_file)
             end
-            require('neo-tree.sources.manager').refresh('filesystem')
+            require('neo-tree.sources.manager').refresh 'filesystem'
           end,
         },
       },

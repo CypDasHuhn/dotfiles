@@ -5,7 +5,7 @@ return {
     event = { 'BufReadPre', 'BufNewFile' },
     config = function()
       local lint = require 'lint'
-      local langs = require 'modules.languages'
+      local langs = require 'languages'
       lint.linters_by_ft = vim.tbl_deep_extend('force', {
         markdown = { 'markdownlint' },
       }, langs.linters)

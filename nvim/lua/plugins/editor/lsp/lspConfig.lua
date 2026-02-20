@@ -1,4 +1,4 @@
-local langs = require 'modules.languages'
+local langs = require 'languages'
 return {
   -- lspconfig provides default configs (cmd, root_markers, filetypes) for LSP servers
   'neovim/nvim-lspconfig',
