@@ -15,7 +15,7 @@ for _, file in ipairs(vim.fn.glob(dir .. '/*.lua', false, true)) do
   end
 end
 
--- Load subdirectories (like lsp/)
+-- Load first-level subdirectories (like lsp/)
 for _, path in ipairs(vim.fn.glob(dir .. '/*', false, true)) do
   if vim.fn.isdirectory(path) == 1 then
     local name = vim.fn.fnamemodify(path, ':t')
