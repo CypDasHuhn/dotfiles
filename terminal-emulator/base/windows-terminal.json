@@ -1,0 +1,19 @@
+{
+    "$schema": "https://aka.ms/terminal-profiles-schema",
+    "defaultProfile": "{your-default-profile-guid}",
+
+    "profiles": {
+        "defaults": {
+            "font": {
+                "face": "JetBrainsMono Nerd Font",
+                "size": 11
+            },
+            "colorScheme": "One Half Dark"
+        },
+        "list": []
+    },
+
+    "schemes": [],
+
+    // #KEYBINDS-REPLACE
+}
