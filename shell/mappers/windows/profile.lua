@@ -2,6 +2,47 @@ local utils = require("utils")
 
 local M = {}
 
+-- Linking: profile.ps1 -> PowerShell profile
+function M.link(output_dir)
+	local source = output_dir .. "/profile.ps1"
+
+	-- PowerShell profile location: $HOME\Documents\PowerShell\Microsoft.PowerShell_profile.ps1
+	local home = os.getenv("USERPROFILE")
+	if not home then return false, "USERPROFILE not set" end
+
+	local target_dir = home .. "\\Documents\\PowerShell"
+	local target = target_dir .. "\\Microsoft.PowerShell_profile.ps1"
+
+	-- Create directory if needed
+	os.execute('mkdir "' .. target_dir .. '" 2>nul')
+
+	-- Check if target exists
+	local f = io.open(target, "r")
+	if f then
+		f:close()
+		-- Check if it's already a symlink to our file
+		local handle = io.popen('cmd /c "fsutil reparsepoint query "' .. target .. '" 2>nul | findstr /c:"' .. source .. '"')
+		if handle then
+			local result = handle:read("*a")
+			handle:close()
+			if result and result:match(source:gsub("\\", "\\\\")) then
+				print("Already linked: " .. target)
+				return true
+			end
+		end
+		return false, "Target exists: " .. target
+	end
+
+	-- Create symlink (requires admin or dev mode)
+	local cmd = 'mklink "' .. target .. '" "' .. source:gsub("/", "\\") .. '"'
+	local ok = os.execute('cmd /c "' .. cmd .. '"')
+	if ok == 0 or ok == true then
+		print("Linked: " .. target .. " -> " .. source)
+		return true
+	end
+	return false, "Failed to create symlink (may need admin)"
+end
+
 local function get_module_files(dir, extension)
 	local files = {}
 	local handle = io.popen('ls -1 "' .. dir .. '"/*' .. extension .. ' 2>/dev/null')

@@ -104,7 +104,7 @@ print("")
 -- Step 3: Run each module's bootstrap
 local modules = {
 	"nvim",
-	-- Add more modules here as needed
+	"terminal-emulator",
 }
 
 for _, mod in ipairs(modules) do

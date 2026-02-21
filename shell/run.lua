@@ -55,6 +55,14 @@ else
 	os.exit(1)
 end
 
+-- Link profile to system location
+if mapper.link then
+	local link_ok, link_err = mapper.link(GENERATED_DIR)
+	if not link_ok and link_err then
+		print("Link: " .. link_err)
+	end
+end
+
 -- Generate profile.lua with name -> path mapping
 local os_type = machine.os.type
 local profile_lines = {

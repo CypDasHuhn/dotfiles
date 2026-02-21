@@ -75,10 +75,13 @@ function M.should_include(var_def, machine_name, os_type)
 
 	-- Check platform-only filter (windows/unix)
 	if var_def.only then
+		-- Normalize to array
+		local only = type(var_def.only) == "string" and { var_def.only } or var_def.only
+
 		local dominated_by_platform = false
 		local dominated_by_machine = false
 
-		for _, allowed in ipairs(var_def.only) do
+		for _, allowed in ipairs(only) do
 			if allowed == "windows" or allowed == "unix" then
 				dominated_by_platform = true
 				if allowed == os_type then

@@ -1,46 +1,41 @@
-return {
-	-- Tab navigation
-	NextTab = "alt+l",
-	PreviousTab = "alt+h",
-	NewTab = "ctrl+shift+t",
-	CloseTab = "ctrl+shift+w",
+local keybinds = {}
+local mod = "alt+shift+"
 
-	-- Tab direct access
-	Tab1 = "alt+1",
-	Tab2 = "alt+2",
-	Tab3 = "alt+3",
-	Tab4 = "alt+4",
-	Tab5 = "alt+5",
-	Tab6 = "alt+6",
-	Tab7 = "alt+7",
-	Tab8 = "alt+8",
-	Tab9 = "alt+9",
-
-	-- Pane/Split management
-	SplitVertical = "alt+shift+l",
-	SplitHorizontal = "alt+shift+j",
-	ClosePane = "ctrl+shift+w",
-	FocusPaneLeft = "ctrl+alt+h",
-	FocusPaneRight = "ctrl+alt+l",
-	FocusPaneUp = "ctrl+alt+k",
-	FocusPaneDown = "ctrl+alt+j",
-
-	-- Clipboard
-	Copy = "ctrl+shift+c",
-	Paste = "ctrl+shift+v",
-
-	-- Scrolling
-	ScrollUp = "ctrl+shift+k",
-	ScrollDown = "ctrl+shift+j",
-	ScrollPageUp = "shift+pageup",
-	ScrollPageDown = "shift+pagedown",
-
-	-- Font size
-	FontIncrease = "ctrl+plus",
-	FontDecrease = "ctrl+minus",
-	FontReset = "ctrl+0",
-
-	-- Misc
-	Find = "ctrl+shift+f",
-	ToggleFullscreen = "f11",
+local directions = {
+	Left = { vim = "h", arrow = "left" },
+	Down = { vim = "j", arrow = "down" },
+	Up = { vim = "k", arrow = "up" },
+	Right = { vim = "l", arrow = "right" },
 }
+
+local function directional(prefix, modifier, style)
+	for dir, keys in pairs(directions) do
+		keybinds[prefix .. dir] = modifier .. keys[style]
+	end
+end
+
+directional("FocusPane", "alt+", "vim")
+directional("SplitPane", mod, "arrow")
+directional("ResizePane", "ctrl+" .. mod, "arrow")
+
+keybinds.NextTab = mod .. "l"
+keybinds.PreviousTab = mod .. "h"
+keybinds.NewTab = mod .. "t"
+keybinds.ClosePane = mod .. "w"
+keybinds.RenameTab = mod .. "r"
+
+for i = 1, 9 do
+	keybinds["Tab" .. i] = mod .. i
+end
+
+keybinds.Copy = "ctrl+c"
+keybinds.Paste = "ctrl+v"
+
+keybinds.DuplicatePane = mod .. "d"
+
+-- Misc
+keybinds.Find = "ctrl+shift+f"
+keybinds.CommandPalette = mod .. "p"
+keybinds.ToggleFullscreen = "f11"
+
+return keybinds

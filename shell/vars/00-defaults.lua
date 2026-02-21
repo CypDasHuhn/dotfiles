@@ -21,7 +21,6 @@ return {
 	appdata = { "${me}/AppData", only = "windows" },
 	appdataLocal = { "${appdata}/Local", only = "windows" },
 	appdataRoaming = { "${appdata}/Roaming", only = "windows" },
-
 	nvim = {
 		"${dotfiles}/nvim",
 	},

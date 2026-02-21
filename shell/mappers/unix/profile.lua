@@ -2,6 +2,42 @@ local utils = require("utils")
 
 local M = {}
 
+-- Ensure ~/.bashrc sources our profile.sh
+function M.link(output_dir)
+	-- Get absolute path
+	local handle = io.popen('cd "' .. output_dir .. '" && pwd')
+	local abs_dir = handle and handle:read("*l") or output_dir
+	if handle then handle:close() end
+
+	local profile = abs_dir .. "/profile.sh"
+	local home = os.getenv("HOME")
+	if not home then return false, "HOME not set" end
+
+	local bashrc = home .. "/.bashrc"
+	local source_line = '. "' .. profile .. '"'
+
+	-- Read current bashrc
+	local f = io.open(bashrc, "r")
+	if not f then return false, "~/.bashrc not found" end
+	local content = f:read("*a")
+	f:close()
+
+	-- Check if already sourcing our profile
+	if content:find(profile, 1, true) then
+		print("~/.bashrc already sources profile")
+		return true
+	end
+
+	-- Append source line
+	f = io.open(bashrc, "a")
+	if not f then return false, "Could not write to ~/.bashrc" end
+	f:write("\n# Dotfiles profile\n" .. source_line .. "\n")
+	f:close()
+
+	print("Added source line to ~/.bashrc")
+	return true
+end
+
 local function get_module_files(dir, extension)
 	local files = {}
 	local handle = io.popen('ls -1 "' .. dir .. '"/*' .. extension .. ' 2>/dev/null')
