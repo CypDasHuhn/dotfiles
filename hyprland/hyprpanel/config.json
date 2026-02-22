@@ -1,0 +1,12 @@
+{
+  "bar.layouts": {
+    "0": {
+      "left": ["dashboard", "workspaces", "windowtitle"],
+      "middle": ["media"],
+      "right": ["volume", "network", "bluetooth", "systray", "clock", "notifications"]
+    }
+  },
+  "menus.clock.time.military": true,
+  "menus.clock.time.hideSeconds": false,
+  "bar.clock.format": "%H:%M"
+}

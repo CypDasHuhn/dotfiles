@@ -28,8 +28,8 @@ for i = 1, 9 do
 	keybinds["Tab" .. i] = mod .. i
 end
 
-keybinds.Copy = "ctrl+c"
-keybinds.Paste = "ctrl+v"
+keybinds.Copy = "shift+ctrl+c"
+keybinds.Paste = "shift+ctrl+v"
 
 keybinds.DuplicatePane = mod .. "d"
 

@@ -67,8 +67,8 @@ function M.load_all_vars(vars_dir)
 	return merged, order
 end
 
--- Check if a value should be included for this machine/platform
-function M.should_include(var_def, machine_name, os_type)
+-- Check if a value should be included for this machine/platform/visual
+function M.should_include(var_def, machine_name, os_type, visual_type)
 	if type(var_def) ~= "table" then
 		return true
 	end
@@ -80,11 +80,17 @@ function M.should_include(var_def, machine_name, os_type)
 
 		local dominated_by_platform = false
 		local dominated_by_machine = false
+		local dominated_by_visual = false
 
 		for _, allowed in ipairs(only) do
 			if allowed == "windows" or allowed == "unix" then
 				dominated_by_platform = true
 				if allowed == os_type then
+					return true
+				end
+			elseif allowed == "hyprland" or allowed == "kde" then
+				dominated_by_visual = true
+				if allowed == visual_type then
 					return true
 				end
 			else
@@ -96,7 +102,11 @@ function M.should_include(var_def, machine_name, os_type)
 		end
 
 		-- If we had platform restrictions and none matched, exclude
-		if dominated_by_platform and not dominated_by_machine then
+		if dominated_by_platform and not dominated_by_machine and not dominated_by_visual then
+			return false
+		end
+		-- If we had visual restrictions and none matched, exclude
+		if dominated_by_visual and not dominated_by_machine then
 			return false
 		end
 		-- If we had machine restrictions and none matched, exclude

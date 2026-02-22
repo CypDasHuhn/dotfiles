@@ -55,13 +55,17 @@ local function ensure_machine_config()
 	end
 
 	-- Write the config file
-	local config = string.format([[return {
+	local config = string.format(
+		[[return {
 	name = "%s",
 	os = {
 		type = "%s",
 	},
 }
-]], name, os_type)
+]],
+		name,
+		os_type
+	)
 
 	local out = io.open(machine_path, "w")
 	if not out then
@@ -109,7 +113,7 @@ local function find_bootstraps()
 	-- List directories and find bootstrap.lua files
 	local cmd
 	if os_type == "unix" then
-		cmd = 'find "' .. script_dir .. '" -maxdepth 2 -name "bootstrap.lua" -type f 2>/dev/null'
+		cmd = 'find "' .. script_dir .. '" -name "bootstrap.lua" -type f 2>/dev/null'
 	else
 		cmd = 'dir /s /b "' .. script_dir:gsub("/", "\\") .. 'bootstrap.lua" 2>nul'
 	end

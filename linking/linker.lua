@@ -37,6 +37,9 @@ function M.init()
 
 	print("[linker] Machine: " .. machine.name)
 	print("[linker] OS: " .. machine.os.type)
+	if machine.os.visual then
+		print("[linker] Visual: " .. machine.os.visual)
+	end
 
 	return M
 end
@@ -70,6 +73,11 @@ function M.expand_env(path)
 	return path
 end
 
+-- Get the visual type (hyprland, kde, etc.)
+local function get_visual_type()
+	return machine.os and machine.os.visual
+end
+
 -- Resolve a variable name to its full expanded path
 function M.resolve(var_name)
 	local var_def = vars[var_name]
@@ -77,8 +85,9 @@ function M.resolve(var_name)
 		return nil, "Variable not found: " .. var_name
 	end
 
-	if not utils.should_include(var_def, machine.name, machine.os.type) then
-		return nil, "Variable excluded for this machine/OS: " .. var_name
+	local visual_type = get_visual_type()
+	if not utils.should_include(var_def, machine.name, machine.os.type, visual_type) then
+		return nil, "Variable excluded for this machine/OS/visual: " .. var_name
 	end
 
 	local value = utils.resolve_value(var_def, machine.name, machine.os.type)
