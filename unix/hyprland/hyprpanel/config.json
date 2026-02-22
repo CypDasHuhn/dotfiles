@@ -3,7 +3,7 @@
     "0": {
       "left": ["dashboard", "workspaces", "windowtitle"],
       "middle": ["media"],
-      "right": ["volume", "network", "bluetooth", "systray", "clock", "notifications"]
+      "right": ["volume", "network", "bluetooth", "clock", "notifications"]
     }
   },
   "menus.clock.time.military": true,

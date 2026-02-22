@@ -7,7 +7,7 @@ if not script_dir then
 end
 
 -- Load linker (already initialized by root bootstrap)
-package.path = script_dir .. "../linking/?.lua;" .. package.path
+package.path = script_dir .. "../util/?.lua;" .. package.path
 local linker = require("linker")
 
 -- Ensure linker is initialized (in case running standalone)

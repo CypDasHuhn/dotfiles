@@ -7,7 +7,7 @@ local function get_script_dir()
 end
 
 local script_dir = get_script_dir()
-package.path = script_dir .. "../?.lua;" .. script_dir .. "../../linking/?.lua;" .. package.path
+package.path = script_dir .. "../?.lua;" .. script_dir .. "../../util/?.lua;" .. package.path
 
 local generator = require("generator")
 local linker = require("linker")

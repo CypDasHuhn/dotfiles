@@ -100,7 +100,7 @@ print("")
 
 -- Step 2: Initialize linker
 print("--- Linking Modules ---")
-package.path = script_dir .. "linking/?.lua;" .. package.path
+package.path = script_dir .. "util/?.lua;" .. package.path
 local linker = require("linker")
 linker.init()
 print("")
