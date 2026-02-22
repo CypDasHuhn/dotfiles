@@ -101,23 +101,40 @@ local linker = require("linker")
 linker.init()
 print("")
 
--- Step 3: Run each module's bootstrap
-local modules = {
-	"nvim",
-	"terminal-emulator",
-}
+-- Step 3: Discover and run module bootstraps
+local function find_bootstraps()
+	local bootstraps = {}
+	local os_type = detect_os_type()
 
-for _, mod in ipairs(modules) do
-	local bootstrap_path = script_dir .. mod .. "/bootstrap.lua"
-	local f = io.open(bootstrap_path, "r")
-	if f then
-		local content = f:read("*a")
-		f:close()
-		-- Only run if bootstrap has content
-		if content and content:match("%S") then
-			print("Running " .. mod .. " bootstrap...")
-			dofile(bootstrap_path)
+	-- List directories and find bootstrap.lua files
+	local cmd
+	if os_type == "unix" then
+		cmd = 'find "' .. script_dir .. '" -maxdepth 2 -name "bootstrap.lua" -type f 2>/dev/null'
+	else
+		cmd = 'dir /s /b "' .. script_dir:gsub("/", "\\") .. 'bootstrap.lua" 2>nul'
+	end
+
+	local handle = io.popen(cmd)
+	if handle then
+		for line in handle:lines() do
+			-- Skip the root bootstrap.lua
+			if not line:match("dotfiles/bootstrap.lua$") and not line:match("dotfiles\\bootstrap.lua$") then
+				table.insert(bootstraps, line)
+			end
 		end
+		handle:close()
+	end
+
+	table.sort(bootstraps)
+	return bootstraps
+end
+
+for _, bootstrap_path in ipairs(find_bootstraps()) do
+	-- Extract module name from path
+	local mod = bootstrap_path:match("/([^/]+)/bootstrap%.lua$") or bootstrap_path:match("\\([^\\]+)\\bootstrap%.lua$")
+	if mod then
+		print("Running " .. mod .. " bootstrap...")
+		dofile(bootstrap_path)
 	end
 end
 

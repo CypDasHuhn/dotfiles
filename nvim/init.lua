@@ -3,6 +3,15 @@ require 'settings'
 require 'binds'
 -- endregion
 
+-- region Filetypes
+vim.filetype.add({
+  pattern = {
+    [".*/hypr/.*%.conf"] = "hyprlang",
+    [".*/hyprland/.*%.conf"] = "hyprlang",
+  },
+})
+-- endregion
+
 -- region Yank
 vim.api.nvim_create_autocmd('TextYankPost', {
   desc = 'Highlight when yanking (copying) text',
