@@ -2,3 +2,4 @@ generated/
 **/generated.*
 /.machine.local.lua
 .nvimlog
+nvim/lazy-lock.json
