@@ -4,6 +4,7 @@ local vars = {
 	appdataRoaming = { "${appdata}/Roaming" },
 	ahk = { "${dotfiles}/ahk" },
 	psProfile = { "${shellConfig}/generated/profile.ps1" },
+	systemPsProfile = { "C:/Windows/System32/WindowsPowerShell/v1.0/profile.ps1" },
 	startup = { "${appdataRoaming}/Microsoft/Windows/Start Menu/Programs/Startup" },
 	windowsTerminalConfig = {
 		"${dotfiles}/terminal-emulator/windows-terminal/generated.json",

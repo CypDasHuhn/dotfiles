@@ -2,53 +2,126 @@ local utils = require("utils")
 
 local M = {}
 
+local function quote_cmd_arg(arg)
+	return '"' .. tostring(arg):gsub('"', '\\"') .. '"'
+end
+
+local function get_cwd()
+	local handle = io.popen("cd")
+	if not handle then
+		return nil
+	end
+	local cwd = handle:read("*l")
+	handle:close()
+	return cwd
+end
+
+local function to_absolute_path(path)
+	if path:match("^%a:[/\\]") or path:match("^\\\\") then
+		return path
+	end
+
+	local cwd = get_cwd()
+	if not cwd or cwd == "" then
+		return path
+	end
+
+	local clean = path:gsub("^%.[/\\]", "")
+	return (cwd:gsub("\\", "/") .. "/" .. clean)
+end
+
+local function path_exists(path)
+	local handle = io.popen("cmd /c if exist " .. quote_cmd_arg(path) .. " (echo yes) else (echo no)")
+	if not handle then
+		return false
+	end
+	local result = handle:read("*l")
+	handle:close()
+	return result == "yes"
+end
+
+local function read_reparse_info(path)
+	local handle = io.popen("cmd /c fsutil reparsepoint query " .. quote_cmd_arg(path) .. " 2>nul")
+	if not handle then
+		return nil
+	end
+	local result = handle:read("*a")
+	handle:close()
+	if result and result ~= "" then
+		return result
+	end
+	return nil
+end
+
+local function write_profile_shim(target, source_win)
+	local f = io.open(target, "w")
+	if not f then
+		return false
+	end
+	f:write('. "' .. source_win .. '"\n')
+	f:close()
+	return true
+end
+
 -- Linking: profile.ps1 -> PowerShell profile
-function M.link(output_dir)
-	local source = output_dir .. "/profile.ps1"
+function M.link(output_dir, target_profile)
+	local source = to_absolute_path(output_dir .. "/profile.ps1")
+	local source_win = source:gsub("/", "\\")
 
-	-- PowerShell profile location: $HOME\Documents\PowerShell\Microsoft.PowerShell_profile.ps1
-	local home = os.getenv("USERPROFILE")
-	if not home then return false, "USERPROFILE not set" end
+	local target = target_profile and target_profile:gsub("/", "\\") or nil
+	if not target or target == "" then
+		return false, "systemPsProfile is not configured"
+	end
 
-	local target_dir = home .. "\\Documents\\PowerShell"
-	local target = target_dir .. "\\Microsoft.PowerShell_profile.ps1"
+	local target_dir = target:match("^(.*)\\[^\\]+$")
+	if not target_dir or target_dir == "" then
+		return false, "Invalid systemPsProfile path: " .. target
+	end
 
 	-- Create directory if needed
-	os.execute('mkdir "' .. target_dir .. '" 2>nul')
+	os.execute("cmd /c if not exist " .. quote_cmd_arg(target_dir) .. " mkdir " .. quote_cmd_arg(target_dir))
 
-	-- Check if target exists
-	local f = io.open(target, "r")
-	if f then
-		f:close()
-		-- Check if it's already a symlink to our file
-		local handle = io.popen('cmd /c "fsutil reparsepoint query "' .. target .. '" 2>nul | findstr /c:"' .. source .. '"')
-		if handle then
-			local result = handle:read("*a")
-			handle:close()
-			if result and result:match(source:gsub("\\", "\\\\")) then
-				print("Already linked: " .. target)
-				return true
-			end
+	-- Handle existing symlink target (even if broken) before regular existence checks.
+	local reparse_info = read_reparse_info(target)
+	if reparse_info then
+		if reparse_info:lower():find(source_win:lower(), 1, true) then
+			print("Already linked: " .. target)
+			return true
 		end
+		-- Stale or different symlink: replace it.
+		os.execute("cmd /c del " .. quote_cmd_arg(target) .. " 2>nul")
+	end
+
+	-- If a non-symlink target still exists, do not overwrite it.
+	if path_exists(target) then
 		return false, "Target exists: " .. target
 	end
 
 	-- Create symlink (requires admin or dev mode)
-	local cmd = 'mklink "' .. target .. '" "' .. source:gsub("/", "\\") .. '"'
+	local cmd = 'mklink "' .. target .. '" "' .. source_win .. '"'
 	local ok = os.execute('cmd /c "' .. cmd .. '"')
 	if ok == 0 or ok == true then
 		print("Linked: " .. target .. " -> " .. source)
 		return true
 	end
+
+	-- Fallback when symlink creation is not permitted.
+	if write_profile_shim(target, source_win) then
+		print("Linked (shim): " .. target .. " -> " .. source)
+		return true
+	end
+
 	return false, "Failed to create symlink (may need admin)"
 end
 
 local function get_module_files(dir, extension)
 	local files = {}
-	local handle = io.popen('ls -1 "' .. dir .. '"/*' .. extension .. ' 2>/dev/null')
+	local cmd = 'cmd /c dir /b /a-d ' .. quote_cmd_arg((dir:gsub("/", "\\")) .. "\\*" .. extension) .. " 2>nul"
+	local handle = io.popen(cmd)
 	if not handle then return files end
 	for file in handle:lines() do
-		table.insert(files, file)
+		local full = (dir .. "/" .. file):gsub("\\", "/")
+		table.insert(files, full)
 	end
 	handle:close()
 	return files
@@ -124,7 +197,7 @@ function %s {
 		end
 
 		if include then
-			table.insert(included_modules, { file = file, name = basename })
+			table.insert(included_modules, { filename = filename, name = basename })
 		end
 	end
 
@@ -132,7 +205,7 @@ function %s {
 		table.insert(lines, "")
 		table.insert(lines, "# Modules")
 		for _, mod in ipairs(included_modules) do
-			table.insert(lines, '. "' .. mod.file .. '"')
+			table.insert(lines, '. "$shellConfig/modules/windows/' .. mod.filename .. '"')
 		end
 	end
 

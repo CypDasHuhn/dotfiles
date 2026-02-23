@@ -3,11 +3,19 @@
 
 local M = {}
 
+local function quote_cmd_arg(arg)
+	return '"' .. tostring(arg):gsub('"', '\\"') .. '"'
+end
+
 -- Get the linker directory (where this script lives)
 local function get_linker_dir()
 	local info = debug.getinfo(1, "S")
-	local path = info.source:match("^@(.*/)")
-	return path or "./"
+	local source = info and info.source or ""
+	local path = source:match("^@(.+[\\/])")
+	if path then
+		return path:gsub("\\", "/")
+	end
+	return "./"
 end
 
 local linker_dir = get_linker_dir()
@@ -109,11 +117,27 @@ end
 
 -- Check if a path exists
 function M.exists(path)
-	local f = io.open(path, "r")
-	if f then
-		f:close()
-		return true
+	if not path or path == "" then
+		return false
 	end
+
+	if machine and machine.os and machine.os.type == "windows" then
+		local handle = io.popen("cmd /c if exist " .. quote_cmd_arg(path:gsub("/", "\\")) .. " (echo yes) else (echo no)")
+		if handle then
+			local result = handle:read("*l")
+			handle:close()
+			return result == "yes"
+		end
+		return false
+	end
+
+	local handle = io.popen("test -e " .. quote_cmd_arg(path) .. " && echo yes || echo no")
+	if handle then
+		local result = handle:read("*l")
+		handle:close()
+		return result == "yes"
+	end
+
 	return false
 end
 
@@ -128,7 +152,8 @@ function M.is_symlink(path)
 		end
 	else
 		-- Windows: check for reparse point
-		local handle = io.popen('cmd /c "if exist "' .. path .. '" (fsutil reparsepoint query "' .. path .. '" >nul 2>&1 && echo yes || echo no) else echo no"')
+		local win_path = path:gsub("/", "\\")
+		local handle = io.popen("cmd /c if exist " .. quote_cmd_arg(win_path) .. " (fsutil reparsepoint query " .. quote_cmd_arg(win_path) .. " >nul 2>&1 && echo yes || echo no) else echo no")
 		if handle then
 			local result = handle:read("*l")
 			handle:close()
@@ -166,6 +191,54 @@ function M.mkdir_p(path)
 	return true
 end
 
+local function is_directory(path)
+	if machine.os.type == "unix" then
+		local handle = io.popen("test -d " .. quote_cmd_arg(path) .. " && echo yes || echo no")
+		if handle then
+			local result = handle:read("*l")
+			handle:close()
+			return result == "yes"
+		end
+		return false
+	end
+
+	local win_path = path:gsub("/", "\\")
+	-- "\*" is a reliable way to detect directory containers across Windows setups.
+	local handle = io.popen("cmd /c if exist " .. quote_cmd_arg(win_path .. "\\*") .. " (echo yes) else (echo no)")
+	if handle then
+		local result = handle:read("*l")
+		handle:close()
+		return result == "yes"
+	end
+	return false
+end
+
+local function remove_path(path)
+	if machine.os.type == "unix" then
+		local cmd = "rm -rf " .. quote_cmd_arg(path)
+		local result = os.execute(cmd)
+		if result ~= 0 and result ~= true then
+			return false, "Failed to remove target: " .. path
+		end
+	else
+		local win_path = path:gsub("/", "\\")
+		-- Try both directory and file deletion to handle all reparse-point kinds.
+		local cmd = "cmd /c (rmdir " .. quote_cmd_arg(win_path) .. " >nul 2>&1)"
+			.. " & (rmdir /S /Q " .. quote_cmd_arg(win_path) .. " >nul 2>&1)"
+			.. " & (del /F /Q " .. quote_cmd_arg(win_path) .. " >nul 2>&1)"
+		local result = os.execute(cmd)
+		if result ~= 0 and result ~= true then
+			return false, "Failed to remove target: " .. path
+		end
+	end
+
+	if M.exists(path) or M.is_symlink(path) then
+		return false, "Target still exists after removal attempt: " .. path
+	end
+
+	return true
+end
+
 -- Create a symlink from source to target
 -- source: the actual files (in dotfiles)
 -- target: where the symlink should be created (system location)
@@ -186,12 +259,16 @@ function M.link(source, target)
 			if current == source then
 				print("[linker] Already linked: " .. target .. " -> " .. source)
 				return true, "already linked"
-			else
-				print("[linker] Warning: " .. target .. " points to " .. (current or "unknown"))
-				return false, "Symlink exists but points elsewhere: " .. (current or "unknown")
 			end
+
+			print("[linker] Replacing existing symlink: " .. target .. " (current: " .. (current or "unknown") .. ")")
 		else
-			return false, "Target exists and is not a symlink: " .. target
+			print("[linker] Replacing existing target: " .. target)
+		end
+
+		local removed, remove_err = remove_path(target)
+		if not removed then
+			return false, remove_err
 		end
 	end
 
@@ -205,11 +282,11 @@ function M.link(source, target)
 	else
 		-- Windows: use mklink (needs admin or dev mode)
 		-- /D for directory, /H for hard link (files only)
-		local is_dir = M.exists(source .. "/") or M.exists(source .. "\\")
+		local is_dir = is_directory(source)
 		if is_dir then
-			cmd = string.format('mklink /D "%s" "%s"', target:gsub("/", "\\"), source:gsub("/", "\\"))
+			cmd = string.format('cmd /c mklink /D "%s" "%s"', target:gsub("/", "\\"), source:gsub("/", "\\"))
 		else
-			cmd = string.format('mklink "%s" "%s"', target:gsub("/", "\\"), source:gsub("/", "\\"))
+			cmd = string.format('cmd /c mklink "%s" "%s"', target:gsub("/", "\\"), source:gsub("/", "\\"))
 		end
 	end
 

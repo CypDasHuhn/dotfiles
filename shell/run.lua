@@ -1,10 +1,16 @@
 #!/usr/bin/env lua
 
 -- Get script directory and set up package path
-local script_dir = arg[0]:match("(.*/)")
-if not script_dir then
-	script_dir = "./"
+local function get_script_dir()
+	local source = (arg and arg[0]) or ""
+	local path = source:match("(.+[\\/])")
+	if path then
+		return path:gsub("\\", "/")
+	end
+	return "./"
 end
+
+local script_dir = get_script_dir()
 package.path = script_dir .. "?.lua;" .. script_dir .. "mappers/?.lua;" .. package.path
 
 local utils = require("utils")
@@ -33,6 +39,26 @@ print("Loaded vars from " .. VARS_DIR)
 -- Sort vars by dependency order
 var_order = utils.dependency_sort(vars, var_order, machine.name, machine.os.type)
 
+local function resolve_processed_var(name)
+	local var_def = vars[name]
+	if not var_def then
+		return nil
+	end
+
+	if not utils.should_include(var_def, machine.name, machine.os.type, machine.os.visual) then
+		return nil
+	end
+
+	local value = utils.resolve_value(var_def, machine.name, machine.os.type)
+	if not value then
+		return nil
+	end
+
+	value = utils.expand_value(value, vars, machine.name, machine.os.type)
+	value = utils.process_value(value, machine.os.type)
+	return value
+end
+
 -- Determine which mapper to use based on OS type
 local mapper_name = machine.os.type
 local mapper_path = "mappers." .. mapper_name .. ".profile"
@@ -57,7 +83,8 @@ end
 
 -- Link profile to system location
 if mapper.link then
-	local link_ok, link_err = mapper.link(GENERATED_DIR)
+	local system_ps_profile = resolve_processed_var("systemPsProfile")
+	local link_ok, link_err = mapper.link(GENERATED_DIR, system_ps_profile)
 	if not link_ok and link_err then
 		print("Link: " .. link_err)
 	end

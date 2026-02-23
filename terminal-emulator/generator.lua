@@ -6,8 +6,12 @@ local M = {}
 
 local function get_script_dir()
 	local info = debug.getinfo(1, "S")
-	local path = info.source:match("^@(.*/)")
-	return path or "./"
+	local source = info and info.source or ""
+	local path = source:match("^@(.+[\\/])")
+	if path then
+		return path:gsub("\\", "/")
+	end
+	return "./"
 end
 
 local script_dir = get_script_dir()
@@ -31,6 +35,16 @@ local function read_file(path)
 end
 
 local function write_file(path, content)
+	local dir = path:match("(.+)/[^/]+$") or path:match("(.+)\\[^\\]+$")
+	if dir then
+		if package.config:sub(1, 1) == "\\" then
+			local win_dir = dir:gsub("/", "\\")
+			os.execute('cmd /c if not exist "' .. win_dir .. '" mkdir "' .. win_dir .. '"')
+		else
+			os.execute('mkdir -p "' .. dir .. '"')
+		end
+	end
+
 	local f = io.open(path, "w")
 	if not f then
 		return false, "Could not write: " .. path
@@ -92,10 +106,16 @@ end
 
 function M.list_emulators()
 	local emulators = {}
-	local handle = io.popen('ls -d "' .. script_dir .. '"*/ 2>/dev/null')
+	local cmd
+	if package.config:sub(1, 1) == "\\" then
+		cmd = 'cmd /c dir /b /ad "' .. script_dir:gsub("/", "\\") .. '*" 2>nul'
+	else
+		cmd = 'ls -d "' .. script_dir .. '"*/ 2>/dev/null'
+	end
+	local handle = io.popen(cmd)
 	if handle then
 		for dir in handle:lines() do
-			local name = dir:match("([^/]+)/$")
+			local name = dir:match("([^/\\]+)[/\\]?$")
 			if name then
 				local mapper = io.open(script_dir .. name .. "/mapper.lua", "r")
 				if mapper then

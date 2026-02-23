@@ -1,6 +1,14 @@
 local M = {}
 local dep_analyzer = require("dependency-analyzer")
 
+local function is_windows()
+	return package.config:sub(1, 1) == "\\"
+end
+
+local function quote_cmd_arg(arg)
+	return '"' .. tostring(arg):gsub('"', '\\"') .. '"'
+end
+
 -- Get the shell directory (where this script lives)
 function M.get_shell_dir()
 	local info = debug.getinfo(1, "S")
@@ -20,14 +28,25 @@ end
 -- Get sorted list of files matching pattern in directory
 function M.get_sorted_files(dir, pattern)
 	local files = {}
-	local handle = io.popen('ls -1 "' .. dir .. '" 2>/dev/null')
+	local cmd
+	if is_windows() then
+		cmd = 'cmd /c dir /b /a-d ' .. quote_cmd_arg(dir:gsub("/", "\\")) .. " 2>nul"
+	else
+		cmd = 'ls -1 ' .. quote_cmd_arg(dir) .. " 2>/dev/null"
+	end
+
+	local handle = io.popen(cmd)
 	if not handle then
 		return files
 	end
 
 	for file in handle:lines() do
 		if file:match(pattern) then
-			table.insert(files, dir .. "/" .. file)
+			local full = dir .. "/" .. file
+			if is_windows() then
+				full = full:gsub("\\", "/")
+			end
+			table.insert(files, full)
 		end
 	end
 	handle:close()
@@ -181,6 +200,15 @@ end
 
 -- Write content to file
 function M.write_file(path, content)
+	local dir = path:match("(.+)/[^/]+$") or path:match("(.+)\\[^\\]+$")
+	if dir then
+		if is_windows() then
+			os.execute('cmd /c if not exist ' .. quote_cmd_arg(dir:gsub("/", "\\")) .. " mkdir " .. quote_cmd_arg(dir:gsub("/", "\\")))
+		else
+			os.execute("mkdir -p " .. quote_cmd_arg(dir))
+		end
+	end
+
 	local file = io.open(path, "w")
 	if not file then
 		return false, "Could not open file for writing: " .. path

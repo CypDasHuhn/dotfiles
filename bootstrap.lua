@@ -3,10 +3,16 @@
 -- Dotfiles Bootstrap
 -- Orchestrates shell generation and module linking
 
-local script_dir = arg[0]:match("(.*/)")
-if not script_dir then
-	script_dir = "./"
+local function get_script_dir()
+	local source = (arg and arg[0]) or ""
+	local path = source:match("(.+[\\/])")
+	if path then
+		return path:gsub("\\", "/")
+	end
+	return "./"
 end
+
+local script_dir = get_script_dir()
 
 -- Detect OS type
 local function detect_os_type()
@@ -106,7 +112,18 @@ linker.init()
 print("")
 
 -- Step 3: Discover and run module bootstraps
-local function find_bootstraps()
+local function should_run_bootstrap(path, runtime_os)
+	local normalized = path:gsub("\\", "/")
+	if normalized:find("/unix/") then
+		return runtime_os == "unix"
+	end
+	if normalized:find("/windows/") then
+		return runtime_os == "windows"
+	end
+	return true
+end
+
+local function find_bootstraps(runtime_os)
 	local bootstraps = {}
 	local os_type = detect_os_type()
 
@@ -122,7 +139,9 @@ local function find_bootstraps()
 	if handle then
 		for line in handle:lines() do
 			-- Skip the root bootstrap.lua
-			if not line:match("dotfiles/bootstrap.lua$") and not line:match("dotfiles\\bootstrap.lua$") then
+			if not line:match("dotfiles/bootstrap.lua$")
+				and not line:match("dotfiles\\bootstrap.lua$")
+				and should_run_bootstrap(line, runtime_os) then
 				table.insert(bootstraps, line)
 			end
 		end
@@ -133,7 +152,8 @@ local function find_bootstraps()
 	return bootstraps
 end
 
-for _, bootstrap_path in ipairs(find_bootstraps()) do
+local runtime_os = linker.machine().os.type
+for _, bootstrap_path in ipairs(find_bootstraps(runtime_os)) do
 	-- Extract module name from path
 	local mod = bootstrap_path:match("/([^/]+)/bootstrap%.lua$") or bootstrap_path:match("\\([^\\]+)\\bootstrap%.lua$")
 	if mod then
