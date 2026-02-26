@@ -1,4 +1,4 @@
-local langs = require 'languages'
+local langs = require '.config.lang-packs.init'
 
 local path_sep = vim.fn.has 'win32' == 1 and ';' or ':'
 local mason_bin = vim.fn.stdpath 'data' .. '/mason/bin'
@@ -16,13 +16,15 @@ local function resolve_prettier()
   end
 
   local data_path = vim.fn.stdpath 'data'
-  local candidates = vim.fn.has 'win32' == 1 and {
-    data_path .. '/mason/bin/prettier.cmd',
-    data_path .. '/mason/packages/prettier/node_modules/.bin/prettier.cmd',
-  } or {
-    data_path .. '/mason/bin/prettier',
-    data_path .. '/mason/packages/prettier/node_modules/.bin/prettier',
-  }
+  local candidates = vim.fn.has 'win32' == 1
+      and {
+        data_path .. '/mason/bin/prettier.cmd',
+        data_path .. '/mason/packages/prettier/node_modules/.bin/prettier.cmd',
+      }
+    or {
+      data_path .. '/mason/bin/prettier',
+      data_path .. '/mason/packages/prettier/node_modules/.bin/prettier',
+    }
 
   for _, cmd in ipairs(candidates) do
     if vim.uv.fs_stat(cmd) then

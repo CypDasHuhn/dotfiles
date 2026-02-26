@@ -1,4 +1,4 @@
-local langs = require 'languages'
+local langs = require '.config.lang-packs.init'
 return {
   -- lspconfig provides default configs (cmd, root_markers, filetypes) for LSP servers
   'neovim/nvim-lspconfig',

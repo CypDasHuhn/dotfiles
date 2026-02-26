@@ -1,15 +1,15 @@
 -- region Modules
-require 'settings'
-require 'binds'
+require '.config.settings'
+require '.config.binds'
 -- endregion
 
 -- region Filetypes
-vim.filetype.add({
+vim.filetype.add {
   pattern = {
-    [".*/hypr/.*%.conf"] = "hyprlang",
-    [".*/hyprland/.*%.conf"] = "hyprlang",
+    ['.*/hypr/.*%.conf'] = 'hyprlang',
+    ['.*/hyprland/.*%.conf'] = 'hyprlang',
   },
-})
+}
 -- endregion
 
 -- region Yank

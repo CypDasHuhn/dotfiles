@@ -1,4 +1,4 @@
-local langs = require 'languages'
+local langs = require '.config.lang-packs.init'
 
 return {
   'nvim-treesitter/nvim-treesitter',
