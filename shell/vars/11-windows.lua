@@ -3,6 +3,7 @@ local vars = {
 	appdataLocal = { "${appdata}/Local" },
 	appdataRoaming = { "${appdata}/Roaming" },
 	ahk = { "${dotfiles}/ahk" },
+	ahkKeys = "${ahk}/generated/config.ini",
 	psProfile = { "${shellConfig}/generated/profile.ps1" },
 	systemPsProfile = { "C:/Program Files/PowerShell/7/profile.ps1" },
 	startup = { "${appdataRoaming}/Microsoft/Windows/Start Menu/Programs/Startup" },
