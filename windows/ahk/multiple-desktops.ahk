@@ -8,7 +8,7 @@ KeyHistory 0
 ProcessSetPriority "H"
 SetWinDelay -1
 SetControlDelay -1
-#Include %A_LineFile%\..\VD.ah2
+#Include %A_LineFile%\..\VD.ahk
 
 ; wrapping / cycle back to first desktop when at the last
 ^#left::VD.goToRelativeDesktopNum(-1)
