@@ -34,6 +34,9 @@ return {
 	},
 	vault = {
 		path = "${me}/Documents/CypVault",
+		machines = {
+			["personal-tower"] = "${me}/Documents/cyps-vault",
+		},
 		dir_function = true,
 	},
 	shellConfig = {
