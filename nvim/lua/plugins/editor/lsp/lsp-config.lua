@@ -58,7 +58,12 @@ return {
           vim.api.nvim_create_autocmd({ 'CursorHold', 'CursorHoldI' }, {
             buffer = event.buf,
             group = highlight_augroup,
-            callback = vim.lsp.buf.document_highlight,
+            callback = function()
+              local c = vim.lsp.get_client_by_id(event.data.client_id)
+              if c and client_supports_method(c, vim.lsp.protocol.Methods.textDocument_documentHighlight, event.buf) then
+                vim.lsp.buf.document_highlight()
+              end
+            end,
           })
 
           vim.api.nvim_create_autocmd({ 'CursorMoved', 'CursorMovedI' }, {
@@ -122,9 +127,18 @@ return {
       },
     }, langs.servers)
 
-    -- Apply server-specific overrides via vim.lsp.config
+    -- Apply server configs; split Mason-managed from externally-installed
+    local mason_servers = {}
     for server_name, server_opts in pairs(servers) do
-      vim.lsp.config(server_name, server_opts)
+      local opts = vim.tbl_deep_extend('force', {}, server_opts)
+      local is_external = opts.mason == false
+      opts.mason = nil
+      vim.lsp.config(server_name, opts)
+      if is_external then
+        vim.lsp.enable(server_name)
+      else
+        table.insert(mason_servers, server_name)
+      end
     end
 
     -- Non-LSP tools (formatters, linters) go through mason-tool-installer
@@ -134,7 +148,7 @@ return {
 
     -- mason-lspconfig installs LSP servers and auto-enables them
     require('mason-lspconfig').setup {
-      ensure_installed = vim.tbl_keys(servers or {}),
+      ensure_installed = mason_servers,
       automatic_enable = true,
     }
   end,

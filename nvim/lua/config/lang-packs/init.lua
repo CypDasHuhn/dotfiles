@@ -28,7 +28,7 @@ local files = vim.fn.glob(dir .. '/*.lua', false, true)
 for _, file in ipairs(files) do
   local name = vim.fn.fnamemodify(file, ':t:r')
   if name ~= 'init' then
-    local ok, lang = pcall(require, 'languages.' .. name)
+    local ok, lang = pcall(dofile, file)
     if ok and type(lang) == 'table' then
       -- Merge servers
       if lang.servers then
