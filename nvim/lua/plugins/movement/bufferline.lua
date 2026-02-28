@@ -92,18 +92,27 @@ return {
     map('n', '<leader>bd', '<cmd>Bdelete<cr>', { desc = 'Delete buffer' })
     map('n', '<leader>bD', '<cmd>Bdelete!<cr>', { desc = 'Delete buffer (force)' })
     map('n', '<leader>bo', '<cmd>BufferLineCloseUnpinned<cr>', { desc = 'Close unpinned' })
+    map('n', '<leader>bO', function()
+      local buf = vim.api.nvim_get_current_buf()
+      local state = require 'bufferline.state'
+      local pinned = false
+      for _, component in ipairs(state.components or {}) do
+        if component.id == buf and (component.pinned or component.group == 'pinned') then
+          pinned = true
+          break
+        end
+      end
+      vim.cmd 'BufferLineCloseUnpinned'
+      if not pinned then
+        vim.cmd 'Bdelete'
+      end
+    end, { desc = 'Close unpinned + current if unpinned' })
     map('n', '<leader>br', '<cmd>BufferLineCloseRight<cr>', { desc = 'Close right' })
     map('n', '<leader>bl', '<cmd>BufferLineCloseLeft<cr>', { desc = 'Close left' })
     -- Go to buffer by number
-    map('n', '<leader>b1', '<cmd>BufferLineGoToBuffer 1<cr>', { desc = 'Go to buffer 1' })
-    map('n', '<leader>b2', '<cmd>BufferLineGoToBuffer 2<cr>', { desc = 'Go to buffer 2' })
-    map('n', '<leader>b3', '<cmd>BufferLineGoToBuffer 3<cr>', { desc = 'Go to buffer 3' })
-    map('n', '<leader>b4', '<cmd>BufferLineGoToBuffer 4<cr>', { desc = 'Go to buffer 4' })
-    map('n', '<leader>b5', '<cmd>BufferLineGoToBuffer 5<cr>', { desc = 'Go to buffer 5' })
-    map('n', '<leader>b6', '<cmd>BufferLineGoToBuffer 6<cr>', { desc = 'Go to buffer 6' })
-    map('n', '<leader>b7', '<cmd>BufferLineGoToBuffer 7<cr>', { desc = 'Go to buffer 7' })
-    map('n', '<leader>b8', '<cmd>BufferLineGoToBuffer 8<cr>', { desc = 'Go to buffer 8' })
-    map('n', '<leader>b9', '<cmd>BufferLineGoToBuffer 9<cr>', { desc = 'Go to buffer 9' })
+    for i = 1, 9 do
+      map('n', '<leader>b' .. i, '<cmd>BufferLineGoToBuffer ' .. i .. '<cr>', { desc = 'Go to buffer ' .. i })
+    end
     -- endregion
   end,
 }
