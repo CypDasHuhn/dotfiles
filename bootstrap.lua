@@ -106,7 +106,7 @@ print("")
 
 -- Step 2: Initialize linker
 print("--- Linking Modules ---")
-package.path = script_dir .. "util/?.lua;" .. package.path
+package.path = script_dir .. "util/?.lua;" .. script_dir .. "terminal-emulator/?.lua;" .. package.path
 local linker = require("linker")
 linker.init()
 print("")
@@ -152,11 +152,11 @@ local function find_bootstraps(runtime_os)
 	return bootstraps
 end
 
+local filter = arg and arg[1]
 local runtime_os = linker.machine().os.type
 for _, bootstrap_path in ipairs(find_bootstraps(runtime_os)) do
-	-- Extract module name from path
 	local mod = bootstrap_path:match("/([^/]+)/bootstrap%.lua$") or bootstrap_path:match("\\([^\\]+)\\bootstrap%.lua$")
-	if mod then
+	if mod and (not filter or mod == filter) then
 		print("Running " .. mod .. " bootstrap...")
 		dofile(bootstrap_path)
 	end
