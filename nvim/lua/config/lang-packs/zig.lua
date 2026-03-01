@@ -1,13 +1,11 @@
 return {
   servers = {
-    zls = {},
+    zls = { mason = false },
   },
   formatters = {
     zig = { 'zigfmt' },
   },
   linters = {},
-  tools = {
-    'zls',
-  },
+  tools = {},
   treesitter = { 'zig' },
 }
