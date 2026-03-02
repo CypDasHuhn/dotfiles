@@ -36,7 +36,7 @@ return {
 		path = "${me}/Documents/cyps-vault",
 		dir_function = true,
 	},
-	vault2 = {
+	vaultOld = {
 		"${me}/Documents/cyps-vault-old",
 		dir_function = true,
 	},
