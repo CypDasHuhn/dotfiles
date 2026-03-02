@@ -56,8 +56,18 @@ vim.keymap.set('n', '<leader>m', 'q')
 
 -- Bind $ to g_. This is since i dont like $ including new line char.
 vim.keymap.set({ 'n', 'v', 'o' }, '$', 'g_', { noremap = true })
--- When pasting, makes it so that whatever you pasted wont get saved into your clipboard
-vim.keymap.set('v', 'p', '"_dP', { noremap = true })
+
+-- region Clipboard-safe deletes/paste
+-- Keep `x` from updating unnamed/clipboard register.
+vim.keymap.set({ 'n', 'x' }, 'x', '"_x', { noremap = true, silent = true })
+-- Preserve old `x` behavior on `X` (delete + yank into unnamed register).
+vim.keymap.set({ 'n', 'x' }, 'X', 'x', { noremap = true, silent = true })
+
+-- In visual mode, paste over selection without yanking replaced text.
+vim.keymap.set('x', 'p', '"_dP', { noremap = true, silent = true })
+vim.keymap.set('x', 'P', '"_dP', { noremap = true, silent = true })
+-- endregion
+
 -- region LSP Actions
 vim.keymap.set('n', 'grI', function()
   vim.lsp.buf.code_action {
