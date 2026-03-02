@@ -33,10 +33,11 @@ return {
 		path = "${me}/.wezterm.lua",
 	},
 	vault = {
-		path = "${me}/Documents/CypVault",
-		machines = {
-			["personal-tower"] = "${me}/Documents/cyps-vault",
-		},
+		path = "${me}/Documents/cyps-vault",
+		dir_function = true,
+	},
+	vault2 = {
+		"${me}/Documents/cyps-vault-old",
 		dir_function = true,
 	},
 	shellConfig = {
