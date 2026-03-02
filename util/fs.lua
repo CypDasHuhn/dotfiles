@@ -66,6 +66,19 @@ local function new(os_type)
 				handle:close()
 				return target
 			end
+		else
+			local win_path = path:gsub("/", "\\")
+			local ps_path = win_path:gsub("'", "''")
+			local cmd = 'powershell -NoProfile -Command "$item = Get-Item -LiteralPath \'' .. ps_path
+				.. '\'; if ($item -and $item.Target) { @($item.Target)[0] }"'
+			local handle = io.popen(cmd)
+			if handle then
+				local target = handle:read("*l")
+				handle:close()
+				if target and target ~= "" then
+					return target
+				end
+			end
 		end
 		return nil
 	end

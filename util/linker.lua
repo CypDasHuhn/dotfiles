@@ -27,6 +27,19 @@ local machine = nil
 local fs = nil
 local resolver = nil
 
+local function normalize_path(path, os_type)
+	if not path then
+		return nil
+	end
+	local normalized = path
+	if os_type == "windows" then
+		normalized = normalized:gsub("\\", "/"):gsub("/+$", ""):lower()
+	else
+		normalized = normalized:gsub("/+$", "")
+	end
+	return normalized
+end
+
 function M.init()
 	local machine_path = dotfiles_dir .. ".machine.local.lua"
 	machine = utils.load_file(machine_path)
@@ -72,7 +85,9 @@ function M.link(source, target)
 	if fs.exists(target) or fs.is_symlink(target) then
 		if fs.is_symlink(target) then
 			local current = fs.readlink(target)
-			if current == source then
+			local normalized_current = normalize_path(current, machine.os.type)
+			local normalized_source = normalize_path(source, machine.os.type)
+			if normalized_current and normalized_current == normalized_source then
 				print("[linker] Already linked: " .. target .. " -> " .. source)
 				return true, "already linked"
 			end
