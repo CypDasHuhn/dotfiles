@@ -1,5 +1,5 @@
 local function get_header()
-  local headers_dir = vim.fn.stdpath 'config' .. '/lua/plugins/visual/headers/'
+  local headers_dir = vim.fn.stdpath 'config' .. '/lua/plugins/visual/elements/headers/'
   local files = vim.fn.globpath(headers_dir, '*.txt', false, true)
   math.randomseed(os.time())
   local chosen = files[math.random(#files)]
@@ -20,8 +20,6 @@ return {
         -- limit how many projects list, action when you press key or enter it will run this action.
         -- action can be a function type, e.g.
         -- action = func(path) vim.cmd('Telescope find_files cwd=' .. path) end
-        project = { enable = true, limit = 8, icon = 'your icon', label = '', action = 'Telescope find_files cwd=' },
-        mru = { enable = true, limit = 10, icon = 'your icon', label = '', cwd_only = false },
         footer = {}, -- footer
         header = get_header(),
       },
