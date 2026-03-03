@@ -11,7 +11,6 @@ local function get_script_dir()
 	end
 	return "./"
 end
-
 local script_dir = get_script_dir()
 
 -- Detect OS type
@@ -139,9 +138,11 @@ local function find_bootstraps(runtime_os)
 	if handle then
 		for line in handle:lines() do
 			-- Skip the root bootstrap.lua
-			if not line:match("dotfiles/bootstrap.lua$")
+			if
+				not line:match("dotfiles/bootstrap.lua$")
 				and not line:match("dotfiles\\bootstrap.lua$")
-				and should_run_bootstrap(line, runtime_os) then
+				and should_run_bootstrap(line, runtime_os)
+			then
 				table.insert(bootstraps, line)
 			end
 		end
