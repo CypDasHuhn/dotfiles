@@ -1,4 +1,5 @@
 local vars = {
+	zen = { "${dotfiles}/browser/zen" },
 	kittyConfig = { "${dotfiles}/terminal-emulator/kitty/generated.conf" },
 	systemKitty = { "${me}/.config/kitty/kitty.conf" },
 	konsoleConfig = { "${dotfiles}/terminal-emulator/konsole/generated.rc" },

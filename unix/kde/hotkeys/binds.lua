@@ -1,7 +1,7 @@
 local layer = { key = "rightshift", name = "mymod" }
 
 local apps = {
-	a = "firefox",
+	a = "zen",
 	t = "kitty",
 	d = "discord",
 	f = "dolphin",
@@ -9,8 +9,8 @@ local apps = {
 }
 
 local combos = {
-	{ hold = "alt",      action = "focus" },
-	{ hold = "alt+ctrl", action = "open"  },
+	{ hold = "alt", action = "focus" },
+	{ hold = "alt+ctrl", action = "open" },
 }
 
 local binds = {}
