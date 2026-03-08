@@ -1,2 +1,1 @@
-alias xdg-open='ii'
-
+alias ii='xdg-open'

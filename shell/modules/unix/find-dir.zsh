@@ -16,10 +16,9 @@ fcd() {
 
     for pattern in "${patterns[@]}"; do
         local dir
-        dir=$(find . -maxdepth "$depth" -type d -name "*${pattern}*" | head -n 1)
+        dir=$(find . -maxdepth "$depth" -type d -iname "*${pattern}*" | head -n 1)
         if [ -n "$dir" ]; then
             cd "$dir" || return 1
-            print -P "%F{green}-> %(pwd)%f"
         else
             print -P "%F{red}No directory matching '$pattern' found%f"
             return 1
