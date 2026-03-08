@@ -35,3 +35,5 @@ PS1='%1~ %# '
 
 # Keybindings
 bindkey '^Y' autosuggest-accept  # Ctrl+Y to accept autosuggestion
+
+eval "$(/home/linuxbrew/.linuxbrew/bin/brew shellenv)"

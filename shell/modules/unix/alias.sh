@@ -1,0 +1,2 @@
+alias xdg-open='ii'
+
