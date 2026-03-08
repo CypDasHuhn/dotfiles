@@ -1,5 +1,6 @@
 return {
   'arakkkkk/kanban.nvim',
+  ft = { 'markdown' },
   -- Optional
   dependencies = {
     'nvim-telescope/telescope.nvim',

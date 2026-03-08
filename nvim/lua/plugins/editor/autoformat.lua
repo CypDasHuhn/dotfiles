@@ -1,9 +1,10 @@
-local langs = require '.config.lang-packs.init'
-
 local path_sep = vim.fn.has 'win32' == 1 and ';' or ':'
 local mason_bin = vim.fn.stdpath 'data' .. '/mason/bin'
-if vim.uv.fs_stat(mason_bin) and not string.find(vim.env.PATH or '', mason_bin, 1, true) then
-  vim.env.PATH = mason_bin .. path_sep .. (vim.env.PATH or '')
+
+local function ensure_mason_bin_on_path()
+  if vim.uv.fs_stat(mason_bin) and not string.find(vim.env.PATH or '', mason_bin, 1, true) then
+    vim.env.PATH = mason_bin .. path_sep .. (vim.env.PATH or '')
+  end
 end
 
 local function resolve_prettier()
@@ -49,29 +50,34 @@ return {
       desc = '[F]ormat buffer',
     },
   },
-  opts = {
-    notify_on_error = false,
-    format_on_save = function(bufnr)
-      -- Disable "format_on_save lsp_fallback" for languages that don't
-      -- have a well standardized coding style. You can add additional
-      -- languages here or re-enable it for the disabled ones.
-      local disable_filetypes = { c = true, cpp = true }
-      if disable_filetypes[vim.bo[bufnr].filetype] then
-        return nil
-      else
-        return {
-          timeout_ms = 3000,
-          lsp_format = 'fallback',
-        }
-      end
-    end,
-    formatters = {
-      prettier = {
-        command = resolve_prettier(),
+  opts = function()
+    local langs = require '.config.lang-packs.init'
+    ensure_mason_bin_on_path()
+
+    return {
+      notify_on_error = false,
+      format_on_save = function(bufnr)
+        -- Disable "format_on_save lsp_fallback" for languages that don't
+        -- have a well standardized coding style. You can add additional
+        -- languages here or re-enable it for the disabled ones.
+        local disable_filetypes = { c = true, cpp = true }
+        if disable_filetypes[vim.bo[bufnr].filetype] then
+          return nil
+        else
+          return {
+            timeout_ms = 3000,
+            lsp_format = 'fallback',
+          }
+        end
+      end,
+      formatters = {
+        prettier = {
+          command = resolve_prettier(),
+        },
       },
-    },
-    formatters_by_ft = vim.tbl_deep_extend('force', {
-      lua = { 'stylua' },
-    }, langs.formatters),
-  },
+      formatters_by_ft = vim.tbl_deep_extend('force', {
+        lua = { 'stylua' },
+      }, langs.formatters),
+    }
+  end,
 }

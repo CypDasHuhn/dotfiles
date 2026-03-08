@@ -1,5 +1,6 @@
 return {
   'axsaucedo/neovim-power-mode',
+  lazy = true,
   cmd = {
     'PowerModeToggle',
     'PowerModeEnable',

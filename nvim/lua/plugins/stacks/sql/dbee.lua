@@ -1,5 +1,7 @@
 return {
   'kndndrj/nvim-dbee',
+  cmd = { 'Dbee' },
+  ft = { 'sql' },
   dependencies = {
     'MunifTanjim/nui.nvim',
   },
