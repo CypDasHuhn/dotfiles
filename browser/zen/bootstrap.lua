@@ -1,3 +1,4 @@
+local c = require("colors")
 local linker = require("linker")
 
 if linker.machine().os.type ~= "unix" then return end
@@ -9,7 +10,7 @@ local profiles_ini = zen_config_dir .. "/profiles.ini"
 local function find_profile_path()
 	local f = io.open(profiles_ini, "r")
 	if not f then
-		print("[zen] profiles.ini not found, skipping")
+		c.tag_warn("zen", "profiles.ini not found, skipping")
 		return nil
 	end
 	local content = f:read("*all")
@@ -29,7 +30,7 @@ local function find_profile_path()
 		end
 	end
 
-	print("[zen] Could not find 'Default (release)' profile in profiles.ini")
+	c.tag_err("zen", "could not find 'Default (release)' profile in profiles.ini")
 	return nil
 end
 
@@ -46,7 +47,9 @@ local files = {
 
 for _, file in ipairs(files) do
 	local ok, err = linker.link(zen_dir .. "/" .. file, profile_dir .. "/" .. file)
-	if not ok and err ~= "already linked" then
-		print("[zen] " .. file .. ": " .. (err or "failed"))
+	if ok then
+		c.tag_ok("zen", "linked: " .. file)
+	elseif err ~= "already linked" then
+		c.tag_err("zen", file .. ": " .. (err or "failed"))
 	end
 end
