@@ -11,9 +11,11 @@ return {
         { 'bash', 'c', 'diff', 'html', 'lua', 'luadoc', 'markdown', 'markdown_inline', 'query', 'vim', 'vimdoc' },
         langs.treesitter
       ),
-      auto_install = true,
+      auto_install = false,
+      ignore_install = { 'latex' },
       highlight = {
         enable = true,
+        disable = { 'latex' },
       },
       indent = { enable = true },
     }
