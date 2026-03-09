@@ -1,1 +1,1 @@
-return { 'https://github.com/Eandrju/cellular-automaton.nvim' }
+return { 'https://github.com/Eandrju/cellular-automaton.nvim', lazy = true }

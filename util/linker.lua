@@ -21,6 +21,7 @@ package.path = dotfiles_dir .. "shell/mappers/?.lua;" .. linker_dir .. "?.lua;" 
 local utils = require("utils")
 local fs_mod = require("fs")
 local resolver_mod = require("resolver")
+local c = require("colors")
 
 -- State
 local machine = nil
@@ -53,10 +54,10 @@ function M.init()
 	fs = fs_mod.new(machine.os.type)
 	resolver = resolver_mod.new(vars, machine, utils)
 
-	print("[linker] Machine: " .. machine.name)
-	print("[linker] OS: " .. machine.os.type)
+	c.tag("linker", "machine: " .. machine.name)
+	c.tag("linker", "os: " .. machine.os.type)
 	if machine.os.visual then
-		print("[linker] Visual: " .. machine.os.visual)
+		c.tag("linker", "visual: " .. machine.os.visual)
 	end
 
 	return M
@@ -88,12 +89,12 @@ function M.link(source, target)
 			local normalized_current = normalize_path(current, machine.os.type)
 			local normalized_source = normalize_path(source, machine.os.type)
 			if normalized_current and normalized_current == normalized_source then
-				print("[linker] Already linked: " .. target .. " -> " .. source)
+				c.dim("[linker] already linked: " .. target .. " -> " .. source)
 				return true, "already linked"
 			end
-			print("[linker] Replacing existing symlink: " .. target .. " (current: " .. (current or "unknown") .. ")")
+			c.tag_warn("linker", "replacing existing symlink: " .. target .. " (current: " .. (current or "unknown") .. ")")
 		else
-			print("[linker] Replacing existing target: " .. target)
+			c.tag_warn("linker", "replacing existing target: " .. target)
 		end
 
 		local removed, err = fs.remove_path(target)
@@ -117,7 +118,7 @@ function M.link(source, target)
 
 	local result = os.execute(cmd)
 	if result == 0 or result == true then
-		print("[linker] Linked: " .. target .. " -> " .. source)
+		c.tag_ok("linker", "linked: " .. target .. " -> " .. source)
 		return true
 	end
 	return false, "Failed to create symlink"

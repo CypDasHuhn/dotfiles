@@ -1,2 +1,7 @@
+local c = require("colors")
 local ok, err = require("linker").link_module("nvim")
-if not ok and err ~= "already linked" then print("nvim: " .. (err or "failed")) end
+if ok then
+	c.tag_ok("nvim", "linked")
+elseif err ~= "already linked" then
+	c.tag_err("nvim", err or "failed")
+end

@@ -1,0 +1,1 @@
+alias ii='xdg-open'

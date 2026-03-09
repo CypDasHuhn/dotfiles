@@ -13,6 +13,9 @@ local function get_script_dir()
 end
 local script_dir = get_script_dir()
 
+package.path = script_dir .. "util/?.lua;" .. package.path
+local c = require("colors")
+
 -- Detect OS type
 local function detect_os_type()
 	-- Check for Windows-specific env vars
@@ -43,19 +46,19 @@ local function ensure_machine_config()
 		return true
 	end
 
-	print("=== Machine Setup ===")
+	c.header("Machine Setup")
 	print("")
-	print("No .machine.local.lua found. Let's create one.")
+	c.info("No .machine.local.lua found. Let's create one.")
 	print("")
 
 	-- Auto-detect OS
 	local os_type = detect_os_type()
-	print("Detected OS: " .. os_type)
+	c.info("Detected OS: " .. os_type)
 
 	-- Ask for machine name
 	local name = prompt("Enter a name for this machine: ")
 	if not name or name == "" then
-		print("Error: Machine name is required")
+		c.err("Machine name is required")
 		os.exit(1)
 	end
 
@@ -74,37 +77,37 @@ local function ensure_machine_config()
 
 	local out = io.open(machine_path, "w")
 	if not out then
-		print("Error: Could not write to " .. machine_path)
+		c.err("Could not write to " .. machine_path)
 		os.exit(1)
 	end
 	out:write(config)
 	out:close()
 
 	print("")
-	print("Created: " .. machine_path)
+	c.ok("Created: " .. machine_path)
 	print("")
 
 	return true
 end
 
-print("=== Dotfiles Bootstrap ===")
+c.header("Dotfiles Bootstrap")
 print("")
 
 -- Step 0: Ensure machine config exists
 ensure_machine_config()
 
 -- Step 1: Run shell generator
-print("--- Shell Configuration ---")
+c.section("Shell Configuration")
 local shell_run = script_dir .. "shell/run.lua"
 local shell_result = os.execute('lua "' .. shell_run .. '"')
 if shell_result ~= 0 and shell_result ~= true then
-	print("Error: Shell generation failed")
+	c.err("Shell generation failed")
 	os.exit(1)
 end
 print("")
 
 -- Step 2: Initialize linker
-print("--- Linking Modules ---")
+c.section("Linking Modules")
 package.path = script_dir .. "util/?.lua;" .. script_dir .. "terminal-emulator/?.lua;" .. package.path
 local linker = require("linker")
 linker.init()
@@ -158,10 +161,10 @@ local runtime_os = linker.machine().os.type
 for _, bootstrap_path in ipairs(find_bootstraps(runtime_os)) do
 	local mod = bootstrap_path:match("/([^/]+)/bootstrap%.lua$") or bootstrap_path:match("\\([^\\]+)\\bootstrap%.lua$")
 	if mod and (not filter or mod == filter) then
-		print("Running " .. mod .. " bootstrap...")
+		c.tag(mod, "running bootstrap...")
 		dofile(bootstrap_path)
 	end
 end
 
 print("")
-print("=== Bootstrap Complete ===")
+c.header("Bootstrap Complete")

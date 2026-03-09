@@ -1,5 +1,6 @@
 return {
   'folke/twilight.nvim',
+  lazy = true,
   keys = {
     { '<leader>tt', '<cmd>Twilight<CR>', desc = 'Toggle Twilight' },
   },
