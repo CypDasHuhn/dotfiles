@@ -10,6 +10,14 @@ for _, v in pairs(vars) do
 	v[1] = "${repos}" .. v[1]
 end
 
-vars.ihkDoku = { "${vault}/02-work/ihk/projekt/06-Doku", dir_function = true }
+local projekt = "${vault}/02-work/ihk/projekt/"
+local projektDirs = {
+	lastenheft = "02-Planung/Lastenheft",
+	pflichtenheft = "03-Entwurf/Pflichtenheft",
+	ihkDoku = "06-Doku",
+}
+for k, v in pairs(projektDirs) do
+	vars[k] = { projekt .. v, dir_function = true }
+end
 
 return vars
