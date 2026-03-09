@@ -125,13 +125,10 @@ local function new(os_type)
 			end
 		else
 			local win_path = path:gsub("/", "\\")
-			local cmd = "cmd /c (rmdir " .. quote_cmd_arg(win_path) .. " >nul 2>&1)"
-				.. " & (rmdir /S /Q " .. quote_cmd_arg(win_path) .. " >nul 2>&1)"
-				.. " & (del /F /Q " .. quote_cmd_arg(win_path) .. " >nul 2>&1)"
-			local result = os.execute(cmd)
-			if result ~= 0 and result ~= true then
-				return false, "Failed to remove target: " .. path
-			end
+			-- Run deletes separately to avoid cmd parser issues with parentheses in paths.
+			os.execute("cmd /c rmdir " .. quote_cmd_arg(win_path) .. " >nul 2>&1")
+			os.execute("cmd /c rmdir /S /Q " .. quote_cmd_arg(win_path) .. " >nul 2>&1")
+			os.execute("cmd /c del /F /Q " .. quote_cmd_arg(win_path) .. " >nul 2>&1")
 		end
 
 		if M.exists(path) or M.is_symlink(path) then
