@@ -13,8 +13,10 @@ return {
       filetypes = { 'plantuml' },
     },
   },
-  formatters = {},
+  formatters = {
+    markdown = { 'markdownlint-cli2' },
+  },
   linters = {},
-  tools = {},
+  tools = { 'markdownlint-cli2' },
   treesitter = {},
 }
