@@ -2,7 +2,7 @@ local langs = require '.config.lang-packs.init'
 
 return {
   'neovim/nvim-lspconfig',
-  lazy = false,
+  event = 'VeryLazy',
   dependencies = {
     'mason-org/mason.nvim',
     'mason-org/mason-lspconfig.nvim',
