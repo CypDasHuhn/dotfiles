@@ -1,20 +1,79 @@
--- Pin to Mason v1 / mason-lspconfig v1 to avoid breaking changes
 local langs = require '.config.lang-packs.init'
 
 return {
   'neovim/nvim-lspconfig',
-  version = '1.*', -- pin to v1 for old API
   lazy = false,
   dependencies = {
-    { 'mason-org/mason.nvim', version = '1.*' },
-    { 'mason-org/mason-lspconfig.nvim', version = '1.*' },
+    'mason-org/mason.nvim',
+    'mason-org/mason-lspconfig.nvim',
     'WhoIsSethDaniel/mason-tool-installer.nvim',
     { 'j-hui/fidget.nvim', opts = {} },
     'saghen/blink.cmp',
     'folke/lazydev.nvim',
   },
   config = function()
-    -- Setup mason first
+    local server_aliases = {
+      volar = 'vue_ls',
+    }
+    local kotlin_root_files = {
+      'settings.gradle',
+      'settings.gradle.kts',
+      'build.xml',
+      'pom.xml',
+      'build.gradle',
+      'build.gradle.kts',
+    }
+
+    local function register_custom_servers()
+      vim.lsp.config('kotlin_lsp', {
+        cmd = { 'kotlin-lsp' },
+        filetypes = { 'kotlin' },
+        root_markers = { kotlin_root_files },
+        init_options = {
+          storagePath = vim.fn.stdpath 'data' .. '/kotlin-lsp',
+        },
+      })
+
+      vim.lsp.config('plantuml_lsp', {
+        cmd = { 'plantuml-lsp' },
+        filetypes = { 'plantuml' },
+        root_markers = { '.git' },
+        single_file_support = true,
+      })
+    end
+
+    local function normalize_servers(server_map)
+      local normalized = {}
+
+      for name, config in pairs(server_map) do
+        normalized[server_aliases[name] or name] = config
+      end
+
+      return normalized
+    end
+
+    local function split_servers(server_map)
+      local mason_servers = {}
+      local manual_servers = {}
+
+      for name, config in pairs(server_map) do
+        if config.mason == false then
+          manual_servers[name] = config
+        else
+          mason_servers[name] = config
+        end
+      end
+
+      return mason_servers, manual_servers
+    end
+
+    local function setup_server(server_name, server)
+      server = vim.deepcopy(server or {})
+      server.mason = nil
+      vim.lsp.config(server_name, server)
+      vim.lsp.enable(server_name)
+    end
+
     require('mason').setup {
       registries = {
         'github:mason-org/mason-registry',
@@ -22,7 +81,10 @@ return {
       },
     }
 
-    -- Collect all servers: base + language packs
+    vim.lsp.config('*', {
+      capabilities = require('blink.cmp').get_lsp_capabilities(),
+    })
+
     local servers = vim.tbl_deep_extend('force', {
       lua_ls = {
         settings = {
@@ -31,31 +93,29 @@ return {
           },
         },
       },
-    }, langs.servers)
+    }, normalize_servers(langs.servers))
 
-    -- Setup mason-lspconfig with handlers (v1 API)
+    register_custom_servers()
+
+    local mason_servers, manual_servers = split_servers(servers)
+
     require('mason-lspconfig').setup {
-      ensure_installed = vim.tbl_keys(servers),
-      handlers = {
-        function(server_name)
-          local server = servers[server_name] or {}
-          server.capabilities = vim.tbl_deep_extend(
-            'force',
-            {},
-            require('blink.cmp').get_lsp_capabilities(),
-            server.capabilities or {}
-          )
-          require('lspconfig')[server_name].setup(server)
-        end,
-      },
+      ensure_installed = vim.tbl_keys(mason_servers),
+      automatic_enable = false,
     }
 
-    -- Non-LSP tools (formatters, linters)
+    for server_name, server in pairs(mason_servers) do
+      setup_server(server_name, server)
+    end
+
+    for server_name, server in pairs(manual_servers) do
+      setup_server(server_name, server)
+    end
+
     local tools = { 'stylua' }
     vim.list_extend(tools, langs.tools)
     require('mason-tool-installer').setup { ensure_installed = tools }
 
-    -- Diagnostic Config
     vim.diagnostic.config {
       severity_sort = true,
       float = { border = 'rounded', source = 'if_many' },
@@ -72,13 +132,17 @@ return {
       virtual_lines = true,
     }
 
-    -- LspAttach keymaps
     vim.api.nvim_create_autocmd('LspAttach', {
       group = vim.api.nvim_create_augroup('lsp-attach', { clear = true }),
       callback = function(event)
         local map = function(keys, func, desc, mode)
           mode = mode or 'n'
           vim.keymap.set(mode, keys, func, { buffer = event.buf, desc = 'LSP: ' .. desc })
+        end
+
+        local function client_supports(method)
+          local client = vim.lsp.get_client_by_id(event.data.client_id)
+          return client and client:supports_method(method, event.buf)
         end
 
         map('grn', vim.lsp.buf.rename, '[R]e[n]ame')
@@ -90,11 +154,6 @@ return {
         map('gO', require('telescope.builtin').lsp_document_symbols, 'Open Document Symbols')
         map('gW', require('telescope.builtin').lsp_dynamic_workspace_symbols, 'Open Workspace Symbols')
         map('grt', require('telescope.builtin').lsp_type_definitions, '[G]oto [T]ype Definition')
-
-        local function client_supports(method)
-          local client = vim.lsp.get_client_by_id(event.data.client_id)
-          return client and client:supports_method(method, event.buf)
-        end
 
         if client_supports(vim.lsp.protocol.Methods.textDocument_documentHighlight) then
           local highlight_augroup = vim.api.nvim_create_augroup('lsp-highlight', { clear = false })

@@ -1,4 +1,22 @@
 local fs = require 'lib.neo-tree-fs'
+local renderer = require 'neo-tree.ui.renderer'
+
+local function find_visible_sibling_line(state, node, from_start)
+  local parent_id = node:get_parent_id()
+  local line_count = vim.api.nvim_buf_line_count(state.bufnr)
+  local start_line = from_start and 1 or line_count
+  local end_line = from_start and line_count or 1
+  local step = from_start and 1 or -1
+
+  for line = start_line, end_line, step do
+    local sibling = state.tree:get_node(line)
+    if sibling and sibling.type ~= 'message' and sibling:get_parent_id() == parent_id then
+      return line
+    end
+  end
+
+  return nil
+end
 
 return {
   'nvim-neo-tree/neo-tree.nvim',
@@ -50,6 +68,59 @@ return {
           end
           fs.write_clipboard('cut', paths)
           require('neo-tree.sources.filesystem.commands').cut_to_clipboard_visual(state, selected_nodes)
+        end,
+
+        copy_system_path = function(state)
+          local node = state.tree:get_node()
+          if not node or node.type == 'message' then
+            return
+          end
+
+          local path = node:get_id()
+          vim.fn.setreg('+', path)
+          vim.notify('Copied path: ' .. path, vim.log.levels.INFO)
+        end,
+
+        move_to_parent = function(state)
+          local node = state.tree:get_node()
+          if not node or node.type == 'message' then
+            return
+          end
+
+          local parent_id = node:get_parent_id()
+          if not parent_id then
+            return
+          end
+
+          renderer.focus_node(state, parent_id)
+        end,
+
+        move_to_first_sibling = function(state)
+          local node = state.tree:get_node()
+          if not node or node.type == 'message' then
+            return
+          end
+
+          local line = find_visible_sibling_line(state, node, true)
+          if not line then
+            return
+          end
+
+          vim.api.nvim_win_set_cursor(state.winid, { line, 0 })
+        end,
+
+        move_to_last_sibling = function(state)
+          local node = state.tree:get_node()
+          if not node or node.type == 'message' then
+            return
+          end
+
+          local line = find_visible_sibling_line(state, node, false)
+          if not line then
+            return
+          end
+
+          vim.api.nvim_win_set_cursor(state.winid, { line, 0 })
         end,
 
         system_paste = function(state)
@@ -125,7 +196,12 @@ return {
         mappings = {
           ['<leader>E'] = 'close_window',
           ['Z'] = 'expand_all_nodes',
+          ['gH'] = 'toggle_hidden',
+          h = 'move_to_parent',
+          H = 'move_to_first_sibling',
+          L = 'move_to_last_sibling',
           y = 'system_copy',
+          Y = 'copy_system_path',
           x = 'system_cut',
           p = 'system_paste',
           d = 'trash',
