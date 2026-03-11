@@ -1,5 +1,6 @@
 return {
   'Exafunction/windsurf.vim',
+  event = 'VeryLazy',
   config = function()
     -- Change '<C-g>' here to any keycode you like.
     vim.keymap.set('i', '<tab>', '<nop>', { expr = true, silent = true })
