@@ -67,9 +67,22 @@ function _G.RegionFoldExpr()
   if not _region_fold_cache[bufnr] then
     _compute_region_folds(bufnr)
   end
-  return _region_fold_cache[bufnr][vim.v.lnum] or '='
+  local v = _region_fold_cache[bufnr][vim.v.lnum] or '='
+  if v == '=' then
+    return vim.treesitter.foldexpr()
+  end
+  return v
 end
 
+vim.api.nvim_create_autocmd({ 'BufEnter', 'BufReadPost' }, {
+  callback = function(ev)
+    vim.api.nvim_buf_attach(ev.buf, false, {
+      on_lines = function(_, b)
+        _region_fold_cache[b] = nil
+      end,
+    })
+  end,
+})
 vim.api.nvim_create_autocmd({ 'TextChanged', 'TextChangedI' }, {
   callback = function(ev)
     _region_fold_cache[ev.buf] = nil
