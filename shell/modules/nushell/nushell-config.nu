@@ -1,6 +1,8 @@
-# nushell-specific configuration
-
 $env.EDITOR = "nvim"
+
+$env.config.color_config.shape_internalcall = "green_bold"
+$env.config.color_config.shape_external = "green"
+$env.config.color_config.shape_garbage = "red_bold"
 
 $env.config.keybindings ++= [
     {

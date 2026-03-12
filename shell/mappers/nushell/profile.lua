@@ -63,11 +63,15 @@ end
 function M.link(output_dir)
 	local abs_dir
 	if is_windows() then
-		local handle = io.popen("cd")
-		local cwd = handle and handle:read("*l") or ""
-		if handle then handle:close() end
-		cwd = cwd:gsub("\r", ""):gsub("\\", "/")
-		abs_dir = cwd .. "/" .. output_dir:gsub("^[./\\]+", "")
+		if output_dir:match("^%a:") then
+			abs_dir = output_dir:gsub("\\", "/")
+		else
+			local handle = io.popen("cd")
+			local cwd = handle and handle:read("*l") or ""
+			if handle then handle:close() end
+			cwd = cwd:gsub("\r", ""):gsub("\\", "/")
+			abs_dir = cwd .. "/" .. output_dir:gsub("^[./\\]+", "")
+		end
 	else
 		local handle = io.popen('cd ' .. quote_arg(output_dir) .. ' && pwd')
 		abs_dir = handle and handle:read("*l") or output_dir

@@ -83,6 +83,8 @@ function M.link(source, target)
 		return false, "Source does not exist: " .. source
 	end
 
+	local backup = nil
+
 	if fs.exists(target) or fs.is_symlink(target) then
 		if fs.is_symlink(target) then
 			local current = fs.readlink(target)
@@ -93,13 +95,16 @@ function M.link(source, target)
 				return true, "already linked"
 			end
 			c.tag_warn("linker", "replacing existing symlink: " .. target .. " (current: " .. (current or "unknown") .. ")")
+			local removed, err = fs.remove_path(target)
+			if not removed then return false, err end
 		else
+			-- Real file/directory: rename to backup so we can restore if symlinking fails
+			backup = target .. ".dotbak"
 			c.tag_warn("linker", "replacing existing target: " .. target)
-		end
-
-		local removed, err = fs.remove_path(target)
-		if not removed then
-			return false, err
+			local ok, err = os.rename(target, backup)
+			if not ok then
+				return false, "Could not move existing target to backup: " .. (err or "unknown")
+			end
 		end
 	end
 
@@ -118,8 +123,19 @@ function M.link(source, target)
 
 	local result = os.execute(cmd)
 	if result == 0 or result == true then
+		if backup then fs.remove_path(backup) end
 		c.tag_ok("linker", "linked: " .. target .. " -> " .. source)
 		return true
+	end
+
+	-- Symlink failed — restore backup if we have one
+	if backup then
+		local restored, _ = os.rename(backup, target)
+		if restored then
+			return false, "Failed to create symlink (run as admin or enable Developer Mode) — original restored"
+		else
+			return false, "Failed to create symlink AND failed to restore backup at: " .. backup
+		end
 	end
 	return false, "Failed to create symlink"
 end
