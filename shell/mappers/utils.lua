@@ -87,10 +87,23 @@ function M.load_all_vars(vars_dir)
 	return merged, order
 end
 
+local function to_platform(context_type)
+	if context_type == "windows" or context_type == "unix" then
+		return context_type
+	end
+	if context_type == "pwsh" then
+		return "windows"
+	end
+	if context_type == "zsh" or context_type == "bash" or context_type == "nushell" then
+		return "unix"
+	end
+	return nil
+end
+
 -- Check if a value should be included for this machine/shell/visual
 -- only = can contain: shell names (pwsh/zsh/bash/nushell), visual names (hyprland/kde),
 --        legacy platform names (windows/unix), or machine names
-function M.should_include(var_def, machine_name, shell_type, visual_type)
+function M.should_include(var_def, machine_name, context_type, visual_type)
 	if type(var_def) ~= "table" then
 		return true
 	end
@@ -107,16 +120,16 @@ function M.should_include(var_def, machine_name, shell_type, visual_type)
 	for _, allowed in ipairs(only) do
 		-- Shell name match
 		if SHELL_NAMES[allowed] then
-			if allowed == shell_type then
+			if allowed == context_type then
 				return true
 			end
-		-- Legacy platform names: map to shell families
+		-- Platform match, supporting both OS names and shell-family shorthands
 		elseif allowed == "windows" then
-			if shell_type == "pwsh" then
+			if to_platform(context_type) == "windows" then
 				return true
 			end
 		elseif allowed == "unix" then
-			if shell_type == "zsh" or shell_type == "bash" then
+			if to_platform(context_type) == "unix" then
 				return true
 			end
 		-- Visual environment match
@@ -135,8 +148,8 @@ function M.should_include(var_def, machine_name, shell_type, visual_type)
 	return false
 end
 
--- Resolve the value for a variable given machine and shell
-function M.resolve_value(var_def, machine_name, shell_type)
+-- Resolve the value for a variable given machine and shell/OS context
+function M.resolve_value(var_def, machine_name, context_type)
 	if type(var_def) ~= "table" then
 		return var_def
 	end
@@ -147,14 +160,14 @@ function M.resolve_value(var_def, machine_name, shell_type)
 	end
 
 	-- Shell-specific value
-	if var_def[shell_type] then
-		return var_def[shell_type]
+	if var_def[context_type] then
+		return var_def[context_type]
 	end
 
 	-- Legacy platform fallback (backwards compat + nushell cross-platform fallback)
-	local legacy = (shell_type == "pwsh") and "windows" or "unix"
-	if var_def[legacy] then
-		return var_def[legacy]
+	local platform = to_platform(context_type)
+	if platform and var_def[platform] then
+		return var_def[platform]
 	end
 
 	return var_def.path or var_def[1]

@@ -190,7 +190,7 @@ function M.generate(vars, var_order, machine, modules_dir, output_dir)
 		table.insert(lines, "")
 		table.insert(lines, "# Directory navigation functions")
 		for _, name in ipairs(dir_functions) do
-			table.insert(lines, string.format("def %s [] {\n  cd $env.%s\n}", name, name))
+			table.insert(lines, string.format("def --env %s [] {\n  cd $env.%s\n}", name, name))
 		end
 	end
 
