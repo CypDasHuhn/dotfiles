@@ -90,28 +90,69 @@ local function ensure_machine_config()
 	return true
 end
 
+-- Parse filter argument
+local filter = arg and arg[1]
+
+-- Show help
+if filter == "--help" or filter == "-h" then
+	print("Usage: lua bootstrap.lua [filter]")
+	print("")
+	print("Categories:")
+	print("  shell    - Shell configuration generation")
+	print("  link     - Symlink modules to their destinations")
+	print("  modules  - Run all module bootstrap scripts")
+	print("  deps     - Resolve and install dependencies")
+	print("")
+	print("Examples:")
+	print("  lua bootstrap.lua          # run everything")
+	print("  lua bootstrap.lua shell    # just shell config")
+	print("  lua bootstrap.lua deps     # just dependencies")
+	print("  lua bootstrap.lua shell,link  # multiple categories")
+	print("  lua bootstrap.lua nvim     # specific module only")
+	os.exit(0)
+end
+
 c.header("Dotfiles Bootstrap")
 print("")
+local function should_run(category)
+	if not filter then return true end
+	-- Check if category matches or is in comma-separated list
+	if filter == category then return true end
+	for cat in filter:gmatch("[^,]+") do
+		if cat:match("^%s*(.-)%s*$") == category then return true end
+	end
+	return false
+end
 
 -- Step 0: Ensure machine config exists
 ensure_machine_config()
 
 -- Step 1: Run shell generator
-c.section("Shell Configuration")
-local shell_run = script_dir .. "shell/run.lua"
-local shell_result = os.execute('lua "' .. shell_run .. '"')
-if shell_result ~= 0 and shell_result ~= true then
-	c.err("Shell generation failed")
+if should_run("shell") then
+	c.section("Shell Configuration")
+	local shell_run = script_dir .. "shell/run.lua"
+	local shell_result = os.execute('lua "' .. shell_run .. '"')
+	if shell_result ~= 0 and shell_result ~= true then
+		c.err("Shell generation failed")
+		os.exit(1)
+	end
+	print("")
+end
+
+-- Step 2: Initialize linker (always needed for machine detection)
+package.path = script_dir .. "util/?.lua;" .. script_dir .. "terminal-emulator/?.lua;" .. package.path
+local ok, linker = pcall(require, "linker")
+if not ok or not linker then
+	c.err("Failed to load linker: " .. tostring(linker))
 	os.exit(1)
 end
-print("")
-
--- Step 2: Initialize linker
-c.section("Linking Modules")
-package.path = script_dir .. "util/?.lua;" .. script_dir .. "terminal-emulator/?.lua;" .. package.path
-local linker = require("linker")
 linker.init()
-print("")
+
+if should_run("link") then
+	c.section("Linking Modules")
+	-- linker.init() already ran, actual linking happens in module bootstraps
+	print("")
+end
 
 -- Step 3: Discover and run module bootstraps
 local function should_run_bootstrap(path, runtime_os)
@@ -156,15 +197,37 @@ local function find_bootstraps(runtime_os)
 	return bootstraps
 end
 
-local filter = arg and arg[1]
 local runtime_os = linker.machine().os.type
-for _, bootstrap_path in ipairs(find_bootstraps(runtime_os)) do
-	local mod = bootstrap_path:match("/([^/]+)/bootstrap%.lua$") or bootstrap_path:match("\\([^\\]+)\\bootstrap%.lua$")
-	if mod and (not filter or mod == filter) then
-		c.tag(mod, "running bootstrap...")
-		dofile(bootstrap_path)
+
+-- Check if filter is a specific module name
+local function is_module_filter(mod)
+	if not filter then return false end
+	for cat in filter:gmatch("[^,]+") do
+		local trimmed = cat:match("^%s*(.-)%s*$")
+		if trimmed == mod then return true end
 	end
+	return false
 end
 
-print("")
+if should_run("modules") or is_module_filter(filter) then
+	c.section("Module Bootstraps")
+	for _, bootstrap_path in ipairs(find_bootstraps(runtime_os)) do
+		local mod = bootstrap_path:match("/([^/]+)/bootstrap%.lua$") or bootstrap_path:match("\\([^\\]+)\\bootstrap%.lua$")
+		if mod and (should_run("modules") or is_module_filter(mod)) then
+			c.tag(mod, "running bootstrap...")
+			dofile(bootstrap_path)
+		end
+	end
+	print("")
+end
+
+-- Step 4: Resolve dependencies
+if should_run("deps") then
+	c.section("Dependencies")
+	package.path = script_dir .. "dependencies/?.lua;" .. package.path
+	local deps = require("init")
+	deps.run(script_dir)
+	print("")
+end
+
 c.header("Bootstrap Complete")
