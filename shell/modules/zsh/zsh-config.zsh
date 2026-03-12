@@ -33,6 +33,8 @@ setopt NO_BEEP               # No beeping
 setopt PROMPT_SUBST          # Allow parameter expansion in prompt
 PS1='%1~ %# '
 
+export EDITOR="nvim"
+
 # Keybindings
 bindkey '^Y' autosuggest-accept  # Ctrl+Y to accept autosuggestion
 

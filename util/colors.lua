@@ -46,7 +46,7 @@ function M.info(text)
 end
 
 function M.ok(text)
-	print(ansi("32") .. "  ✓ " .. text .. reset)
+	print(ansi("32") .. "  + " .. text .. reset)
 end
 
 function M.warn(text)
@@ -54,7 +54,7 @@ function M.warn(text)
 end
 
 function M.err(text)
-	print(ansi("31") .. "  ✗ " .. text .. reset)
+	print(ansi("31") .. "  x " .. text .. reset)
 end
 
 function M.dim(text)
@@ -94,16 +94,16 @@ function M.tag(name, text)
 	print(name_ansi(name) .. "[" .. name .. "]" .. reset .. " " .. text)
 end
 
--- [name] ✓ text  (name colored, checkmark + text in green)
+-- [name] +text  (name colored, checkmark + text in green)
 function M.tag_ok(name, text)
 	print(name_ansi(name) .. "[" .. name .. "]" .. reset
-		.. ansi("32") .. " ✓ " .. (text or "ok") .. reset)
+		.. ansi("32") .. " + " .. (text or "ok") .. reset)
 end
 
--- [name] ✗ text  (name colored, x + text in red)
+-- [name] x text  (name colored, x + text in red)
 function M.tag_err(name, text)
 	print(name_ansi(name) .. "[" .. name .. "]" .. reset
-		.. ansi("31") .. " ✗ " .. (text or "failed") .. reset)
+		.. ansi("31") .. " x " .. (text or "failed") .. reset)
 end
 
 -- [name] ! text  (name colored, ! + text in yellow)

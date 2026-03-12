@@ -9,6 +9,9 @@ local function quote_cmd_arg(arg)
 	return '"' .. tostring(arg):gsub('"', '\\"') .. '"'
 end
 
+local SHELL_NAMES = { pwsh = true, zsh = true, bash = true, nushell = true }
+local VISUAL_NAMES = { hyprland = true, kde = true }
+
 -- Get the shell directory (where this script lives)
 function M.get_shell_dir()
 	local info = debug.getinfo(1, "S")
@@ -56,7 +59,6 @@ function M.get_sorted_files(dir, pattern)
 end
 
 -- Load all var files and merge them in order
--- Returns: vars table, order array (preserves definition order)
 function M.load_all_vars(vars_dir)
 	local merged = {}
 	local order = {}
@@ -66,7 +68,6 @@ function M.load_all_vars(vars_dir)
 	for _, file in ipairs(files) do
 		local vars = M.load_file(file)
 		if vars then
-			-- Collect keys from this file and sort them for consistency within a file
 			local file_keys = {}
 			for k in pairs(vars) do
 				table.insert(file_keys, k)
@@ -86,74 +87,76 @@ function M.load_all_vars(vars_dir)
 	return merged, order
 end
 
--- Check if a value should be included for this machine/platform/visual
-function M.should_include(var_def, machine_name, os_type, visual_type)
+-- Check if a value should be included for this machine/shell/visual
+-- only = can contain: shell names (pwsh/zsh/bash/nushell), visual names (hyprland/kde),
+--        legacy platform names (windows/unix), or machine names
+function M.should_include(var_def, machine_name, shell_type, visual_type)
 	if type(var_def) ~= "table" then
 		return true
 	end
 
-	-- Check platform-only filter (windows/unix)
-	if var_def.only then
-		-- Normalize to array
-		local only = type(var_def.only) == "string" and { var_def.only } or var_def.only
+	if not var_def.only then
+		return true
+	end
 
-		local dominated_by_platform = false
-		local dominated_by_machine = false
-		local dominated_by_visual = false
+	local only = type(var_def.only) == "string" and { var_def.only } or var_def.only
+	if #only == 0 then
+		return true
+	end
 
-		for _, allowed in ipairs(only) do
-			if allowed == "windows" or allowed == "unix" then
-				dominated_by_platform = true
-				if allowed == os_type then
-					return true
-				end
-			elseif allowed == "hyprland" or allowed == "kde" then
-				dominated_by_visual = true
-				if allowed == visual_type then
-					return true
-				end
-			else
-				dominated_by_machine = true
-				if allowed == machine_name then
-					return true
-				end
+	for _, allowed in ipairs(only) do
+		-- Shell name match
+		if SHELL_NAMES[allowed] then
+			if allowed == shell_type then
+				return true
 			end
-		end
-
-		-- If we had platform restrictions and none matched, exclude
-		if dominated_by_platform and not dominated_by_machine and not dominated_by_visual then
-			return false
-		end
-		-- If we had visual restrictions and none matched, exclude
-		if dominated_by_visual and not dominated_by_machine then
-			return false
-		end
-		-- If we had machine restrictions and none matched, exclude
-		if dominated_by_machine then
-			return false
+		-- Legacy platform names: map to shell families
+		elseif allowed == "windows" then
+			if shell_type == "pwsh" then
+				return true
+			end
+		elseif allowed == "unix" then
+			if shell_type == "zsh" or shell_type == "bash" then
+				return true
+			end
+		-- Visual environment match
+		elseif VISUAL_NAMES[allowed] then
+			if allowed == visual_type then
+				return true
+			end
+		-- Machine name match
+		else
+			if allowed == machine_name then
+				return true
+			end
 		end
 	end
 
-	return true
+	return false
 end
 
--- Resolve the value for a variable given machine and platform
-function M.resolve_value(var_def, machine_name, os_type)
+-- Resolve the value for a variable given machine and shell
+function M.resolve_value(var_def, machine_name, shell_type)
 	if type(var_def) ~= "table" then
 		return var_def
 	end
 
-	-- Check for machine-specific override first
+	-- Machine-specific override first
 	if var_def.machines and var_def.machines[machine_name] then
 		return var_def.machines[machine_name]
 	end
 
-	-- Check for platform-specific value
-	if var_def[os_type] then
-		return var_def[os_type]
+	-- Shell-specific value
+	if var_def[shell_type] then
+		return var_def[shell_type]
 	end
 
-	-- Fall back to path or implicit [1]
+	-- Legacy platform fallback (backwards compat + nushell cross-platform fallback)
+	local legacy = (shell_type == "pwsh") and "windows" or "unix"
+	if var_def[legacy] then
+		return var_def[legacy]
+	end
+
 	return var_def.path or var_def[1]
 end
 
@@ -166,35 +169,29 @@ function M.has_dir_function(var_def)
 end
 
 -- Convert ${var} syntax to platform-native variable reference
-function M.convert_var_refs(value, os_type)
+function M.convert_var_refs(value, shell_type)
 	if type(value) ~= "string" then
 		return value
 	end
-
-	-- Both use $var syntax now (PowerShell session vars, not $env:)
 	return value:gsub("%${([^}]+)}", "$%1")
 end
 
--- Normalize path separators for platform
-function M.normalize_path(value, os_type)
+-- Normalize path separators for shell
+function M.normalize_path(value, shell_type)
 	if type(value) ~= "string" then
 		return value
 	end
-
-	if os_type == "windows" then
-		-- Keep backslashes for Windows, but convert forward slashes
-		-- Actually, PowerShell handles forward slashes fine, so leave as-is
+	if shell_type == "pwsh" then
 		return value
 	else
-		-- Convert backslashes to forward slashes for Unix
 		return value:gsub("\\", "/")
 	end
 end
 
 -- Process a value: resolve refs and normalize path
-function M.process_value(value, os_type)
-	value = M.convert_var_refs(value, os_type)
-	value = M.normalize_path(value, os_type)
+function M.process_value(value, shell_type)
+	value = M.convert_var_refs(value, shell_type)
+	value = M.normalize_path(value, shell_type)
 	return value
 end
 
@@ -218,9 +215,6 @@ function M.write_file(path, content)
 	return true
 end
 
--- Get ordered list of variable names (respects definition order roughly)
--- Since Lua tables don't preserve order, we sort alphabetically
--- but the file loading order (00-, 10-, etc.) handles dependencies
 function M.get_ordered_keys(vars)
 	local keys = {}
 	for k in pairs(vars) do
@@ -231,23 +225,19 @@ function M.get_ordered_keys(vars)
 end
 
 -- Reorder var_order based on dependencies (topological sort)
--- Returns: new order with dependencies resolved first
-function M.dependency_sort(vars, var_order, machine_name, os_type)
-	-- Filter to only included vars
+function M.dependency_sort(vars, var_order, machine_name, shell_type, visual_type)
 	local included = {}
 	for _, name in ipairs(var_order) do
 		local var_def = vars[name]
-		if M.should_include(var_def, machine_name, os_type) then
+		if M.should_include(var_def, machine_name, shell_type, visual_type) then
 			table.insert(included, name)
 		end
 	end
 
-	-- Build dependency graph using resolved values
 	local deps = dep_analyzer.build_graph(vars, function(var_def)
-		return M.resolve_value(var_def, machine_name, os_type)
+		return M.resolve_value(var_def, machine_name, shell_type)
 	end)
 
-	-- Topological sort
 	local sorted, err = dep_analyzer.topo_sort(included, deps)
 	if not sorted then
 		print("Warning: " .. err .. ", falling back to original order")
@@ -258,9 +248,9 @@ function M.dependency_sort(vars, var_order, machine_name, os_type)
 end
 
 -- Expand all variable references to their final values
-function M.expand_value(value, vars, machine_name, os_type)
+function M.expand_value(value, vars, machine_name, shell_type)
 	return dep_analyzer.expand_value(value, vars, function(var_def)
-		return M.resolve_value(var_def, machine_name, os_type)
+		return M.resolve_value(var_def, machine_name, shell_type)
 	end)
 end
 

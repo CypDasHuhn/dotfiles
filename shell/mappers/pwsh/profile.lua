@@ -78,26 +78,21 @@ function M.link(output_dir, target_profile)
 		return false, "Invalid systemPsProfile path: " .. target
 	end
 
-	-- Create directory if needed
 	os.execute("cmd /c if not exist " .. quote_cmd_arg(target_dir) .. " mkdir " .. quote_cmd_arg(target_dir))
 
-	-- Handle existing symlink target (even if broken) before regular existence checks.
 	local reparse_info = read_reparse_info(target)
 	if reparse_info then
 		if reparse_info:lower():find(source_win:lower(), 1, true) then
 			print("Already linked: " .. target)
 			return true
 		end
-		-- Stale or different symlink: replace it.
 		os.execute("cmd /c del " .. quote_cmd_arg(target) .. " 2>nul")
 	end
 
-	-- If a non-symlink target still exists, do not overwrite it.
 	if path_exists(target) then
 		return false, "Target exists: " .. target
 	end
 
-	-- Create symlink (requires admin or dev mode)
 	local cmd = 'mklink "' .. target .. '" "' .. source_win .. '"'
 	local ok = os.execute('cmd /c "' .. cmd .. '"')
 	if ok == 0 or ok == true then
@@ -105,7 +100,6 @@ function M.link(output_dir, target_profile)
 		return true
 	end
 
-	-- Fallback when symlink creation is not permitted.
 	if write_profile_shim(target, source_win) then
 		print("Linked (shim): " .. target .. " -> " .. source)
 		return true
@@ -144,16 +138,16 @@ function M.generate(vars, var_order, machine, modules_dir, output_dir)
 		"# Environment variables",
 	}
 
-	local os_type = "windows"
+	local shell_type = "pwsh"
+	local visual_type = machine.os and machine.os.visual
 	local dir_functions = {}
 
-	-- Environment variables
 	for _, name in ipairs(var_order) do
 		local var_def = vars[name]
-		if utils.should_include(var_def, machine.name, os_type) then
-			local value = utils.resolve_value(var_def, machine.name, os_type)
+		if utils.should_include(var_def, machine.name, shell_type, visual_type) then
+			local value = utils.resolve_value(var_def, machine.name, shell_type)
 			if value then
-				value = utils.process_value(value, os_type)
+				value = utils.process_value(value, shell_type)
 				table.insert(lines, string.format('$%s = "%s"', name, value))
 				if utils.has_dir_function(var_def) then
 					table.insert(dir_functions, name)
@@ -162,7 +156,6 @@ function M.generate(vars, var_order, machine, modules_dir, output_dir)
 		end
 	end
 
-	-- Directory functions
 	if #dir_functions > 0 then
 		table.insert(lines, "")
 		table.insert(lines, "# Directory navigation functions")
@@ -174,8 +167,7 @@ function %s {
 		end
 	end
 
-	-- Modules
-	local platform_dir = modules_dir .. "/windows"
+	local platform_dir = modules_dir .. "/pwsh"
 	local module_files = get_module_files(platform_dir, ".ps1")
 	local included_modules = {}
 
@@ -186,14 +178,8 @@ function %s {
 		local meta = utils.load_file(meta_path)
 
 		local include = true
-		if meta and meta.only then
-			include = false
-			for _, allowed in ipairs(meta.only) do
-				if allowed == machine.name then
-					include = true
-					break
-				end
-			end
+		if meta then
+			include = utils.should_include(meta, machine.name, shell_type, visual_type)
 		end
 
 		if include then
@@ -205,7 +191,7 @@ function %s {
 		table.insert(lines, "")
 		table.insert(lines, "# Modules")
 		for _, mod in ipairs(included_modules) do
-			table.insert(lines, '. "$shellConfig/modules/windows/' .. mod.filename .. '"')
+			table.insert(lines, '. "$shellConfig/modules/pwsh/' .. mod.filename .. '"')
 		end
 	end
 
