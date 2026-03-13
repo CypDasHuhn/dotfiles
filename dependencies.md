@@ -8,9 +8,7 @@ Uses condition-based resolution instead of explicit priorities.
 ## Schema (implicit defaults at every level)
 
 ```lua
--- Shortest: universal command
-tool = "npm install -g foo"
-
+-- Shortest: universal command tool = "npm install -g foo"
 -- OS level
 tool = { unix = "cmd", windows = "cmd" }
 

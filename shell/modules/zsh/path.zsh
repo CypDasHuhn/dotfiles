@@ -5,3 +5,10 @@ path_prepend() {
 
 # Tools
 path_prepend "$HOME/.zvm/bin"
+
+path_prepend "$vdirCli/zig-out/bin"
+alias v='vdir_cli'
+alias vcd='vdir_cli cd'
+alias vls='vdir_cli ls'
+
+
