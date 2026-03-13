@@ -1,5 +1,6 @@
-# Dotfiles utilities (mirrors dotfiles.ps1)
-
 def update-dotfiles [] {
-    lua $"($env.dotfiles)/bootstrap.lua"
+    cd $env.dotfiles
+
+    git pull
+    lua "bootstrap.lua"
 }
