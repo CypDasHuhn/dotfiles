@@ -196,7 +196,7 @@ return {
         mappings = {
           ['<leader>E'] = 'close_window',
           ['Z'] = 'expand_all_nodes',
-          ['gH'] = 'toggle_hidden',
+          ['<C-H>'] = 'toggle_hidden',
           h = 'move_to_parent',
           H = 'move_to_first_sibling',
           L = 'move_to_last_sibling',
