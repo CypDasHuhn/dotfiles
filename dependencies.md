@@ -36,6 +36,7 @@ stylua = cargo("stylua")
 ## Resolution
 
 Two buckets: `todo` and `delayed`. Each cycle:
+
 1. Pop from todo, check condition
 2. If met → run command
 3. If not → move to delayed
