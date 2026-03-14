@@ -96,6 +96,18 @@ function M.link(output_dir)
 			' mkdir ' .. quote_arg(config_dir:gsub("/", "\\")))
 	else
 		local home = os.getenv("HOME")
+		-- If running under sudo, use the real user's home instead of root's
+		local sudo_user = os.getenv("SUDO_USER")
+		if sudo_user and sudo_user ~= "" then
+			local handle = io.popen("getent passwd " .. sudo_user .. " 2>/dev/null | cut -d: -f6")
+			if handle then
+				local real_home = handle:read("*l")
+				handle:close()
+				if real_home and real_home ~= "" then
+					home = real_home
+				end
+			end
+		end
 		if not home then
 			return false, "HOME not set"
 		end
