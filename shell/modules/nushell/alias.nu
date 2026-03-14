@@ -9,12 +9,12 @@ alias gs = git status
 alias v = nvim
 alias md = mkdir
 alias cl = clear
-alias arch = a
+alias a = arch
 alias rld = exec nu
 
 # region Dev
 alias npm-r = npm run dev
-alias npm=t = npm test
+alias npm-t = npm test
 alias dn-r = dotnet run
 alias dn-r-https = dn-r --launch-profile "https"
 alias dn-t = dotnet test
