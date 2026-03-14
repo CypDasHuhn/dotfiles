@@ -9,6 +9,7 @@ return {
   config = function()
     local dap = require 'dap'
     local dapui = require 'dapui'
+    local dap_log = require 'dap.log'
 
     local function is_windows()
       return vim.loop.os_uname().sysname == 'Windows_NT'
@@ -116,12 +117,151 @@ return {
       return args
     end
 
+    local function notify(msg, level)
+      vim.schedule(function()
+        vim.notify(msg, level or vim.log.levels.INFO, { title = 'nvim-dap' })
+      end)
+    end
+
+    local function breakpoint_location(bp)
+      if not bp then
+        return nil
+      end
+
+      local source = bp.source and bp.source.path
+      local line = bp.line
+      if not source or not line then
+        return nil
+      end
+
+      return string.format('%s:%s', vim.fs.normalize(source), line)
+    end
+
+    local function show_breakpoint_state(bp)
+      if not bp or bp.verified ~= false then
+        return
+      end
+
+      local parts = { bp.message or 'Breakpoint rejected by adapter' }
+      local location = breakpoint_location(bp)
+      if location then
+        table.insert(parts, location)
+      end
+
+      notify(table.concat(parts, '\n'), vim.log.levels.WARN)
+    end
+
+    local function set_dap_log_level(level)
+      dap.set_log_level(level)
+      local log_path = dap_log.create_logger('dap.log'):get_path()
+      notify(string.format('DAP log level: %s\n%s', level, log_path))
+    end
+
+    local function list_attachable_processes()
+      if not is_windows() then
+        return require('dap.utils').get_processes {
+          filter = function(proc)
+            return proc.name:find('dotnet', 1, true) ~= nil
+          end,
+        }
+      end
+
+      local powershell = 'C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\powershell.exe'
+      local command = table.concat({
+        "$ErrorActionPreference='Stop'",
+        'Get-CimInstance Win32_Process',
+        "| Where-Object { $_.Name -match '^(dotnet|iisexpress|w3wp)(\\.exe)?$' }",
+        '| Select-Object ProcessId, Name, CommandLine',
+        '| ConvertTo-Json -Compress',
+      }, '; ')
+
+      local output = vim.fn.system({ powershell, '-NoProfile', '-Command', command })
+      if vim.v.shell_error ~= 0 or output == '' then
+        return require('dap.utils').get_processes {
+          filter = function(proc)
+            return proc.name:find('dotnet', 1, true) ~= nil
+              and not proc.name:find('easydotnet', 1, true)
+          end,
+        }
+      end
+
+      local json_decode = (vim.json and vim.json.decode) or vim.fn.json_decode
+      local ok, decoded = pcall(json_decode, output)
+      if not ok or not decoded then
+        return require('dap.utils').get_processes {
+          filter = function(proc)
+            return proc.name:find('dotnet', 1, true) ~= nil
+              and not proc.name:find('easydotnet', 1, true)
+          end,
+        }
+      end
+
+      if decoded.ProcessId then
+        decoded = { decoded }
+      end
+
+      local ignored = {
+        'MSBuild.dll',
+        'Microsoft.CodeAnalysis.LanguageServer.dll',
+        'EasyDotnet.BuildServer.dll',
+        'dotnet-easydotnet',
+      }
+
+      local processes = {}
+      for _, proc in ipairs(decoded) do
+        local pid = tonumber(proc.ProcessId)
+        local name = proc.Name or 'unknown'
+        local cmd = proc.CommandLine or name
+        local skip = false
+
+        for _, pattern in ipairs(ignored) do
+          if cmd:find(pattern, 1, true) then
+            skip = true
+            break
+          end
+        end
+
+        if pid and not skip then
+          table.insert(processes, {
+            pid = pid,
+            name = name,
+            command = cmd,
+          })
+        end
+      end
+
+      return processes
+    end
+
+    local function pick_dotnet_process()
+      local ui = require 'dap.ui'
+      local processes = list_attachable_processes()
+
+      if #processes == 0 then
+        notify('No attachable .NET process found', vim.log.levels.WARN)
+        return dap.ABORT
+      end
+
+      local function label(proc)
+        local cmd = (proc.command or proc.name or ''):gsub('%s+', ' ')
+        if #cmd > 180 then
+          cmd = cmd:sub(1, 177) .. '...'
+        end
+
+        return string.format('id=%d %s', proc.pid, cmd)
+      end
+
+      local result = ui.pick_one_sync(processes, 'Select .NET process: ', label)
+      return result and result.pid or dap.ABORT
+    end
+
     dapui.setup()
     require('nvim-dap-virtual-text').setup()
 
     vim.fn.sign_define('DapBreakpoint', { text = '●', texthl = 'DiagnosticSignError', linehl = '', numhl = '' })
     vim.fn.sign_define('DapBreakpointCondition', { text = '◆', texthl = 'DiagnosticSignWarn', linehl = '', numhl = '' })
     vim.fn.sign_define('DapLogPoint', { text = '◉', texthl = 'DiagnosticSignInfo', linehl = '', numhl = '' })
+    vim.fn.sign_define('DapBreakpointRejected', { text = 'R', texthl = 'DiagnosticSignError', linehl = '', numhl = '' })
     vim.fn.sign_define('DapStopped', { text = '▶', texthl = 'DiagnosticSignHint', linehl = 'Visual', numhl = 'DiagnosticSignHint' })
 
     dap.adapters.coreclr = {
@@ -151,7 +291,7 @@ return {
         type = 'coreclr',
         name = 'Attach to process',
         request = 'attach',
-        processId = require('dap.utils').pick_process,
+        processId = pick_dotnet_process,
         cwd = solution_or_project_dir,
       },
     }
@@ -162,6 +302,10 @@ return {
 
     dap.listeners.before.launch.dapui_config = function()
       dapui.open()
+    end
+
+    dap.listeners.after.event_breakpoint.dotnet_breakpoint_status = function(_, event)
+      show_breakpoint_state(event and event.breakpoint)
     end
 
     dap.listeners.before.event_terminated.dapui_config = function()
@@ -186,6 +330,16 @@ return {
       end)
     end, { desc = 'Debug: Conditional Breakpoint' })
     map('n', '<leader>dl', dap.run_last, { desc = 'Debug: Run Last' })
+    map('n', '<leader>dL', function()
+      local log_path = dap_log.create_logger('dap.log'):get_path()
+      notify(log_path)
+    end, { desc = 'Debug: Show DAP Log Path' })
+    map('n', '<leader>dT', function()
+      set_dap_log_level 'TRACE'
+    end, { desc = 'Debug: Set Log Level TRACE' })
+    map('n', '<leader>dI', function()
+      set_dap_log_level 'INFO'
+    end, { desc = 'Debug: Set Log Level INFO' })
     map('n', '<leader>dr', dap.repl.open, { desc = 'Debug: Open REPL' })
     map('n', '<leader>du', dapui.toggle, { desc = 'Debug: Toggle UI' })
     map('n', '<leader>dt', dap.terminate, { desc = 'Debug: Terminate' })
