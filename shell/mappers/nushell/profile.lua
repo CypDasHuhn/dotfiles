@@ -26,8 +26,8 @@ local function expand_env_vars(value)
 	end)
 end
 
-local function ensure_source_line(config_path, profile_path)
-	local source_line = 'source "' .. profile_path .. '"'
+local function ensure_source_line(config_path, stable_path)
+	local source_line = 'source "' .. stable_path .. '"'
 
 	local f = io.open(config_path, "r")
 	if not f then
@@ -44,9 +44,13 @@ local function ensure_source_line(config_path, profile_path)
 	local content = f:read("*a")
 	f:close()
 
-	if content:find(profile_path, 1, true) then
-		print("Nushell config already sources profile")
-		return true
+	-- Check for an active (uncommented) source line pointing to the stable path
+	for line in (content .. "\n"):gmatch("([^\n]*)\n") do
+		local trimmed = line:match("^%s*(.-)%s*$")
+		if trimmed == source_line then
+			print("Nushell config already sources profile")
+			return true
+		end
 	end
 
 	f = io.open(config_path, "a")
@@ -99,7 +103,27 @@ function M.link(output_dir)
 		os.execute('mkdir -p ' .. quote_arg(config_dir))
 	end
 
-	ensure_source_line(config_dir .. "/config.nu", profile)
+	-- Use a stable symlink/shim at a fixed path in the nushell config dir.
+	-- This means config.nu always sources the same path regardless of where
+	-- the dotfiles repo is cloned, and the link stays valid across regenerations.
+	local stable_path = config_dir .. "/dotfiles.nu"
+
+	if is_windows() then
+		-- On Windows: write a shim that sources the generated profile
+		local f = io.open(stable_path, "w")
+		if not f then
+			return false, "Could not write shim to " .. stable_path
+		end
+		f:write('source "' .. profile .. '"\n')
+		f:close()
+		print("Written shim: " .. stable_path .. " -> " .. profile)
+	else
+		-- On Unix: create a symlink
+		os.execute('ln -sf ' .. quote_arg(profile) .. ' ' .. quote_arg(stable_path))
+		print("Linked: " .. stable_path .. " -> " .. profile)
+	end
+
+	ensure_source_line(config_dir .. "/config.nu", stable_path)
 	return true
 end
 
