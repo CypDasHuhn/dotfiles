@@ -13,3 +13,5 @@ $env.config.keybindings ++= [
         event: { send: HistoryHintComplete }
     }
 ]
+
+$env.config.show_banner = false

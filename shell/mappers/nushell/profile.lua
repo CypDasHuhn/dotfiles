@@ -110,15 +110,17 @@ local function get_module_files(dir, extension)
 		local function quote_cmd_arg(arg)
 			return '"' .. tostring(arg):gsub('"', '\\"') .. '"'
 		end
-		handle = io.popen('cmd /c dir /b /a-d ' ..
-			quote_cmd_arg(dir:gsub("/", "\\") .. "\\*" .. extension) .. " 2>nul")
+		handle = io.popen('cmd /c dir /b /s /a-d ' ..
+			quote_cmd_arg(dir:gsub("/", "\\")) .. " 2>nul")
 		if not handle then return files end
 		for file in handle:lines() do
-			local clean = file:gsub("\r", "")
-			table.insert(files, dir .. "/" .. clean)
+			local clean = file:gsub("\r", ""):gsub("\\", "/")
+			if clean:match("%" .. extension .. "$") then
+				table.insert(files, clean)
+			end
 		end
 	else
-		handle = io.popen('ls -1 ' .. quote_arg(dir) .. '/*' .. extension .. " 2>/dev/null")
+		handle = io.popen('find ' .. quote_arg(dir) .. ' -name "*' .. extension .. '" -type f 2>/dev/null')
 		if not handle then return files end
 		for file in handle:lines() do
 			table.insert(files, file)
@@ -205,7 +207,7 @@ function M.generate(vars, var_order, machine, modules_dir, output_dir)
 	for _, file in ipairs(module_files) do
 		local filename = get_filename(file)
 		local basename = get_basename(file)
-		local meta_path = platform_dir .. "/" .. filename .. ".lua"
+		local meta_path = file .. ".lua"
 		local meta = utils.load_file(meta_path)
 
 		local include = true
