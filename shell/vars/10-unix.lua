@@ -4,6 +4,8 @@ local vars = {
 	systemKitty = { "${me}/.config/kitty/kitty.conf" },
 	konsoleConfig = { "${dotfiles}/terminal-emulator/konsole/generated.rc" },
 	systemKonsole = { "${me}/.local/share/kxmlgui5/konsole/konsoleui.rc" },
+	weztermConfig = { "${dotfiles}/terminal-emulator/wezterm/generated.lua" },
+	systemWezterm = { "${me}/.config/wezterm/wezterm.lua" },
 }
 
 for _, v in pairs(vars) do
