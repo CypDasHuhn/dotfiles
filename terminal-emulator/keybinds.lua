@@ -20,6 +20,8 @@ directional("ResizePane", "ctrl+" .. mod, "arrow")
 
 keybinds.NextTab = mod .. "l"
 keybinds.PreviousTab = mod .. "h"
+keybinds.MoveTabLeft = "ctrl+" .. mod .. "h"
+keybinds.MoveTabRight = "ctrl+" .. mod .. "l"
 keybinds.NewTab = mod .. "t"
 keybinds.ClosePane = mod .. "w"
 keybinds.RenameTab = mod .. "r"

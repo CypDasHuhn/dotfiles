@@ -16,6 +16,8 @@ end
 M.action_map = {
 	NextTab = "Terminal.NextTab",
 	PreviousTab = "Terminal.PrevTab",
+	MoveTabLeft = { action = "moveTab", direction = "backward" },
+	MoveTabRight = { action = "moveTab", direction = "forward" },
 	NewTab = "Terminal.OpenNewTab",
 	ClosePane = "Terminal.ClosePane",
 	RenameTab = "Terminal.OpenTabRenamer",
@@ -42,8 +44,19 @@ function M.parse_key(key)
 	return key:lower()
 end
 
-function M.format_entry(action_name, key, action_id)
-	return string.format('    { "id": "%s", "keys": "%s" }', action_id, M.parse_key(key))
+function M.format_entry(action_name, key, action)
+	local key_str = M.parse_key(key)
+	if type(action) == "string" then
+		return string.format('    { "id": "%s", "keys": "%s" }', action, key_str)
+	else
+		-- Complex action with parameters (e.g., { action = "moveTab", direction = "backward" })
+		local params = {}
+		for k, v in pairs(action) do
+			table.insert(params, string.format('"%s": "%s"', k, v))
+		end
+		table.sort(params)
+		return string.format('    { "command": { %s }, "keys": "%s" }', table.concat(params, ", "), key_str)
+	end
 end
 
 function M.generate(keybinds)

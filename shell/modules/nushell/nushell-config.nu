@@ -1,6 +1,8 @@
-# nushell-specific configuration
-
 $env.EDITOR = "nvim"
+
+$env.config.color_config.shape_internalcall = "green_bold"
+$env.config.color_config.shape_external = "green"
+$env.config.color_config.shape_garbage = "red_bold"
 
 $env.config.keybindings ++= [
     {
@@ -11,3 +13,5 @@ $env.config.keybindings ++= [
         event: { send: HistoryHintComplete }
     }
 ]
+
+$env.config.show_banner = false

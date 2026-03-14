@@ -15,20 +15,11 @@ return {
     local server_aliases = {
       volar = 'vue_ls',
     }
-    local kotlin_root_files = {
-      'settings.gradle',
-      'settings.gradle.kts',
-      'build.xml',
-      'pom.xml',
-      'build.gradle',
-      'build.gradle.kts',
-    }
-
     local function register_custom_servers()
       vim.lsp.config('kotlin_lsp', {
-        cmd = { 'kotlin-lsp' },
-        filetypes = { 'kotlin' },
-        root_markers = { kotlin_root_files },
+        cmd_env = {
+          JDK_JAVA_OPTIONS = '-Djava.awt.headless=true',
+        },
         init_options = {
           storagePath = vim.fn.stdpath 'data' .. '/kotlin-lsp',
         },

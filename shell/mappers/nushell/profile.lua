@@ -26,8 +26,8 @@ local function expand_env_vars(value)
 	end)
 end
 
-local function ensure_source_line(config_path, profile_path)
-	local source_line = 'source "' .. profile_path .. '"'
+local function ensure_source_line(config_path, stable_path)
+	local source_line = 'source "' .. stable_path .. '"'
 
 	local f = io.open(config_path, "r")
 	if not f then
@@ -44,9 +44,13 @@ local function ensure_source_line(config_path, profile_path)
 	local content = f:read("*a")
 	f:close()
 
-	if content:find(profile_path, 1, true) then
-		print("Nushell config already sources profile")
-		return true
+	-- Check for an active (uncommented) source line pointing to the stable path
+	for line in (content .. "\n"):gmatch("([^\n]*)\n") do
+		local trimmed = line:match("^%s*(.-)%s*$")
+		if trimmed == source_line then
+			print("Nushell config already sources profile")
+			return true
+		end
 	end
 
 	f = io.open(config_path, "a")
@@ -63,11 +67,15 @@ end
 function M.link(output_dir)
 	local abs_dir
 	if is_windows() then
-		local handle = io.popen("cd")
-		local cwd = handle and handle:read("*l") or ""
-		if handle then handle:close() end
-		cwd = cwd:gsub("\r", ""):gsub("\\", "/")
-		abs_dir = cwd .. "/" .. output_dir:gsub("^[./\\]+", "")
+		if output_dir:match("^%a:") then
+			abs_dir = output_dir:gsub("\\", "/")
+		else
+			local handle = io.popen("cd")
+			local cwd = handle and handle:read("*l") or ""
+			if handle then handle:close() end
+			cwd = cwd:gsub("\r", ""):gsub("\\", "/")
+			abs_dir = cwd .. "/" .. output_dir:gsub("^[./\\]+", "")
+		end
 	else
 		local handle = io.popen('cd ' .. quote_arg(output_dir) .. ' && pwd')
 		abs_dir = handle and handle:read("*l") or output_dir
@@ -88,6 +96,18 @@ function M.link(output_dir)
 			' mkdir ' .. quote_arg(config_dir:gsub("/", "\\")))
 	else
 		local home = os.getenv("HOME")
+		-- If running under sudo, use the real user's home instead of root's
+		local sudo_user = os.getenv("SUDO_USER")
+		if sudo_user and sudo_user ~= "" then
+			local handle = io.popen("getent passwd " .. sudo_user .. " 2>/dev/null | cut -d: -f6")
+			if handle then
+				local real_home = handle:read("*l")
+				handle:close()
+				if real_home and real_home ~= "" then
+					home = real_home
+				end
+			end
+		end
 		if not home then
 			return false, "HOME not set"
 		end
@@ -95,7 +115,27 @@ function M.link(output_dir)
 		os.execute('mkdir -p ' .. quote_arg(config_dir))
 	end
 
-	ensure_source_line(config_dir .. "/config.nu", profile)
+	-- Use a stable symlink/shim at a fixed path in the nushell config dir.
+	-- This means config.nu always sources the same path regardless of where
+	-- the dotfiles repo is cloned, and the link stays valid across regenerations.
+	local stable_path = config_dir .. "/dotfiles.nu"
+
+	if is_windows() then
+		-- On Windows: write a shim that sources the generated profile
+		local f = io.open(stable_path, "w")
+		if not f then
+			return false, "Could not write shim to " .. stable_path
+		end
+		f:write('source "' .. profile .. '"\n')
+		f:close()
+		print("Written shim: " .. stable_path .. " -> " .. profile)
+	else
+		-- On Unix: create a symlink
+		os.execute('ln -sf ' .. quote_arg(profile) .. ' ' .. quote_arg(stable_path))
+		print("Linked: " .. stable_path .. " -> " .. profile)
+	end
+
+	ensure_source_line(config_dir .. "/config.nu", stable_path)
 	return true
 end
 
@@ -106,15 +146,17 @@ local function get_module_files(dir, extension)
 		local function quote_cmd_arg(arg)
 			return '"' .. tostring(arg):gsub('"', '\\"') .. '"'
 		end
-		handle = io.popen('cmd /c dir /b /a-d ' ..
-			quote_cmd_arg(dir:gsub("/", "\\") .. "\\*" .. extension) .. " 2>nul")
+		handle = io.popen('cmd /c dir /b /s /a-d ' ..
+			quote_cmd_arg(dir:gsub("/", "\\")) .. " 2>nul")
 		if not handle then return files end
 		for file in handle:lines() do
-			local clean = file:gsub("\r", "")
-			table.insert(files, dir .. "/" .. clean)
+			local clean = file:gsub("\r", ""):gsub("\\", "/")
+			if clean:match("%" .. extension .. "$") then
+				table.insert(files, clean)
+			end
 		end
 	else
-		handle = io.popen('ls -1 ' .. quote_arg(dir) .. '/*' .. extension .. " 2>/dev/null")
+		handle = io.popen('find ' .. quote_arg(dir) .. ' -name "*' .. extension .. '" -type f 2>/dev/null')
 		if not handle then return files end
 		for file in handle:lines() do
 			table.insert(files, file)
@@ -201,7 +243,7 @@ function M.generate(vars, var_order, machine, modules_dir, output_dir)
 	for _, file in ipairs(module_files) do
 		local filename = get_filename(file)
 		local basename = get_basename(file)
-		local meta_path = platform_dir .. "/" .. filename .. ".lua"
+		local meta_path = file .. ".lua"
 		local meta = utils.load_file(meta_path)
 
 		local include = true
