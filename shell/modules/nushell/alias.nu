@@ -12,6 +12,10 @@ alias cl = clear
 alias a = arch
 alias rld = exec nu
 
+alias vd = vdir_cli
+alias vls = vd ls
+alias vcd = vd cd
+
 # region Dev
 alias npm-r = npm run dev
 alias npm-t = npm test
