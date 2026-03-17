@@ -239,13 +239,13 @@ return {
       {
         event = 'file_added',
         handler = function(path)
-          fs.track_add(path)
+          require('lib.neo-tree-fs').track_add(path)
         end,
       },
       {
         event = 'file_renamed',
         handler = function(args)
-          fs.track_rename(args.source, args.destination)
+          require('lib.neo-tree-fs').track_rename(args.source, args.destination)
         end,
       },
       -- endregion
