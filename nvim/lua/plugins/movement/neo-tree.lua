@@ -1,6 +1,3 @@
-local fs = require 'lib.neo-tree-fs'
-local renderer = require 'neo-tree.ui.renderer'
-
 local function find_visible_sibling_line(state, node, from_start)
   local parent_id = node:get_parent_id()
   local line_count = vim.api.nvim_buf_line_count(state.bufnr)
@@ -35,6 +32,7 @@ return {
       commands = {
         -- region Clipboard commands
         system_copy = function(state)
+          local fs = require 'lib.neo-tree-fs'
           local node = state.tree:get_node()
           if not node or node.type == 'message' then
             return
@@ -44,6 +42,7 @@ return {
         end,
 
         system_copy_visual = function(state, selected_nodes)
+          local fs = require 'lib.neo-tree-fs'
           local paths = fs.collect_paths(selected_nodes)
           if #paths == 0 then
             return
@@ -53,6 +52,7 @@ return {
         end,
 
         system_cut = function(state)
+          local fs = require 'lib.neo-tree-fs'
           local node = state.tree:get_node()
           if not node or node.type == 'message' then
             return
@@ -62,6 +62,7 @@ return {
         end,
 
         system_cut_visual = function(state, selected_nodes)
+          local fs = require 'lib.neo-tree-fs'
           local paths = fs.collect_paths(selected_nodes)
           if #paths == 0 then
             return
@@ -82,6 +83,7 @@ return {
         end,
 
         move_to_parent = function(state)
+          local renderer = require 'neo-tree.ui.renderer'
           local node = state.tree:get_node()
           if not node or node.type == 'message' then
             return
@@ -124,6 +126,7 @@ return {
         end,
 
         system_paste = function(state)
+          local fs = require 'lib.neo-tree-fs'
           local node = state.tree:get_node()
           local dest = node and node:get_id() or nil
           if not dest or dest == '' then
@@ -145,6 +148,7 @@ return {
 
         -- region Trash command (safer delete)
         trash = function(state)
+          local fs = require 'lib.neo-tree-fs'
           local node = state.tree:get_node()
           if not node or node.type == 'message' then
             return
@@ -164,6 +168,7 @@ return {
         end,
 
         trash_visual = function(state, selected_nodes)
+          local fs = require 'lib.neo-tree-fs'
           local paths = fs.collect_paths(selected_nodes)
           if #paths == 0 then
             return
@@ -183,11 +188,11 @@ return {
 
         -- region Undo/Redo commands
         undo = function(_)
-          fs.undo()
+          require('lib.neo-tree-fs').undo()
         end,
 
         redo = function(_)
-          fs.redo()
+          require('lib.neo-tree-fs').redo()
         end,
         -- endregion
       },
