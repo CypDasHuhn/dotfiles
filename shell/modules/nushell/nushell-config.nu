@@ -15,3 +15,10 @@ $env.config.keybindings ++= [
 ]
 
 $env.config.show_banner = false
+
+$env.PROMPT_COMMAND = {||
+    let user = (whoami | str trim | split row '\\' | last)
+    let host = (hostname | str trim)
+    let dir = ($env.PWD | str replace $nu.home-dir "~")
+    $"($user)@($host):($dir)"
+}
