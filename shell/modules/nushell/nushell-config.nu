@@ -18,6 +18,6 @@ $env.config.show_banner = false
 
 $env.PROMPT_COMMAND = {||
     let user = (whoami | str trim | split row '\\' | last)
-    let dir = ($env.PWD | str replace $env.HOME "~")
+    let dir = ($env.PWD | str replace $nu.home-dir "~")
     $"($user):($dir)"
 }
