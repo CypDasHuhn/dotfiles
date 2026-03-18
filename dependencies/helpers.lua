@@ -134,4 +134,19 @@ function M.go_pkg(name, binary)
 	}
 end
 
+function M.setForAll(dependencyDec, field, value)
+	for _, d in ipairs(dependencyDec) do
+		dependencyDec[d][field] = value
+	end
+	return dependencyDec
+end
+
+function M.verifyAll(dependencyDec, verifyDec)
+	return M.setForAll(dependencyDec, "verify", verifyDec)
+end
+
+function M.conditionAll(dependencyDec, conditionDec)
+	return M.setForAll(dependencyDec, "condition", conditionDec)
+end
+
 return M
