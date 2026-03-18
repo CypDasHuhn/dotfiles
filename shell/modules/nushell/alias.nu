@@ -16,6 +16,13 @@ alias vd = vdir_cli
 alias vls = vd ls
 alias vcd = vd cd
 
+def --wrapped powershell [...args] {
+    pwsh ...$args
+}
+def --wrapped ps1 [...args] {
+    pwsh -File ...$args
+}
+
 # region Dev
 alias npm-r = npm run dev
 alias npm-t = npm test
