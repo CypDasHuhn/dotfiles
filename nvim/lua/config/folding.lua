@@ -1,42 +1,39 @@
 local region_fold_cache = {}
+local region_fold_initialized = {}
+
+local comment_starters = { '//', '#', '--', '*', '<!--', '/*', ';', '%' }
+
+local function line_matches_keyword(line, keyword, starters)
+  for _, starter in ipairs(starters) do
+    if line:match('^%s*' .. vim.pesc(starter) .. '%s+' .. keyword .. '%f[%W]') then
+      return true
+    end
+  end
+  return false
+end
 
 local function compute_region_folds(bufnr)
   local lines = vim.api.nvim_buf_get_lines(bufnr, 0, -1, false)
-  local fold_type = {}
+  local levels = {}
   local stack = {}
   local starts = {}
 
   for i, line in ipairs(lines) do
-    if line:match '%f[%w]region%f[%W]' then
+    if line_matches_keyword(line, 'region', comment_starters) then
       table.insert(stack, i)
-    elseif line:match '%f[%w]endregion%f[%W]' then
+      levels[i] = { kind = 'start', depth = #stack }
+    elseif line_matches_keyword(line, 'endregion', comment_starters) then
       if #stack > 0 then
-        local start_line = table.remove(stack)
-        fold_type[start_line] = 'start'
-        fold_type[i] = 'end'
-        table.insert(starts, start_line)
+        table.insert(starts, stack[#stack])
+        levels[i] = { kind = 'end', depth = #stack }
+        table.remove(stack)
       end
+    elseif #stack > 0 then
+      levels[i] = { kind = 'inside', depth = #stack }
     end
   end
 
-  local levels = {}
-  local level = 0
-  for i = 1, #lines do
-    if fold_type[i] == 'start' then
-      level = level + 1
-      levels[i] = '>' .. level
-    elseif fold_type[i] == 'end' then
-      levels[i] = '<' .. level
-      level = level - 1
-    else
-      levels[i] = '='
-    end
-  end
-
-  region_fold_cache[bufnr] = {
-    levels = levels,
-    starts = starts,
-  }
+  region_fold_cache[bufnr] = { levels = levels, starts = starts }
 end
 
 local function get_region_folds(bufnr)
@@ -50,13 +47,23 @@ end
 function _G.RegionFoldExpr()
   local bufnr = vim.api.nvim_get_current_buf()
   local region_folds = get_region_folds(bufnr)
-  local value = region_folds.levels[vim.v.lnum] or '='
+  local info = region_folds.levels[vim.v.lnum]
 
-  if value == '=' then
+  if not info then
     return vim.treesitter.foldexpr()
   end
 
-  return value
+  if info.kind == 'start' then
+    return '>' .. info.depth
+  elseif info.kind == 'end' then
+    return '<' .. info.depth
+  else
+    -- Inside a region: combine region depth with treesitter level so nested
+    -- treesitter folds still work inside regions.
+    local ts = vim.treesitter.foldexpr()
+    local ts_num = type(ts) == 'number' and ts or (tonumber(tostring(ts):match '%d+') or 0)
+    return info.depth + ts_num
+  end
 end
 
 local function for_each_region_fold(bufnr, callback)
@@ -104,12 +111,41 @@ vim.api.nvim_create_autocmd({ 'TextChanged', 'TextChangedI' }, {
   end,
 })
 
+vim.opt.fillchars:append {
+  foldopen = '▾',
+  foldclose = '▸',
+  foldsep = ' ',
+  fold = ' ',
+}
+
 vim.api.nvim_create_autocmd('FileType', {
   group = vim.api.nvim_create_augroup('region-fold-setup', { clear = true }),
   callback = function()
     vim.wo.foldmethod = 'expr'
     vim.wo.foldexpr = 'v:lua.RegionFoldExpr()'
+    vim.wo.foldcolumn = '1'
     vim.o.foldlevelstart = 99
+  end,
+})
+
+vim.api.nvim_create_autocmd('BufWinEnter', {
+  group = vim.api.nvim_create_augroup('region-fold-autoclose', { clear = true }),
+  callback = function(ev)
+    if region_fold_initialized[ev.buf] then return end
+    region_fold_initialized[ev.buf] = true
+    vim.defer_fn(function()
+      if vim.api.nvim_buf_is_valid(ev.buf) then
+        close_region_folds(ev.buf)
+      end
+    end, 0)
+  end,
+})
+
+vim.api.nvim_create_autocmd('BufDelete', {
+  group = vim.api.nvim_create_augroup('region-fold-cleanup', { clear = true }),
+  callback = function(ev)
+    region_fold_cache[ev.buf] = nil
+    region_fold_initialized[ev.buf] = nil
   end,
 })
 

@@ -41,6 +41,15 @@ vim.opt.softtabstop = 4
 
 vim.opt.listchars = { tab = '» ', trail = '·', nbsp = '␣' }
 
+vim.api.nvim_create_autocmd('BufWritePre', {
+  group = vim.api.nvim_create_augroup('retab-on-save', { clear = true }),
+  callback = function()
+    if vim.bo.expandtab then
+      vim.cmd 'retab'
+    end
+  end,
+})
+
 vim.o.inccommand = 'split'
 
 vim.o.cursorline = true
