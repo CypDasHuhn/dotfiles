@@ -1,8 +1,11 @@
+-- .zsh, .sh, .nu coverage
+
 return {
   servers = {
     bashls = {
       filetypes = { 'sh', 'bash', 'zsh' },
     },
+    nushell = { mason = false },
   },
   formatters = {
     zsh = { 'shfmt' },
@@ -11,5 +14,5 @@ return {
   },
   linters = {},
   tools = { 'shfmt' },
-  treesitter = { 'bash' },
+  treesitter = { 'bash', 'nu' },
 }

@@ -1,5 +1,6 @@
 return {
   servers = {
+    texlab = {},
     marksman = {},
     plantuml_lsp = {
       mason = false,
@@ -16,7 +17,6 @@ return {
   formatters = {
     markdown = { 'markdownlint-cli2' },
   },
-  linters = {},
-  tools = { 'markdownlint-cli2' },
-  treesitter = {},
+  tools = { 'texlab', 'markdownlint-cli2' },
+  treesitter = { 'latex', 'bibtex' },
 }
