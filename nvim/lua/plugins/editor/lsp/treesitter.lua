@@ -2,7 +2,7 @@ return {
   'nvim-treesitter/nvim-treesitter',
   event = { 'BufReadPost', 'BufNewFile' },
   build = ':TSUpdate',
-  main = 'nvim-treesitter.configs', -- Sets main module to use for opts
+  main = 'nvim-treesitter.config', -- Sets main module to use for opts
   opts = function()
     local langs = require '.config.lang-packs.init'
 
