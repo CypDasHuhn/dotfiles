@@ -5,7 +5,7 @@ local comment_starters = { '//', '#', '--', '*', '<!--', '/*', ';', '%' }
 
 local function line_matches_keyword(line, keyword, starters)
   for _, starter in ipairs(starters) do
-    if line:match('^%s*' .. vim.pesc(starter) .. '%s+' .. keyword .. '%f[%W]') then
+    if line:match('^%s*' .. vim.pesc(starter) .. '%s*' .. keyword .. '%f[%W]') then
       return true
     end
   end
@@ -131,7 +131,9 @@ vim.api.nvim_create_autocmd('FileType', {
 vim.api.nvim_create_autocmd('BufWinEnter', {
   group = vim.api.nvim_create_augroup('region-fold-autoclose', { clear = true }),
   callback = function(ev)
-    if region_fold_initialized[ev.buf] then return end
+    if region_fold_initialized[ev.buf] then
+      return
+    end
     region_fold_initialized[ev.buf] = true
     vim.defer_fn(function()
       if vim.api.nvim_buf_is_valid(ev.buf) then
