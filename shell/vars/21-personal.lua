@@ -1,5 +1,5 @@
 local vars = {
-	vdir = { "/vdir.nvim" },
+	vdirNvim = { "/vdir.nvim" },
 	vdirCli = { "/vdir-cli" },
 	learningGamification = { "/LearningGamification" },
 	regionLynx = { "/RegionLynx" },
