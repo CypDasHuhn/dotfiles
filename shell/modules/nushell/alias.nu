@@ -16,6 +16,8 @@ alias vd = vdir_cli
 alias vls = vd ls
 alias vcd = vd cd
 
+alias claude-danger = claude --dangerously-skip-permissions
+
 # region Dev
 alias npm-r = npm run dev
 alias npm-t = npm test
