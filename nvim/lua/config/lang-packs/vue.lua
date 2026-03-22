@@ -1,5 +1,5 @@
 -- Vue / TypeScript / Frontend language pack
---
+
 local types = {
   'javascript',
   'typescript',
@@ -12,9 +12,17 @@ local types = {
   'yaml',
 }
 
+local function formatter_for_all(filetypes, formatter)
+  local result = {}
+  for _, ft in ipairs(filetypes) do
+    result[ft] = formatter
+  end
+  return result
+end
+
 local vue_typescript_plugin_path = vim.fn.stdpath 'data' .. '/mason/packages/vue-language-server/node_modules/@vue/typescript-plugin'
 
-local config = {
+return {
   servers = {
     ts_ls = {
       filetypes = { 'typescript', 'javascript', 'javascriptreact', 'typescriptreact', 'vue' },
@@ -25,6 +33,11 @@ local config = {
             location = vue_typescript_plugin_path,
             languages = { 'javascript', 'typescript', 'vue' },
           },
+        },
+      },
+      settings = {
+        implicitProjectConfiguration = {
+          checkJs = false,
         },
       },
     },
@@ -38,14 +51,7 @@ local config = {
     tailwindcss = {},
     eslint = {},
   },
-  tools = {
-    'prettier',
-  },
-
+  formatters = formatter_for_all(types, { 'prettier' }),
+  tools = { 'prettier' },
   treesitter = types,
 }
-
-for _, v in ipairs(types) do
-  config.formatters[v] = { 'prettier' }
-end
-return config
