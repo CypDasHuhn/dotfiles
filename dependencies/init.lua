@@ -6,27 +6,10 @@ local helpers = require("dependencies.helpers")
 
 local M = {}
 
--- Export helpers for use in dependencies.lua files
-M.vanilla = helpers.vanilla
-M.chocolate = helpers.chocolate
-
--- Package manager commands
-M.pacman = helpers.pacman
-M.yay = helpers.yay
-M.winget = helpers.winget
-M.apt = helpers.apt
-
--- Tool helpers (with conditions)
-M.npm_pkg = helpers.npm_pkg
-M.pipx_pkg = helpers.pipx_pkg
-M.cargo_pkg = helpers.cargo_pkg
-M.go_pkg = helpers.go_pkg
-
--- Condition helpers
-M.which = helpers.which
-M.which_any = helpers.which_any
-M.file_exists = helpers.file_exists
-M.dir_exists = helpers.dir_exists
+-- Re-export all helpers
+for k, v in pairs(helpers) do
+	M[k] = v
+end
 
 -- Collect all dependencies from a directory
 function M.collect(base_path)
@@ -38,26 +21,8 @@ function M.collect(base_path)
 
     for file in handle:lines() do
         print("[LOAD] " .. file)
-        -- Provide helpers in the environment
-        local env = setmetatable({
-            vanilla = helpers.vanilla,
-            chocolate = helpers.chocolate,
-            -- Package manager commands
-            pacman = helpers.pacman,
-            yay = helpers.yay,
-            winget = helpers.winget,
-            apt = helpers.apt,
-            -- Tool helpers
-            npm_pkg = helpers.npm_pkg,
-            pipx_pkg = helpers.pipx_pkg,
-            cargo_pkg = helpers.cargo_pkg,
-            go_pkg = helpers.go_pkg,
-            -- Condition helpers
-            which = helpers.which,
-            which_any = helpers.which_any,
-            file_exists = helpers.file_exists,
-            dir_exists = helpers.dir_exists,
-        }, { __index = _G })
+        -- Provide helpers in the environment (shallow copy so loaded files can't mutate helpers)
+        local env = setmetatable({}, { __index = function(_, k) return helpers[k] or _G[k] end })
 
         -- Lua 5.2+ compatible loading with environment
         local chunk, err = loadfile(file, "t", env)
