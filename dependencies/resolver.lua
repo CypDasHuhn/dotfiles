@@ -147,6 +147,7 @@ function M.resolve(dependencies, max_cycles)
 				command = cmd_entry.command,
 				condition = cmd_entry.condition,
 				verify = cmd_entry.verify,
+				once = cmd_entry.once,
 			})
 		else
 			table.insert(skipped, {
@@ -164,6 +165,12 @@ function M.resolve(dependencies, max_cycles)
 		delayed = {}
 		for _, item in ipairs(todo) do
 			if M.check_condition(item.condition) then
+				if item.once and item.verify and M.check_condition(item.verify) then
+					print("[SKIP] " .. item.name .. ": already installed")
+					table.insert(succeeded, item.name)
+					goto continue
+				end
+
 				print("[RUN] " .. item.name .. ": " .. item.command)
 				local cmd_success = os.execute(item.command)
 				cmd_success = (cmd_success == 0 or cmd_success == true)
@@ -190,6 +197,7 @@ function M.resolve(dependencies, max_cycles)
 				print("[DELAY] " .. item.name .. ": condition not met")
 				table.insert(delayed, item)
 			end
+			::continue::
 		end
 
 		if #delayed == #todo then

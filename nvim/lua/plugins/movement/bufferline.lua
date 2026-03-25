@@ -81,11 +81,13 @@ return {
     -- region Keymaps
     local map = vim.keymap.set
     -- Navigate buffers
-    map('n', 'H', '<cmd>BufferLineCyclePrev<cr>', { desc = 'Previous buffer' })
-    map('n', 'L', '<cmd>BufferLineCycleNext<cr>', { desc = 'Next buffer' })
+    for _, mode in ipairs { 'n', 'i', 'v', 't' } do
+      map(mode, '<A-h>', '<cmd>BufferLineCyclePrev<cr>', { desc = 'Previous buffer' })
+      map(mode, '<A-l>', '<cmd>BufferLineCycleNext<cr>', { desc = 'Next buffer' })
+    end
     -- Move buffers
-    map('n', '<A-H>', '<cmd>BufferLineMovePrev<cr>', { desc = 'Move buffer left' })
-    map('n', '<A-L>', '<cmd>BufferLineMoveNext<cr>', { desc = 'Move buffer right' })
+    map('n', '<A-y>', '<cmd>BufferLineMovePrev<cr>', { desc = 'Move buffer left' })
+    map('n', '<A-o>', '<cmd>BufferLineMoveNext<cr>', { desc = 'Move buffer right' })
     -- Pin buffer
     map('n', '<leader>bp', '<cmd>BufferLineTogglePin<cr>', { desc = 'Toggle pin' })
     -- Close buffers
