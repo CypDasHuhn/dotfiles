@@ -44,4 +44,7 @@ return {
 		"${dotfiles}/shell",
 		dir_function = true,
 	},
+	zellijConfig = {
+		windows = "${appdataRoaming}/Zellij/config",
+	},
 }

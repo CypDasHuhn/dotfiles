@@ -22,6 +22,9 @@ def --wrapped powershell [...args] {
 def --wrapped ps1 [...args] {
     pwsh -File ...$args
 }
+alias claude-danger = claude --dangerously-skip-permissions
+
+alias zj = zellij
 
 # region Dev
 alias npm-r = npm run dev
