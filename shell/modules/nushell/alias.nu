@@ -24,24 +24,6 @@ def --wrapped ps1 [...args] {
 }
 alias claude-danger = claude --dangerously-skip-permissions
 
-#region Zellij
-def zj [] {
-    try {
-        let session = (
-            zellij list-sessions --no-formatting
-            | lines
-            | first
-            | str trim
-            | split row ' '
-            | first
-        )
-        zellij attach --create --force-run-commands $session
-    } catch {
-        zellij
-    }
-}
-#endregion
-
 # region Dev
 alias npm-r = npm run dev
 alias npm-t = npm test

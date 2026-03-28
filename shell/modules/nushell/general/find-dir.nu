@@ -1,4 +1,3 @@
-# Find and cd into a directory matching a pattern (inspired by find-dir.ps1)
 def --env fcd [
     pattern: string,
     --depth: int = 1
