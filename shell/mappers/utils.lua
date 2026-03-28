@@ -180,6 +180,26 @@ function M.process_value(value, shell_type)
 	return value
 end
 
+-- Load all path files and merge them in order.
+-- File-level `only` (set on the returned table) applies to entries that have no own `only`.
+function M.load_all_paths(paths_dir)
+	local all_paths = {}
+	local files = M.get_sorted_files(paths_dir, "%.lua$")
+	for _, file in ipairs(files) do
+		local entries = M.load_file(file)
+		if type(entries) == "table" then
+			local file_only = rawget(entries, "only")
+			for _, entry in ipairs(entries) do
+				if file_only and not entry.only then
+					entry.only = file_only
+				end
+				table.insert(all_paths, entry)
+			end
+		end
+	end
+	return all_paths
+end
+
 -- Write content to file
 function M.write_file(path, content)
 	local dir = path:match("(.+)/[^/]+$") or path:match("(.+)\\[^\\]+$")

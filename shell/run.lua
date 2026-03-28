@@ -18,6 +18,7 @@ local utils = require("utils")
 -- Configuration
 local VARS_DIR = script_dir .. "vars"
 local MODULES_DIR = script_dir .. "modules"
+local PATHS_DIR = script_dir .. "paths"
 local GENERATED_DIR = script_dir .. "generated"
 local MACHINE_FILE = script_dir .. "../.machine.local.lua"
 
@@ -47,8 +48,9 @@ end
 print("Shell: " .. shell_type)
 print("")
 
--- Load all vars
+-- Load all vars and paths
 local vars, var_order = utils.load_all_vars(VARS_DIR)
+local paths = utils.load_all_paths(PATHS_DIR)
 print("Loaded vars from " .. VARS_DIR)
 
 -- Sort vars by dependency order
@@ -87,7 +89,7 @@ end
 -- Generate output
 print("Generating with " .. shell_type .. " mapper...")
 
-local success, result, module_count = mapper.generate(vars, var_order, machine, MODULES_DIR, GENERATED_DIR)
+local success, result, module_count = mapper.generate(vars, var_order, machine, MODULES_DIR, GENERATED_DIR, paths)
 if success then
 	print("Generated: " .. result .. " (" .. module_count .. " modules)")
 else
@@ -109,7 +111,7 @@ if shell_type ~= "nushell" then
 	local ok_nu, nu_mapper = pcall(require, "mappers.nushell.profile")
 	if ok_nu then
 		print("Generating nushell profile...")
-		local nu_ok, nu_result, nu_count = nu_mapper.generate(vars, var_order, machine, MODULES_DIR, GENERATED_DIR)
+		local nu_ok, nu_result, nu_count = nu_mapper.generate(vars, var_order, machine, MODULES_DIR, GENERATED_DIR, paths)
 		if nu_ok then
 			print("Generated: " .. nu_result .. " (" .. nu_count .. " modules)")
 			if nu_mapper.link then

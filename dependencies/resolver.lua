@@ -39,7 +39,12 @@ local function extract_entry(val)
 	if type(val) == "string" then
 		return { command = val, condition = nil, verify = nil }
 	elseif type(val) == "table" and val.command then
-		return { command = val.command, condition = val.condition, verify = val.verify }
+		return {
+			command = rawget(val, "command"),
+			condition = rawget(val, "condition"),
+			verify = rawget(val, "verify"),
+			once = rawget(val, "once"),
+		}
 	end
 	return nil -- not a leaf, needs further traversal
 end

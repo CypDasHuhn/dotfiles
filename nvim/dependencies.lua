@@ -1,5 +1,5 @@
 local h = require 'dependencies.helpers'
 
 return {
-  nvim = h.vanilla('nvim', 'Neovim.Neovim'),
+  nvim = h.dep(h.vanilla('nvim', 'Neovim.Neovim')):condition(h.which 'nu'):verify(h.which 'nvim'):once(),
 }
