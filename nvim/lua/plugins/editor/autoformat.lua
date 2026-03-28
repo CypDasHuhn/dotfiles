@@ -73,6 +73,12 @@ return {
       formatters = {
         prettier = {
           command = resolve_prettier(),
+          prepend_args = function(_, ctx)
+            if ctx.filename and ctx.filename:match '%.mdx?$' then
+              return { '--prose-wrap', 'always' }
+            end
+            return {}
+          end,
         },
       },
       formatters_by_ft = vim.tbl_deep_extend('force', {

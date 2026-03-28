@@ -14,7 +14,7 @@ local function directional(prefix, modifier, style)
 	end
 end
 
-directional("FocusPane", "alt+", "vim")
+directional("FocusPane", "alt+", "arrow")
 directional("SplitPane", mod, "arrow")
 directional("ResizePane", "ctrl+" .. mod, "arrow")
 

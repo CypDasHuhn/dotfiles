@@ -152,7 +152,11 @@ keybinds clear-defaults=true {
                 floating true
                 move_to_focused_tab true
             }
+            SwitchToMode "normal"
         }
+        bind "Ctrl Shift t" { NewTab; }
+        bind "Ctrl Shift r" { SwitchToMode "renametab"; TabNameInput 0; }
+        bind "Ctrl Shift w" { CloseTab; }
         bind "Alt +" { Resize "Increase"; }
         bind "Alt -" { Resize "Decrease"; }
         bind "Alt =" { Resize "Increase"; }
