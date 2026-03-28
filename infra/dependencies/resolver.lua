@@ -1,18 +1,12 @@
 -- Dependency resolver with condition-based ordering
+local platform = require("platform")
 local M = {}
 
 -- Detect current environment
 function M.detect_env()
 	local env = {}
 
-	--TODO: This feels a not needed, and b if at all, it should be in /util
-	-- OS detection
-	local os_name = io.popen("uname -s 2>/dev/null"):read("*l")
-	if os_name then
-		env.os = os_name:lower():find("mingw") and "windows" or "unix"
-	else
-		env.os = "windows" -- assume windows if uname fails
-	end
+	env.os = platform.os_type()
 
 	if env.os == "unix" then
 		local distro = io.popen("cat /etc/os-release 2>/dev/null | grep '^ID=' | cut -d= -f2 | tr -d '\"'"):read("*l")
