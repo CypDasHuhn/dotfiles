@@ -24,7 +24,23 @@ def --wrapped ps1 [...args] {
 }
 alias claude-danger = claude --dangerously-skip-permissions
 
-alias zj = zellij attach --create
+#region Zellij
+def zj [] {
+    try {
+        let session = (
+            zellij list-sessions --no-formatting
+            | lines
+            | first
+            | str trim
+            | split row ' '
+            | first
+        )
+        zellij attach --create $session
+    } catch {
+        zellij
+    }
+}
+#endregion
 
 # region Dev
 alias npm-r = npm run dev
