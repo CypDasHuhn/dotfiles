@@ -9,8 +9,6 @@ local function quote_cmd_arg(arg)
 	return '"' .. tostring(arg):gsub('"', '\\"') .. '"'
 end
 
-local SHELL_NAMES = { pwsh = true, zsh = true, bash = true, nushell = true }
-local VISUAL_NAMES = { hyprland = true, kde = true }
 
 -- Get the shell directory (where this script lives)
 function M.get_shell_dir()
@@ -100,52 +98,26 @@ local function to_platform(context_type)
 	return nil
 end
 
--- Check if a value should be included for this machine/shell/visual
--- only = can contain: shell names (pwsh/zsh/bash/nushell), visual names (hyprland/kde),
---        legacy platform names (windows/unix), or machine names
+-- Check if a value should be included for this machine/shell/visual.
+-- only = { os, shell, visual, machine } — all present keys must match (AND).
 function M.should_include(var_def, machine_name, context_type, visual_type)
 	if type(var_def) ~= "table" then
 		return true
 	end
 
-	if not var_def.only then
+	local only = var_def.only
+	if not only then
 		return true
 	end
 
-	local only = type(var_def.only) == "string" and { var_def.only } or var_def.only
-	if #only == 0 then
-		return true
-	end
+	local platform = to_platform(context_type)
 
-	for _, allowed in ipairs(only) do
-		-- Shell name match
-		if SHELL_NAMES[allowed] then
-			if allowed == context_type then
-				return true
-			end
-		-- Platform match, supporting both OS names and shell-family shorthands
-		elseif allowed == "windows" then
-			if to_platform(context_type) == "windows" then
-				return true
-			end
-		elseif allowed == "unix" then
-			if to_platform(context_type) == "unix" then
-				return true
-			end
-		-- Visual environment match
-		elseif VISUAL_NAMES[allowed] then
-			if allowed == visual_type then
-				return true
-			end
-		-- Machine name match
-		else
-			if allowed == machine_name then
-				return true
-			end
-		end
-	end
+	if only.os      and only.os      ~= platform      then return false end
+	if only.shell   and only.shell   ~= context_type  then return false end
+	if only.visual  and only.visual  ~= visual_type   then return false end
+	if only.machine and only.machine ~= machine_name  then return false end
 
-	return false
+	return true
 end
 
 -- Resolve the value for a variable given machine and shell/OS context

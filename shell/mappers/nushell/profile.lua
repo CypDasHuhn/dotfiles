@@ -174,6 +174,10 @@ local function get_basename(path)
 	return path:match("([^/]+)$"):match("(.+)%.[^.]+$")
 end
 
+local function get_dir(path)
+	return path:match("(.+)/[^/]+$") or "."
+end
+
 function M.generate(vars, var_order, machine, modules_dir, output_dir)
 	local abs_modules_dir
 	if is_windows() then
@@ -239,12 +243,19 @@ function M.generate(vars, var_order, machine, modules_dir, output_dir)
 	local platform_dir = abs_modules_dir .. "/nushell"
 	local module_files = get_module_files(platform_dir, ".nu")
 	local included_modules = {}
+	local dir_meta_cache = {}
 
 	for _, file in ipairs(module_files) do
-		local filename = get_filename(file)
 		local basename = get_basename(file)
-		local meta_path = file .. ".lua"
-		local meta = utils.load_file(meta_path)
+		local dir = get_dir(file)
+
+		-- Load dir.lua once per directory
+		if dir_meta_cache[dir] == nil then
+			dir_meta_cache[dir] = utils.load_file(dir .. "/dir.lua") or false
+		end
+
+		-- File-level sidecar takes precedence over dir.lua
+		local meta = utils.load_file(file .. ".lua") or dir_meta_cache[dir]
 
 		local include = true
 		if meta then

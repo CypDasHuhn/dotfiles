@@ -13,7 +13,7 @@ local vars = {
 }
 
 for _, v in pairs(vars) do
-	v.only = { "unix" }
+	v.only = { os = "unix" }
 end
 
 return vars

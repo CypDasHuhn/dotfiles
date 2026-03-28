@@ -35,7 +35,7 @@ def zj [] {
             | split row ' '
             | first
         )
-        zellij attach --create $session
+        zellij attach --create --force-run-commands $session
     } catch {
         zellij
     }

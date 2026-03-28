@@ -6,7 +6,7 @@ local vars = {
 }
 
 for _, v in pairs(vars) do
-	v.only = { "hyprland" }
+	v.only = { visual = "hyprland" }
 end
 
 return vars

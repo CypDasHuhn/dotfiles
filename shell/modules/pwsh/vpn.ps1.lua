@@ -1,3 +1,3 @@
 return {
-	only = { "work-laptop" },
+	only = { machine = "work-laptop" },
 }

@@ -18,9 +18,9 @@ return {
 		dir_function = true,
 	},
 
-	appdata = { "${me}/AppData", only = "windows" },
-	appdataLocal = { "${appdata}/Local", only = "windows" },
-	appdataRoaming = { "${appdata}/Roaming", only = "windows" },
+	appdata = { "${me}/AppData", only = { os = "windows" } },
+	appdataLocal = { "${appdata}/Local", only = { os = "windows" } },
+	appdataRoaming = { "${appdata}/Roaming", only = { os = "windows" } },
 	nvim = {
 		"${dotfiles}/nvim",
 	},
