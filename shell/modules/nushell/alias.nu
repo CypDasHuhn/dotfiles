@@ -24,7 +24,7 @@ def --wrapped ps1 [...args] {
 }
 alias claude-danger = claude --dangerously-skip-permissions
 
-alias zj = zellij
+alias zj = zellij attach --create
 
 # region Dev
 alias npm-r = npm run dev
