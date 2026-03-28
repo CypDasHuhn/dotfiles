@@ -1,6 +1,6 @@
 local linker = require("linker")
 local c = require("colors")
-package.path = linker.dotfiles_dir .. "terminal-emulator/?.lua;" .. package.path
+package.path = linker.dotfiles_dir .. "terminal/emulator/?.lua;" .. package.path
 local generator = require("generator")
 
 local function is_windows_terminal_session()

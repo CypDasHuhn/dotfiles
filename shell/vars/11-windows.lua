@@ -12,7 +12,7 @@ local vars = {
 	startup = { "${appdataRoaming}/Microsoft/Windows/Start Menu/Programs/Startup" },
 
 	windowsTerminalConfig = {
-		"${dotfiles}/terminal-emulator/windows-terminal/generated.json",
+		"${dotfiles}/terminal/emulator/windows-terminal/generated.json",
 	},
 	systemWindowsTerminal = {
 		"${appdataLocal}/Packages/Microsoft.WindowsTerminal_8wekyb3d8bbwe/LocalState/settings.json",

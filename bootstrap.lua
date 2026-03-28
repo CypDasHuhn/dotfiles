@@ -13,7 +13,7 @@ local function get_script_dir()
 end
 local script_dir = get_script_dir()
 
-package.path = script_dir .. "util/?.lua;" .. package.path
+package.path = script_dir .. "infra/?.lua;" .. package.path
 local c = require("colors")
 
 -- Detect OS type
@@ -140,7 +140,7 @@ if should_run("shell") then
 end
 
 -- Step 2: Initialize linker (always needed for machine detection)
-package.path = script_dir .. "util/?.lua;" .. script_dir .. "terminal-emulator/?.lua;" .. package.path
+package.path = script_dir .. "infra/?.lua;" .. script_dir .. "terminal/emulator/?.lua;" .. package.path
 local ok, linker = pcall(require, "linker")
 if not ok or not linker then
 	c.err("Failed to load linker: " .. tostring(linker))
@@ -155,22 +155,43 @@ if should_run("link") then
 end
 
 -- Step 3: Discover and run module bootstraps
-local function should_run_bootstrap(path, runtime_os)
-	local normalized = path:gsub("\\", "/")
-	if normalized:find("/unix/") then
-		return runtime_os == "unix"
+
+-- Walk up from a bootstrap file's directory to find the nearest dir.lua
+local function find_dir_lua(bootstrap_path)
+	local root = script_dir:gsub("/$", "")
+	local dir = bootstrap_path:gsub("\\", "/"):match("(.+)/[^/]+$")
+	while dir and #dir >= #root do
+		local f = io.open(dir .. "/dir.lua", "r")
+		if f then
+			f:close()
+			return dir .. "/dir.lua"
+		end
+		dir = dir:match("(.+)/[^/]+$")
 	end
-	if normalized:find("/windows/") then
-		return runtime_os == "windows"
-	end
+	return nil
+end
+
+local function should_run_bootstrap(path, machine)
+	local dir_lua_path = find_dir_lua(path)
+	if not dir_lua_path then return true end
+	local chunk = loadfile(dir_lua_path)
+	if not chunk then return true end
+	local ok, meta = pcall(chunk)
+	if not ok or type(meta) ~= "table" then return true end
+	local only = meta.only
+	if not only then return true end
+	local os_type = machine.os and machine.os.type
+	local visual_type = machine.os and machine.os.visual
+	if only.os      and only.os      ~= os_type      then return false end
+	if only.visual  and only.visual  ~= visual_type  then return false end
+	if only.machine and only.machine ~= machine.name then return false end
 	return true
 end
 
-local function find_bootstraps(runtime_os)
+local function find_bootstraps(machine)
 	local bootstraps = {}
 	local os_type = detect_os_type()
 
-	-- List directories and find bootstrap.lua files
 	local cmd
 	if os_type == "unix" then
 		cmd = 'find "' .. script_dir .. '" -name "bootstrap.lua" -type f 2>/dev/null'
@@ -181,11 +202,10 @@ local function find_bootstraps(runtime_os)
 	local handle = io.popen(cmd)
 	if handle then
 		for line in handle:lines() do
-			-- Skip the root bootstrap.lua
 			if
 				not line:match("dotfiles/bootstrap.lua$")
 				and not line:match("dotfiles\\bootstrap.lua$")
-				and should_run_bootstrap(line, runtime_os)
+				and should_run_bootstrap(line, machine)
 			then
 				table.insert(bootstraps, line)
 			end
@@ -196,8 +216,6 @@ local function find_bootstraps(runtime_os)
 	table.sort(bootstraps)
 	return bootstraps
 end
-
-local runtime_os = linker.machine().os.type
 
 -- Check if filter is a specific module name
 local function is_module_filter(mod)
@@ -211,7 +229,7 @@ end
 
 if should_run("modules") or is_module_filter(filter) then
 	c.section("Module Bootstraps")
-	for _, bootstrap_path in ipairs(find_bootstraps(runtime_os)) do
+	for _, bootstrap_path in ipairs(find_bootstraps(linker.machine())) do
 		local mod = bootstrap_path:match("/([^/]+)/bootstrap%.lua$") or bootstrap_path:match("\\([^\\]+)\\bootstrap%.lua$")
 		if mod and (should_run("modules") or is_module_filter(mod)) then
 			c.tag(mod, "running bootstrap...")
@@ -224,8 +242,7 @@ end
 -- Step 4: Resolve dependencies
 if should_run("deps") then
 	c.section("Dependencies")
-	package.path = script_dir .. "dependencies/?.lua;" .. package.path
-	local deps = require("init")
+	local deps = require("dependencies.init")
 	deps.run(script_dir)
 	print("")
 end
