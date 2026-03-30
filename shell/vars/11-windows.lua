@@ -17,6 +17,9 @@ local vars = {
 	systemWindowsTerminal = {
 		"${appdataLocal}/Packages/Microsoft.WindowsTerminal_8wekyb3d8bbwe/LocalState/settings.json",
 	},
+
+	zellij = { "${dotfiles}/terminal/multiplexer/zellij" },
+	systemZellij = { "${appdataRoaming}/Zellij/config" },
 }
 
 for _, v in pairs(vars) do
