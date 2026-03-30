@@ -317,9 +317,22 @@ function M.generate(vars, var_order, machine, modules_dir, output_dir, paths)
 		local path_ok, _, path_file = generate_path_file(paths, vars, machine, output_dir)
 		if path_ok then
 			-- Resolve to absolute path for the source line
-			local handle = io.popen('cd ' .. quote_arg(output_dir) .. ' && pwd')
-			local abs_output_dir = handle and handle:read("*l") or output_dir
-			if handle then handle:close() end
+			local abs_output_dir
+			if is_windows() then
+				if output_dir:match("^%a:") then
+					abs_output_dir = output_dir:gsub("\\", "/")
+				else
+					local h = io.popen("cd")
+					local cwd = h and h:read("*l") or ""
+					if h then h:close() end
+					cwd = cwd:gsub("\r", ""):gsub("\\", "/")
+					abs_output_dir = cwd .. "/" .. output_dir:gsub("^[./\\]+", ""):gsub("\\", "/")
+				end
+			else
+				local handle = io.popen('cd ' .. quote_arg(output_dir) .. ' && pwd')
+				abs_output_dir = handle and handle:read("*l") or output_dir
+				if handle then handle:close() end
+			end
 			table.insert(lines, "")
 			table.insert(lines, "# PATH")
 			table.insert(lines, 'source "' .. abs_output_dir .. '/path.nu"')

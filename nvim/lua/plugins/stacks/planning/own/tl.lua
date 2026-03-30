@@ -1,6 +1,7 @@
 return {
   'CypDasHuhn/timeline-format',
   dev = true,
+  enabled = false,
   dir = '/home/cyp/repos/timeline',
   build = 'bash -c "cd tree-sitter-tl && tree-sitter generate && cc -shared -o parser/tl.so -fPIC -I./src src/parser.c -O2"',
   config = function()
