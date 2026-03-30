@@ -1,4 +1,4 @@
-local h = require("dependencies.helpers")
+local h = require("infra.dependencies.helpers")
 --TODO: fzf
 
 return {
