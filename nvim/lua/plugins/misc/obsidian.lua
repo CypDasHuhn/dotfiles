@@ -26,5 +26,8 @@ return {
     },
 
     ui = { enable = false }, -- markview.nvim handles rendering
+
+    -- don't auto-inject frontmatter
+    disable_frontmatter = true,
   },
 }
