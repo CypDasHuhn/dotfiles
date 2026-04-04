@@ -7,7 +7,7 @@ return {
       local lint = require 'lint'
       local langs = require '.config.lang-packs.init'
       lint.linters_by_ft = vim.tbl_deep_extend('force', {
-        markdown = { 'markdownlint' },
+        markdown = { 'markdownlint-cli2' },
       }, langs.linters)
 
       local lint_augroup = vim.api.nvim_create_augroup('lint', { clear = true })
