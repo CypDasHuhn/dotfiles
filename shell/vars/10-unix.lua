@@ -8,8 +8,6 @@ local vars = {
 	systemWezterm = { "${me}/.config/wezterm/wezterm.lua" },
 	tmux = { "${dotfiles}/terminal/multiplexer/tmux" },
 	systemTmux = { "${me}/.config/tmux" },
-	zellij = { "${dotfiles}/terminal/multiplexer/zellij" },
-	systemZellij = { "${me}/.config/zellij" },
 }
 
 for _, v in pairs(vars) do

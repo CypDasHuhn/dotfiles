@@ -47,4 +47,12 @@ return {
 	zellijConfig = {
 		windows = "${appdataRoaming}/Zellij/config",
 	},
+
+	zellij = {
+		"${dotfiles}/terminal/multiplexer/zellij",
+	},
+	systemZellij = {
+		unix = "${me}/.config/zellij",
+		windows = "${appdataRoaming}/Zellij/config",
+	},
 }
