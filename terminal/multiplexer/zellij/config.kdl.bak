@@ -271,7 +271,9 @@ keybinds clear-defaults=true {
 // changing these requires a restart to take effect
 plugins {
     about location="zellij:about"
-    compact-bar location="zellij:compact-bar"
+   compact-bar location="zellij:compact-bar" {
+        tooltip "F1"
+    } 
     configuration location="zellij:configuration"
     filepicker location="zellij:strider" {
         cwd "/"
@@ -283,6 +285,9 @@ plugins {
     tab-bar location="zellij:tab-bar"
     welcome-screen location="zellij:session-manager" {
         welcome_screen true
+    }
+    sessionizer location="https://github.com/cunialino/zellij-sessionizer/releases/download/v0.1.0/sessionizer.wasm" {
+        cwd "~/"
     }
 }
 
@@ -333,7 +338,14 @@ default_shell "nu"
 // Default: "default"
 // 
 default_layout "default"
- 
+pane_frames false
+
+ui {
+    pane_frames {
+        hide_session_name false
+    }
+}
+
 // The folder in which Zellij will look for layouts
 // (Requires restart)
 // 
@@ -358,7 +370,7 @@ default_layout "default"
 //   - true (default, enabled)
 //   - false
 // 
-pane_frames false
+// pane_frames false
  
 // When attaching to an existing session with other users,
 // should the session be mirrored (true)
