@@ -92,8 +92,11 @@ local function to_platform(context_type)
 	if context_type == "pwsh" then
 		return "windows"
 	end
-	if context_type == "zsh" or context_type == "bash" or context_type == "nushell" then
+	if context_type == "zsh" or context_type == "bash" then
 		return "unix"
+	end
+	if context_type == "nushell" then
+		return package.config:sub(1, 1) == "\\" and "windows" or "unix"
 	end
 	return nil
 end

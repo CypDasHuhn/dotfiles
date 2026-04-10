@@ -313,7 +313,11 @@ function M.generate(vars, var_order, machine, modules_dir, output_dir, paths)
 	end
 
 	if paths and #paths > 0 then
-		os.execute("mkdir -p " .. quote_arg(output_dir))
+		if is_windows() then
+			os.execute('cmd /c if not exist ' .. quote_arg(output_dir:gsub("/", "\\")) .. ' mkdir ' .. quote_arg(output_dir:gsub("/", "\\")))
+		else
+			os.execute("mkdir -p " .. quote_arg(output_dir))
+		end
 		local path_ok, _, path_file = generate_path_file(paths, vars, machine, output_dir)
 		if path_ok then
 			-- Resolve to absolute path for the source line
