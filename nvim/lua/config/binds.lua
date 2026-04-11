@@ -18,10 +18,10 @@ vim.keymap.set('v', '<A-k>', ":m '<-2<CR>gv=gv", { desc = 'Move selection up' })
 
 -- region Case dependent Motion
 vim.keymap.set({ 'n', 'v', 'o' }, 's', function()
-  vim.fn.search('[^a-zA-Z]\\zs[a-zA-Z]\\|[A-Z]', 'W')
+    vim.fn.search('[^a-zA-Z]\\zs[a-zA-Z]\\|[A-Z]', 'W')
 end, { desc = 'Subword forward', silent = true })
 vim.keymap.set({ 'n', 'v', 'o' }, 'S', function()
-  vim.fn.search('[^a-zA-Z]\\zs[a-zA-Z]\\|[A-Z]', 'bW')
+    vim.fn.search('[^a-zA-Z]\\zs[a-zA-Z]\\|[A-Z]', 'bW')
 end, { desc = 'Subword backward', silent = true })
 -- endregion
 
@@ -29,12 +29,12 @@ vim.keymap.set('n', '<CR>', 'i<CR><Esc>', { desc = 'Split line at cursor' })
 
 -- region Diagnostics
 vim.keymap.set('n', '<leader>td', function()
-  local new_config = not vim.diagnostic.config().virtual_lines
-  vim.diagnostic.config { virtual_lines = new_config, virtual_text = not new_config }
+    local new_config = not vim.diagnostic.config().virtual_lines
+    vim.diagnostic.config { virtual_lines = new_config, virtual_text = not new_config }
 end, { desc = '[T]oggle [D]iagnostic lines' })
 
 vim.keymap.set('n', '<leader>tD', function()
-  vim.diagnostic.enable(not vim.diagnostic.is_enabled())
+    vim.diagnostic.enable(not vim.diagnostic.is_enabled())
 end, { desc = '[T]oggle [D]iagnostics' })
 -- endregion
 
@@ -61,23 +61,26 @@ vim.keymap.set('x', 'P', '"_dP', { noremap = true, silent = true })
 
 -- region LSP Actions
 vim.keymap.set('n', 'grI', function()
-  vim.lsp.buf.code_action {
-    filter = function(action)
-      return action.kind and (action.kind:match 'quickfix' or action.kind:match 'source.addMissingImports' or action.kind:match 'source.organizeImports')
-    end,
-    apply = true,
-  }
+    vim.lsp.buf.code_action {
+        filter = function(action)
+            return action.kind and
+                (action.kind:match 'quickfix' or action.kind:match 'source.addMissingImports' or action.kind:match 'source.organizeImports')
+        end,
+        apply = true,
+    }
 end, { desc = '[I]mport actions' })
 -- endregion
 
 vim.keymap.set('n', '<leader>sf', function()
-  vim.ui.input({ prompt = 'Grep in directory: ', completion = 'dir' }, function(dir)
-    if dir then
-      require('telescope.builtin').live_grep { search_dirs = { dir } }
-    end
-  end)
+    vim.ui.input({ prompt = 'Grep in directory: ', completion = 'dir' }, function(dir)
+        if dir then
+            require('telescope.builtin').live_grep { search_dirs = { dir } }
+        end
+    end)
 end)
 
 vim.keymap.set('n', 'gg', 'gg0')
 
 vim.keymap.set('n', '<leader>i', ':Lazy<CR>', { noremap = true })
+
+vim.keymap.set({ 'n', 'v', 'o' }, '<leader>ts', '<cmd>set spell!<cr>', { desc = 'Toggle spell' })
