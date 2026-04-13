@@ -16,6 +16,9 @@ $env.config.keybindings ++= [
 
 $env.config.show_banner = false
 
+$env.config.shell_integration.osc2 = true   # window title tracks current dir/command
+$env.config.shell_integration.osc7 = true   # current dir protocol (foot uses this)
+
 $env.PROMPT_COMMAND = {||
     let user = (whoami | str trim | split row '\\' | last)
     let dir = ($env.PWD | str replace $nu.home-dir "~")
