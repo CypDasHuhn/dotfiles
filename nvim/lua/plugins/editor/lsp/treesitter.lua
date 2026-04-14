@@ -25,11 +25,6 @@ return {
     local ok, treesitter = pcall(require, 'nvim-treesitter')
     if ok and type(treesitter.setup) == 'function' then
       treesitter.setup()
-      if #parsers > 0 and type(treesitter.install) == 'function' then
-        pcall(function()
-          treesitter.install(parsers)
-        end)
-      end
 
       vim.api.nvim_create_autocmd('FileType', {
         group = vim.api.nvim_create_augroup('nvim-treesitter-start', { clear = true }),
