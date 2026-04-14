@@ -12,13 +12,19 @@ ActivateWindow(exe, id) {
     ; fallback: activate first window if any
     for window in WinGetList("ahk_exe " exe) {
         WinActivate("ahk_id " window)
+        FocusWSLg(window)
         return
     }
 
-
     if exe != "" {
-	Run(exe)
+        Run(exe)
     }
+}
+
+FocusWSLg(hwnd) {
+    Sleep(50)  ; let WinActivate settle
+    WinGetPos(&x, &y, &w, &h, "ahk_id " hwnd)
+    Click(x + w // 2, y + h // 2)
 }
 
 
