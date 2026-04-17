@@ -2,26 +2,9 @@
 -- Roslyn is installed via easy-dotnet.nvim using :Dotnet bootstrap
 return {
   'seblj/roslyn.nvim',
+  enabled = false,
   ft = 'cs',
-  opts = function()
-    return {
-      config = {
-        -- Broadcast blink.cmp capabilities after plugin specs are loaded.
-        capabilities = require('blink.cmp').get_lsp_capabilities(),
-        -- Settings for Roslyn
-        settings = {
-          ["csharp|inlay_hints"] = {
-            csharp_enable_inlay_hints_for_implicit_object_creation = true,
-            csharp_enable_inlay_hints_for_implicit_variable_types = true,
-            csharp_enable_inlay_hints_for_lambda_parameter_types = true,
-            csharp_enable_inlay_hints_for_types = true,
-            dotnet_enable_inlay_hints_for_parameters = true,
-          },
-          ["csharp|code_lens"] = {
-            dotnet_enable_references_code_lens = true,
-          },
-        },
-      },
-    }
-  end,
+  -- easy-dotnet ships and manages the Roslyn-backed C# LSP already.
+  -- Keeping roslyn.nvim enabled here causes a second client config that
+  -- fails on Windows unless a separate roslyn binary is installed.
 }

@@ -17,6 +17,7 @@ return {
       theme = 'hyper',
       config = {
         packages = { enable = true }, -- show how many plugins neovim loaded
+        project = { enable = false },
         -- limit how many projects list, action when you press key or enter it will run this action.
         -- action can be a function type, e.g.
         -- action = func(path) vim.cmd('Telescope find_files cwd=' .. path) end
