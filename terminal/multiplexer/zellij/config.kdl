@@ -441,7 +441,7 @@ pane_frames false
 //   - true (default)
 //   - false
 // 
-session_serialization false
+session_serialization true
  
 // Whether pane viewports are serialized along with the session, default is false
 // Options:
@@ -463,9 +463,11 @@ session_serialization false
 // 
 // styled_underlines false
  
-// How often in seconds sessions are serialized
+// How often in seconds sessions are serialized.
+// Keep this low enough that short-lived sessions still get a resurrection snapshot
+// before commands like `kill-all-sessions` tear them down.
 // 
-// serialization_interval 10000
+serialization_interval 5
  
 // Enable or disable writing of session metadata to disk (if disabled, other sessions might not know
 // metadata info on this session)
