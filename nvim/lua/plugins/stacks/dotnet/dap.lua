@@ -65,6 +65,37 @@ return {
       end, current_buffer_dir())
     end
 
+    local function csproj_target_frameworks(project_path)
+      if not project_path or project_path == '' then
+        return {}
+      end
+
+      local lines = vim.fn.readfile(project_path)
+      local text = table.concat(lines, '\n')
+
+      local tfms = text:match('<TargetFrameworks>%s*([^<]+)%s*</TargetFrameworks>')
+      if tfms then
+        local out = {}
+        for tfm in tfms:gmatch('[^;]+') do
+          tfm = vim.trim(tfm)
+          if tfm ~= '' then
+            table.insert(out, tfm)
+          end
+        end
+        return out
+      end
+
+      local tfm = text:match('<TargetFramework>%s*([^<]+)%s*</TargetFramework>')
+      if tfm then
+        tfm = vim.trim(tfm)
+        if tfm ~= '' then
+          return { tfm }
+        end
+      end
+
+      return {}
+    end
+
     local function solution_or_project_dir()
       local root_file = find_upward(function(name)
         return name:match '%.sln$' or name:match '%.csproj$'
@@ -85,7 +116,9 @@ return {
       local project_dir = vim.fs.dirname(project)
       local assembly_name = vim.fn.fnamemodify(project, ':t:r')
       local debug_dir = joinpath(project_dir, 'bin', 'Debug')
-      local preferred = joinpath(debug_dir, 'net8.0', assembly_name .. '.dll')
+      local frameworks = csproj_target_frameworks(project)
+      local preferred_tfm = frameworks[1] or 'net8.0'
+      local preferred = joinpath(debug_dir, preferred_tfm, assembly_name .. '.dll')
 
       if vim.uv.fs_stat(preferred) then
         return preferred
@@ -159,11 +192,69 @@ return {
 
     local function list_attachable_processes()
       if not is_windows() then
-        return require('dap.utils').get_processes {
-          filter = function(proc)
-            return proc.name:find('dotnet', 1, true) ~= nil
-          end,
+        -- dap.utils.get_processes only provides (pid, name) and can miss the
+        -- command line we need to identify the right dotnet host. Use `ps` so
+        -- users can reliably pick the exact PID they want to attach to.
+        local lines = vim.fn.systemlist { 'ps', '-eo', 'pid=,comm=,args=' }
+        local processes = {}
+        for _, line in ipairs(lines) do
+          local pid, name, args = line:match('^%s*(%d+)%s+(%S+)%s+(.*)$')
+          pid = tonumber(pid)
+          if pid and name then
+            table.insert(processes, {
+              pid = pid,
+              name = name,
+              command = args ~= '' and args or name,
+            })
+          end
+        end
+
+        local ignored = {
+          'MSBuild.dll',
+          'Microsoft.CodeAnalysis.LanguageServer.dll',
+          'EasyDotnet.BuildServer.dll',
+          'dotnet-easydotnet',
         }
+
+        local filtered = {}
+        for _, proc in ipairs(processes) do
+          local cmd = proc.command or proc.name or ''
+          local skip = false
+          for _, pattern in ipairs(ignored) do
+            if cmd:find(pattern, 1, true) then
+              skip = true
+              break
+            end
+          end
+
+          if not skip then
+            -- Prefer showing the actual dotnet host processes. This keeps the
+            -- picker focused and matches typical "dotnet run" workflows.
+            if cmd:find('dotnet', 1, true) ~= nil then
+              table.insert(filtered, proc)
+            end
+          end
+        end
+
+        table.sort(filtered, function(a, b)
+          local function score(p)
+            local c = (p.command or ''):lower()
+            if c:find('dotnet run', 1, true) then
+              return 0
+            end
+            if c:find('.dll', 1, true) then
+              return 1
+            end
+            return 2
+          end
+          local sa, sb = score(a), score(b)
+          if sa == sb then
+            return (a.pid or 0) > (b.pid or 0)
+          end
+          return sa < sb
+        end)
+
+        return filtered
       end
 
       local powershell = 'C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\powershell.exe'
@@ -233,13 +324,23 @@ return {
       return processes
     end
 
+    local function prompt_for_pid()
+      local input = vim.fn.input 'Process ID to attach: '
+      local pid = tonumber(input)
+      if not pid then
+        notify('Invalid PID: ' .. tostring(input), vim.log.levels.WARN)
+        return dap.ABORT
+      end
+      return pid
+    end
+
     local function pick_dotnet_process()
       local ui = require 'dap.ui'
       local processes = list_attachable_processes()
 
       if #processes == 0 then
-        notify('No attachable .NET process found', vim.log.levels.WARN)
-        return dap.ABORT
+        notify('No attachable .NET process found; enter PID manually', vim.log.levels.WARN)
+        return prompt_for_pid()
       end
 
       local function label(proc)
@@ -251,8 +352,16 @@ return {
         return string.format('id=%d %s', proc.pid, cmd)
       end
 
+      table.insert(processes, 1, { pid = -1, name = 'manual', command = '[Enter PID manually]' })
+
       local result = ui.pick_one_sync(processes, 'Select .NET process: ', label)
-      return result and result.pid or dap.ABORT
+      if not result then
+        return dap.ABORT
+      end
+      if result.pid == -1 then
+        return prompt_for_pid()
+      end
+      return result.pid
     end
 
     dapui.setup()
