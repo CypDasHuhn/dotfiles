@@ -22,18 +22,72 @@ def --env ensure-xdg-runtime [] {
 # Fix XDG_RUNTIME_DIR at shell startup so bare `zellij` invocations also work.
 ensure-xdg-runtime
 
-def zj [] {
+def zellij-live-session [] {
     try {
-        let session = (
+        let sessions = (
             zellij list-sessions --no-formatting
             | lines
-            | first
-            | str trim
-            | split row ' '
-            | first
+            | each {|line|
+                let trimmed = ($line | str trim)
+                if ($trimmed | is-empty) {
+                    null
+                } else {
+                    $trimmed | split row ' ' | get 0
+                }
+            }
+            | compact
         )
-        zellij attach --create --force-run-commands $session
+
+        if ($sessions | is-empty) {
+            null
+        } else {
+            $sessions | get 0
+        }
     } catch {
+        null
+    }
+}
+
+def zellij-resurrectable-session [] {
+    let session_info_dir = ($nu.home-path | path join ".cache" "zellij" "contract_version_1" "session_info")
+    if not ($session_info_dir | path exists) {
+        return null
+    }
+
+    let candidates = (
+        ls $session_info_dir
+        | where type == dir
+        | each {|dir|
+            let metadata = ($dir.name | path join "session-metadata.kdl")
+            if ($metadata | path exists) {
+                {
+                    session: ($dir.name | path basename)
+                    modified: (ls $metadata | get modified | first)
+                }
+            }
+        }
+        | compact
+        | sort-by modified --reverse
+    )
+
+    if ($candidates | is-empty) {
+        null
+    } else {
+        $candidates | get session | first
+    }
+}
+
+def zj [] {
+    let live_session = (zellij-live-session)
+    if $live_session != null {
+        zellij attach --create --force-run-commands $live_session
+        return
+    }
+
+    let resurrectable_session = (zellij-resurrectable-session)
+    if $resurrectable_session != null {
+        zellij attach --create --force-run-commands $resurrectable_session
+    } else {
         zellij
     }
 }
