@@ -1,3 +1,5 @@
 return {
-	{ "${vdirCli}/zig-out/bin" },
+    { "${vdirCli}/zig-out/bin" },
+    { "${me}/.dotnet/tools" },
+    { "${me}/.vsdbg" }
 }

@@ -1,0 +1,36 @@
+#!/usr/bin/expect -f
+
+set timeout 20
+
+set init_bin [lindex $argv 0]
+set principal [lindex $argv 1]
+set password_file [lindex $argv 2]
+
+set fp [open $password_file r]
+set password [string trimright [read $fp] "\r\n"]
+close $fp
+
+if {$password eq ""} {
+    puts stderr "Kerberos password file is empty: $password_file"
+    exit 1
+}
+
+spawn $init_bin $principal
+
+expect {
+    -re "(?i)password.*: $" {
+        send -- "$password\r"
+    }
+    timeout {
+        puts stderr "Timed out waiting for password prompt from $init_bin"
+        exit 1
+    }
+    eof {
+        catch wait result
+        exit [lindex $result 3]
+    }
+}
+
+expect eof
+catch wait result
+exit [lindex $result 3]
