@@ -1,0 +1,4 @@
+os:
+  edit: 'nvr --servername $env.NVIM --remote-expr ''v:lua.lg_open({{filename}})'''
+  editAtLine: 'nvr --servername $env.NVIM --remote-expr ''v:lua.lg_open({{filename}}, {{line}})'''
+  suspendOnEdit: false
