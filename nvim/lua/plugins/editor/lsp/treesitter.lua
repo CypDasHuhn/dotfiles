@@ -23,27 +23,36 @@ return {
       end
     end
 
-    local ok, treesitter = pcall(require, 'nvim-treesitter')
-    if ok and type(treesitter.setup) == 'function' then
-      treesitter.setup()
+    -- nvim-treesitter v1+ dropped `nvim-treesitter.configs`; parsers are managed via TSInstall/TSUpdate.
+    local ok_config, ts_config = pcall(require, 'nvim-treesitter.config')
+    local ok_install, ts_install = pcall(require, 'nvim-treesitter.install')
+    if ok_config and ok_install then
+      local installed = ts_config.get_installed('parsers')
+      local installed_set = {}
+      for _, lang in ipairs(installed or {}) do
+        installed_set[lang] = true
+      end
 
-      vim.api.nvim_create_autocmd('FileType', {
-        group = vim.api.nvim_create_augroup('nvim-treesitter-start', { clear = true }),
-        callback = function(ev)
-          enable_treesitter(ev.buf)
-        end,
-      })
-    else
-      require('nvim-treesitter.configs').setup {
-        ensure_installed = parsers,
-        highlight = {
-          enable = true,
-          disable = function(lang)
-            if own_parsers[lang] then return true end
-            return not pcall(vim.treesitter.language.inspect, lang)
-          end,
-        },
-      }
+      local missing = {}
+      for _, lang in ipairs(parsers) do
+        if not own_parsers[lang] and not installed_set[lang] then
+          table.insert(missing, lang)
+        end
+      end
+
+      if #missing > 0 then
+        -- Fire-and-forget; shows a summary and avoids blocking startup.
+        vim.schedule(function()
+          pcall(ts_install.install, missing, { summary = true })
+        end)
+      end
     end
+
+    vim.api.nvim_create_autocmd('FileType', {
+      group = vim.api.nvim_create_augroup('nvim-treesitter-start', { clear = true }),
+      callback = function(ev)
+        enable_treesitter(ev.buf)
+      end,
+    })
   end,
 }

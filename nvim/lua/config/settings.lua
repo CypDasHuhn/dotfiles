@@ -3,6 +3,9 @@ vim.g.maplocalleader = ' '
 
 vim.g.have_nerd_font = true
 
+-- Ensure ftplugin + indent scripts are active (C#, etc. rely on this).
+vim.cmd('filetype plugin indent on')
+
 vim.o.number = true
 vim.o.relativenumber = true
 
@@ -32,12 +35,20 @@ vim.o.splitbelow = true
 
 vim.o.list = true
 
+-- Indentation: keep new lines aligned with the previous line / syntax indent.
+vim.opt.autoindent = true
+vim.opt.smartindent = true
+vim.opt.copyindent = true
+
 vim.opt.expandtab = true
 --TODO: Find a way to have this be .editorconfig/prettier dependent.
 -- For now not critical since when actually formetting, these will get respected.
 vim.opt.shiftwidth = 4
 vim.opt.tabstop = 4
 vim.opt.softtabstop = 4
+
+-- Continue comments when pressing Enter/o/O.
+vim.opt.formatoptions:append { 'r', 'o' }
 
 vim.opt.listchars = { tab = '» ', trail = '·', nbsp = '␣' }
 
