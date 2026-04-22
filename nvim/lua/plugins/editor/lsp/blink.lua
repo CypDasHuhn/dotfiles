@@ -3,6 +3,7 @@ return {
   event = 'VeryLazy',
   version = '1.*',
   dependencies = {
+    'Exafunction/codeium.nvim',
     {
       'L3MON4D3/LuaSnip',
       version = '2.*',
@@ -31,7 +32,7 @@ return {
     },
 
     sources = {
-      default = { 'lsp', 'path', 'snippets', 'lazydev' },
+      default = { 'lsp', 'path', 'snippets', 'lazydev', 'codeium' },
       per_filetype = {
         -- SQL files use dadbod completion instead of LSP
         sql = { 'dadbod', 'buffer', 'path', 'snippets' },
@@ -40,6 +41,7 @@ return {
       },
       providers = {
         lazydev = { module = 'lazydev.integrations.blink', score_offset = 100 },
+        codeium = { name = 'Codeium', module = 'codeium.blink', async = true },
         dadbod = {
           name = 'Dadbod',
           module = 'blink.cmp.sources.complete_func',
