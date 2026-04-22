@@ -15,5 +15,7 @@ return {
     }):once(),
 
     -- Portal backend for Hyprland (screen sharing, file pickers, etc.)
-    ["xdg-desktop-portal-hyprland"] = h.pacman("xdg-desktop-portal-hyprland"):once(),
+    ["xdg-desktop-portal-hyprland"] = h.dep({
+        unix = h.pacman("xdg-desktop-portal-hyprland"),
+    }):verify(h.file_exists("/usr/lib/xdg-desktop-portal-hyprland")):once(),
 }
