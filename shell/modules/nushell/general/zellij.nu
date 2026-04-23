@@ -2,6 +2,17 @@
 # Zellij panics with "Permission denied" if the dir doesn't exist (common on WSL2
 # when the systemd user session hasn't started and /run/user/1000 was never created).
 def --env ensure-xdg-runtime [] {
+    let os = $nu.os-info.family
+
+    # Windows has no XDG concept; use a per-user temp dir and return early
+    if $os == "windows" {
+        let dir = ([$env.LOCALAPPDATA, "runtime"] | path join)
+        if not ($dir | path exists) { mkdir $dir }
+        $env.XDG_RUNTIME_DIR = $dir
+        return
+    }
+
+    # Unix path
     let dir = ($env | get -o XDG_RUNTIME_DIR | default "")
     if ($dir | is-empty) or not ($dir | path exists) {
         # On WSL2, WSLg's runtime dir already has the wayland-0 socket.
@@ -9,7 +20,7 @@ def --env ensure-xdg-runtime [] {
         let fallback = if ("/mnt/wslg/runtime-dir" | path exists) {
             "/mnt/wslg/runtime-dir"
         } else {
-            $"/tmp/runtime-(^id -u | str trim)"
+            $env.XDG_RUNTIME_DIR? | default $"/tmp/runtime-(^id -u | str trim)"
         }
         if not ($fallback | path exists) {
             mkdir $fallback
@@ -18,7 +29,6 @@ def --env ensure-xdg-runtime [] {
         $env.XDG_RUNTIME_DIR = $fallback
     }
 }
-
 # Fix XDG_RUNTIME_DIR at shell startup so bare `zellij` invocations also work.
 ensure-xdg-runtime
 
