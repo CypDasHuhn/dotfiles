@@ -85,7 +85,10 @@ function M.load_all_vars(vars_dir)
 	return merged, order
 end
 
-local function to_platform(context_type)
+local function to_platform(context_type, machine_os_type)
+	if machine_os_type == "windows" or machine_os_type == "unix" then
+		return machine_os_type
+	end
 	if context_type == "windows" or context_type == "unix" then
 		return context_type
 	end
@@ -103,7 +106,7 @@ end
 
 -- Check if a value should be included for this machine/shell/visual.
 -- only = { os, shell, visual, machine } — all present keys must match (AND).
-function M.should_include(var_def, machine_name, context_type, visual_type)
+function M.should_include(var_def, machine_name, context_type, visual_type, machine_os_type)
 	if type(var_def) ~= "table" then
 		return true
 	end
@@ -113,7 +116,7 @@ function M.should_include(var_def, machine_name, context_type, visual_type)
 		return true
 	end
 
-	local platform = to_platform(context_type)
+	local platform = to_platform(context_type, machine_os_type)
 
 	if only.os      and only.os      ~= platform      then return false end
 	if only.shell   and only.shell   ~= context_type  then return false end
@@ -233,11 +236,11 @@ function M.get_ordered_keys(vars)
 end
 
 -- Reorder var_order based on dependencies (topological sort)
-function M.dependency_sort(vars, var_order, machine_name, shell_type, visual_type)
+function M.dependency_sort(vars, var_order, machine_name, shell_type, visual_type, machine_os_type)
 	local included = {}
 	for _, name in ipairs(var_order) do
 		local var_def = vars[name]
-		if M.should_include(var_def, machine_name, shell_type, visual_type) then
+		if M.should_include(var_def, machine_name, shell_type, visual_type, machine_os_type) then
 			table.insert(included, name)
 		end
 	end

@@ -40,7 +40,11 @@ function M.find(script_dir, machine)
 	if platform.os_type() == "unix" then
 		cmd = 'find "' .. script_dir .. '" -name "bootstrap.lua" -type f 2>/dev/null'
 	else
-		cmd = 'dir /s /b "' .. script_dir:gsub("/", "\\") .. 'bootstrap.lua" 2>nul'
+		-- dir /s /b follows symlinks/junctions and can cause infinite loops.
+		-- Use a PowerShell recursive search that skips reparse point directories.
+		local win_root = script_dir:gsub("/", "\\")
+		local ps_root = win_root:gsub("'", "''")
+		cmd = 'powershell -NoProfile -Command "& { function S($d){ Get-ChildItem $d -File -Filter bootstrap.lua -EA 0 | ForEach-Object { $_.FullName }; Get-ChildItem $d -Directory -EA 0 | Where-Object { !($_.Attributes -band 1024) } | ForEach-Object { S $_.FullName } }; S \'' .. ps_root .. '\'}"'
 	end
 
 	local handle = io.popen(cmd)

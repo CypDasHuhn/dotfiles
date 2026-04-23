@@ -181,10 +181,11 @@ end
 local function generate_path_file(paths, vars, machine, output_dir)
 	local shell_type = "nushell"
 	local visual_type = machine.os and machine.os.visual
+	local machine_os_type = machine.os and machine.os.type
 
 	local path_entries = {}
 	for _, entry in ipairs(paths) do
-		if utils.should_include(entry, machine.name, shell_type, visual_type) then
+		if utils.should_include(entry, machine.name, shell_type, visual_type, machine_os_type) then
 			local value = entry[1]
 			value = utils.expand_value(value, vars, machine.name, shell_type)
 			value = expand_env_vars(value)
@@ -245,13 +246,14 @@ function M.generate(vars, var_order, machine, modules_dir, output_dir, paths)
 
 	local shell_type = "nushell"
 	local visual_type = machine.os and machine.os.visual
+	local machine_os_type = machine.os and machine.os.type
 	local dir_functions = {}
 
 	-- Nushell profile uses fully-expanded literal values so variable order doesn't
 	-- matter at runtime. We still iterate in dependency order for consistency.
 	for _, name in ipairs(var_order) do
 		local var_def = vars[name]
-		if utils.should_include(var_def, machine.name, shell_type, visual_type) then
+		if utils.should_include(var_def, machine.name, shell_type, visual_type, machine_os_type) then
 			local value = utils.resolve_value(var_def, machine.name, shell_type)
 			if value then
 				-- Fully expand dotfiles variable references
@@ -296,7 +298,7 @@ function M.generate(vars, var_order, machine, modules_dir, output_dir, paths)
 
 		local include = true
 		if meta then
-			include = utils.should_include(meta, machine.name, shell_type, visual_type)
+			include = utils.should_include(meta, machine.name, shell_type, visual_type, machine_os_type)
 		end
 
 		if include then
@@ -314,7 +316,8 @@ function M.generate(vars, var_order, machine, modules_dir, output_dir, paths)
 
 	if paths and #paths > 0 then
 		if is_windows() then
-			os.execute('cmd /c if not exist ' .. quote_arg(output_dir:gsub("/", "\\")) .. ' mkdir ' .. quote_arg(output_dir:gsub("/", "\\")))
+			os.execute('cmd /c if not exist ' .. quote_arg(output_dir:gsub("/", "\\")) ..
+				' mkdir ' .. quote_arg(output_dir:gsub("/", "\\")))
 		else
 			os.execute("mkdir -p " .. quote_arg(output_dir))
 		end

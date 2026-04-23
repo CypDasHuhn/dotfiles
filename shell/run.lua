@@ -40,6 +40,7 @@ if not shell_type then
 end
 
 local visual_type = machine.os and machine.os.visual
+local machine_os_type = machine.os and machine.os.type
 
 print("Machine: " .. machine.name)
 if machine.os then
@@ -54,7 +55,7 @@ local paths = utils.load_all_paths(PATHS_DIR)
 print("Loaded vars from " .. VARS_DIR)
 
 -- Sort vars by dependency order
-var_order = utils.dependency_sort(vars, var_order, machine.name, shell_type, visual_type)
+var_order = utils.dependency_sort(vars, var_order, machine.name, shell_type, visual_type, machine_os_type)
 
 local function resolve_processed_var(name)
 	local var_def = vars[name]
@@ -62,7 +63,7 @@ local function resolve_processed_var(name)
 		return nil
 	end
 
-	if not utils.should_include(var_def, machine.name, shell_type, visual_type) then
+	if not utils.should_include(var_def, machine.name, shell_type, visual_type, machine_os_type) then
 		return nil
 	end
 
@@ -137,7 +138,7 @@ local profile_lines = {
 
 for _, name in ipairs(var_order) do
 	local var_def = vars[name]
-	if utils.should_include(var_def, machine.name, shell_type, visual_type) then
+	if utils.should_include(var_def, machine.name, shell_type, visual_type, machine_os_type) then
 		local value = utils.resolve_value(var_def, machine.name, shell_type)
 		if value then
 			value = utils.expand_value(value, vars, machine.name, shell_type)
