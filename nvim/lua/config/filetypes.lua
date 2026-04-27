@@ -1,4 +1,11 @@
 vim.filetype.add {
+  extension = {
+    puml = 'plantuml',
+    plantuml = 'plantuml',
+    uml = 'plantuml',
+    pu = 'plantuml',
+    iuml = 'plantuml',
+  },
   filename = {
     justfile = 'just',
   },
