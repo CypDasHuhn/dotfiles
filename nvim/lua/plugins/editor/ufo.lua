@@ -13,7 +13,8 @@ return {
           return vim.list_extend(ts_ranges or {}, regions)
         end):catch(function()
           return regions
-        end)
+        end
+        return vim.list_extend(ts_ranges or {}, regions)
       end
     end,
   },
