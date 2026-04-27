@@ -121,3 +121,37 @@ def zjs [] {
         zellij attach --force-run-commands ($picked | str trim)
     }
 }
+
+# Run a command inside `nu -c` and replace it with an interactive shell when it exits.
+# Use this for commands you intend to resurrect in Zellij, otherwise the pane will be
+# restored as a one-shot command pane and hang after the command finishes.
+def zjcmd [command: string] {
+    ^nu -c $'do { ($command) }; exec nu'
+}
+
+# Open a new Zellij pane that runs a command and then drops back into `nu` in the
+# same working directory once the command exits.
+def zjp [
+    command: string,
+    --direction (-d): string,
+    --floating (-f),
+    --in-place (-i),
+    --name (-n): string,
+] {
+    mut args = ["action" "new-pane" "--cwd" $env.PWD]
+
+    if $direction != null {
+        $args = ($args | append ["--direction" $direction])
+    }
+    if $floating {
+        $args = ($args | append "--floating")
+    }
+    if $in_place {
+        $args = ($args | append "--in-place")
+    }
+    if $name != null {
+        $args = ($args | append ["--name" $name])
+    }
+
+    ^zellij ...$args -- "nu" "-c" $'do { ($command) }; exec nu'
+}
