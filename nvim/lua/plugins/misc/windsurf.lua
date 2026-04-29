@@ -4,6 +4,8 @@ return {
     'nvim-lua/plenary.nvim',
   },
   config = function()
+    vim.keymap.set('n', '<leader>a', '<cmd>Codeium Toggle', { buffer = true })
+
     require('codeium').setup {
       -- Using blink.cmp integration, not nvim-cmp.
       enable_cmp_source = false,
