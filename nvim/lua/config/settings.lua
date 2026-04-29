@@ -75,3 +75,5 @@ vim.api.nvim_set_hl(0, 'DiagnosticUnnecessary', { undercurl = true })
 
 vim.g.loaded_netrw = 1
 vim.g.loaded_netrwPlugin = 1
+
+vim.keymap.set("n", "<leader>wn", "<cmd>noautocmd w<cr>")
