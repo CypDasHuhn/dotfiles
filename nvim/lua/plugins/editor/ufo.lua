@@ -9,7 +9,7 @@ return {
     provider_selector = function(_, _, _)
       return function(bufnr)
         local regions = require('lib.region-folds').get_region_ranges(bufnr)
-        return require('ufo.provider.treesitter').getFolds(bufnr):thenCall(function(ts_ranges)
+        return require('ufo.provider.treesitter').getFolds(bufnr):then(function(ts_ranges)
           return vim.list_extend(ts_ranges or {}, regions)
         end):catch(function()
           return regions
