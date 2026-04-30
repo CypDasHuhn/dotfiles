@@ -7,7 +7,7 @@ def port-pid [port: int] {
 }
 
 def kill-port [port: int] {
-  let pids = (port-pid-windows $port)
+  let pids = (port-pid $port)
   if ($pids | is-empty) {
     print $"No process found on port ($port)"
     return
