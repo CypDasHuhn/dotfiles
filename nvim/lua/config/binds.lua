@@ -17,12 +17,14 @@ vim.keymap.set('v', '<A-k>', ":m '<-2<CR>gv=gv", { desc = 'Move selection up' })
 -- endregion
 
 -- region Case dependent Motion
+--[[
 vim.keymap.set({ 'n', 'v', 'o' }, 's', function()
     vim.fn.search('[^a-zA-Z]\\zs[a-zA-Z]\\|[A-Z]', 'W')
 end, { desc = 'Subword forward', silent = true })
 vim.keymap.set({ 'n', 'v', 'o' }, 'S', function()
     vim.fn.search('[^a-zA-Z]\\zs[a-zA-Z]\\|[A-Z]', 'bW')
 end, { desc = 'Subword backward', silent = true })
+--]]
 -- endregion
 
 vim.keymap.set('n', '<CR>', 'i<CR><Esc>', { desc = 'Split line at cursor' })
