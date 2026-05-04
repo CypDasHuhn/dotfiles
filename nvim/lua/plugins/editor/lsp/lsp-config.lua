@@ -10,6 +10,14 @@ return {
     { 'j-hui/fidget.nvim', opts = {} },
     'saghen/blink.cmp',
     'folke/lazydev.nvim',
+    {
+      "SmiteshP/nvim-navbuddy",
+      dependencies = {
+        "SmiteshP/nvim-navic",
+        "MunifTanjim/nui.nvim"
+      },
+      opts = { lsp = { auto_attach = true } }
+    }
   },
   config = function()
     local server_aliases = {
