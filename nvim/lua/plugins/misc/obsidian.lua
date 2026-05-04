@@ -1,5 +1,5 @@
 return {
-  'epwalsh/obsidian.nvim',
+  'obsidian-nvim/obsidian.nvim',
   version = '*', -- recommended, use latest release instead of latest commit
   lazy = true,
   ft = 'markdown',
@@ -18,6 +18,8 @@ return {
     -- see below for full list of optional dependencies 👇
   },
   opts = {
+    legacy_commands = false,
+
     workspaces = {
       {
         name = 'personal',
@@ -28,6 +30,8 @@ return {
     ui = { enable = false }, -- markview.nvim handles rendering
 
     -- don't auto-inject frontmatter
-    disable_frontmatter = true,
+    frontmatter = {
+      enabled = false,
+    },
   },
 }
