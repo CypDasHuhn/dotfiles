@@ -1,3 +1,5 @@
+-- TODO: Split up like in lsp-config for OSP
+
 return {
   'saghen/blink.cmp',
   event = 'VeryLazy',

@@ -7,6 +7,7 @@ return {
       local lint = require 'lint'
       local langs = require '.config.lang-packs.init'
       local all_linters = vim.tbl_deep_extend('force', {
+        -- TODO: move to config
         markdown = { 'markdownlint' },
       }, langs.linters)
       local available_linters = {}
@@ -22,6 +23,7 @@ return {
       end
       lint.linters_by_ft = available_linters
 
+      -- TODO: move to config
       lint.linters.markdownlint.args = {
         '--disable', 'MD013',
       }
