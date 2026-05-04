@@ -105,6 +105,7 @@ end, { desc = '[N]avbuddy ope[n]' })
 vim.keymap.set({ 'n', 'v', 'o' }, '<leader>ts', '<cmd>set spell!<cr>', { desc = 'Toggle spell' })
 
 vim.keymap.set("n", "<leader>wn", "<cmd>noautocmd w<cr>")
+vim.keymap.set("n", "<leader>ws", "<cmd>SudaWrite<cr>")
 do
     local function do_open(uri)
         local cmd, err = vim.ui.open(uri)
