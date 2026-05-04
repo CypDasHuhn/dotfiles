@@ -3,11 +3,11 @@ return {
   event = 'VeryLazy',
   keys = {
     {
-      '<leader>gw',
+      '<leader>nw',
       function()
         require('wayfinder').open()
       end,
-      desc = '[G]o [W]ayfinder',
+      desc = '[N]avigate [W]ayfinder',
     },
   },
   opts = {},
