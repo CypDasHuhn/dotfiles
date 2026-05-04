@@ -1,5 +1,6 @@
 return {
   'OXY2DEV/markview.nvim',
+  enabled = false,
   lazy = false, -- internal lazy loading
 
   -- Completion for `blink.cmp`
