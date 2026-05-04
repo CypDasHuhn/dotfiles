@@ -1,4 +1,4 @@
-j# Explenation of Nvim Config Setup
+# Explenation of Nvim Config Setup
 
 ## General
 
