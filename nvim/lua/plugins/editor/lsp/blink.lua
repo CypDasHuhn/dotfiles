@@ -70,4 +70,10 @@ return {
       },
     },
   },
+  config = function(_, opts)
+    require('blink.cmp').setup(opts)
+    require('luasnip.loaders.from_vscode').lazy_load {
+      paths = { vim.fn.stdpath 'config' .. '/snippets' },
+    }
+  end,
 }

@@ -1,5 +1,6 @@
 return {
   'chrisgrieser/nvim-scissors',
+  commit = '855ce6b',
   dependencies = {
     'nvim-telescope/telescope.nvim',
   },
@@ -8,16 +9,24 @@ return {
   },
   keys = {
     {
-      '<leader>se',
+      '<leader>re',
       function()
-        require('scissors').editSnippet()
+        local ok, scissors = pcall(require, 'scissors')
+        if not ok or type(scissors) ~= 'table' then
+          scissors = require 'scissors.init'
+        end
+        scissors.editSnippet()
       end,
       desc = 'Snippet: Edit',
     },
     {
-      '<leader>sa',
+      '<leader>ra',
       function()
-        require('scissors').addNewSnippet()
+        local ok, scissors = pcall(require, 'scissors')
+        if not ok or type(scissors) ~= 'table' then
+          scissors = require 'scissors.init'
+        end
+        scissors.addNewSnippet()
       end,
       mode = { 'n', 'x' },
       desc = 'Snippet: Add',
