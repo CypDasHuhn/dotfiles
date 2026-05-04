@@ -12,6 +12,8 @@ return {
         'C:\\tools\\plantuml-stdlib\\stdlib',
       },
       filetypes = { 'plantuml' },
+      root_markers = { '.git' },
+      single_file_support = true,
     },
   },
   formatters = {

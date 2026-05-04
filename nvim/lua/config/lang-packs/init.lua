@@ -6,6 +6,7 @@
 -- Each language file should return:
 -- {
 --   servers = { ... },      -- LSP server configs
+--   server_aliases = { ... }, -- LSP server name aliases
 --   formatters = { ... },   -- conform.nvim formatters_by_ft
 --   linters = { ... },      -- nvim-lint linters_by_ft
 --   tools = { ... },        -- extra Mason tools to install
@@ -14,6 +15,7 @@
 
 local M = {
   servers = {},
+  server_aliases = {},
   formatters = {},
   linters = {},
   tools = {},
@@ -34,6 +36,12 @@ for _, file in ipairs(files) do
       if lang.servers then
         for k, v in pairs(lang.servers) do
           M.servers[k] = v
+        end
+      end
+      -- Merge server aliases
+      if lang.server_aliases then
+        for k, v in pairs(lang.server_aliases) do
+          M.server_aliases[k] = v
         end
       end
       -- Merge formatters

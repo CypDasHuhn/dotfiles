@@ -23,6 +23,9 @@ end
 local vue_typescript_plugin_path = vim.fn.stdpath 'data' .. '/mason/packages/vue-language-server/node_modules/@vue/typescript-plugin'
 
 return {
+  server_aliases = {
+    volar = 'vue_ls',
+  },
   servers = {
     ts_ls = {
       filetypes = { 'typescript', 'javascript', 'javascriptreact', 'typescriptreact', 'vue' },
