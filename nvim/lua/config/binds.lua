@@ -84,11 +84,27 @@ end)
 vim.keymap.set('n', 'gg', 'gg0')
 
 vim.keymap.set('n', '<leader>i', ':Lazy<CR>', { noremap = true })
+vim.keymap.set('n', '<leader>nn', function()
+    local ok, navbuddy = pcall(require, 'nvim-navbuddy')
+    if not ok then
+        local lazy_ok, lazy = pcall(require, 'lazy')
+        if lazy_ok then
+            lazy.load { plugins = { 'nvim-navbuddy' } }
+            ok, navbuddy = pcall(require, 'nvim-navbuddy')
+        end
+    end
+
+    if not ok then
+        vim.notify('nvim-navbuddy could not be loaded', vim.log.levels.ERROR)
+        return
+    end
+
+    navbuddy.open()
+end, { desc = '[N]avbuddy ope[n]' })
 
 vim.keymap.set({ 'n', 'v', 'o' }, '<leader>ts', '<cmd>set spell!<cr>', { desc = 'Toggle spell' })
 
 vim.keymap.set("n", "<leader>wn", "<cmd>noautocmd w<cr>")
-
 do
     local function do_open(uri)
         local cmd, err = vim.ui.open(uri)
