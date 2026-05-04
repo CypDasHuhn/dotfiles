@@ -6,39 +6,39 @@ return {
   },
   keys = {
     {
-      '<leader>tr',
+      '<leader>or',
       function()
         require('neotest').run.run()
       end,
-      desc = '[T]est [R]un nearest',
+      desc = 'Test [R]un nearest',
     },
     {
-      '<leader>tR',
+      '<leader>oR',
       function()
         require('neotest').run.run(vim.fn.expand '%')
       end,
-      desc = '[T]est [R]un file',
+      desc = 'Test [R]un file',
     },
     {
-      '<leader>tS',
+      '<leader>oS',
       function()
         require('neotest').run.stop()
       end,
-      desc = '[T]est [S]top',
+      desc = 'Test [S]top',
     },
     {
-      '<leader>ts',
+      '<leader>os',
       function()
         require('neotest').summary.toggle()
       end,
-      desc = '[T]est [S]ummary',
+      desc = 'Test [S]ummary',
     },
     {
-      '<leader>to',
+      '<leader>oo',
       function()
         require('neotest').output.open()
       end,
-      desc = '[T]est [O]utput',
+      desc = 'Test [O]utput',
     },
     {
       ']t',

@@ -22,10 +22,10 @@ local function resolve_prettier()
         data_path .. '/mason/bin/prettier.cmd',
         data_path .. '/mason/packages/prettier/node_modules/.bin/prettier.cmd',
       }
-    or {
-      data_path .. '/mason/bin/prettier',
-      data_path .. '/mason/packages/prettier/node_modules/.bin/prettier',
-    }
+      or {
+        data_path .. '/mason/bin/prettier',
+        data_path .. '/mason/packages/prettier/node_modules/.bin/prettier',
+      }
 
   for _, cmd in ipairs(candidates) do
     if vim.uv.fs_stat(cmd) then
@@ -41,14 +41,6 @@ return {
   event = { 'BufWritePre' },
   cmd = { 'ConformInfo' },
   keys = {
-    {
-      '<leader>f',
-      function()
-        require('conform').format { async = true, lsp_format = 'fallback' }
-      end,
-      mode = '',
-      desc = '[F]ormat buffer',
-    },
   },
   opts = function()
     local langs = require '.config.lang-packs.init'
