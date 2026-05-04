@@ -4,3 +4,5 @@ generated/
 .nvimlog
 nvim/lazy-lock.json
 nvim/.tmp
+
+nvim/.machine.lua
