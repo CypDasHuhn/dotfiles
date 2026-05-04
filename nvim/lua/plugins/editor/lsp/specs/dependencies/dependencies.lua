@@ -1,5 +1,4 @@
-local source = debug.getinfo(1, 'S').source:sub(2)
-local root = vim.fn.fnamemodify(source, ':h')
+local root = vim.fn.stdpath 'config' .. '/lua/config/lsp/dependencies'
 
 local function normalize(path)
   return (path or ''):gsub('\\', '/')
@@ -11,7 +10,7 @@ local function module_from_path(path)
   local rel = normalized_path:sub(#normalized_root + 2)
   rel = rel:gsub('%.lua$', '')
   rel = rel:gsub('/', '.')
-  return 'plugins.editor.lsp.specs.dependencies.' .. rel
+  return 'config.lsp.dependencies.' .. rel
 end
 
 local function is_list(value)
