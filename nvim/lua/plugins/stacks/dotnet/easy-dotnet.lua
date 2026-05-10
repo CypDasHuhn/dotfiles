@@ -90,7 +90,7 @@ return {
       wrap_msbuild()
     end
 
-    local csharp_codelens = require 'config.dotnet.codelens'
+    local csharp_codelens = require 'config.platform.dotnet.codelens'
     local easy_dotnet = vim.lsp.config.easy_dotnet
     if easy_dotnet and easy_dotnet.on_attach then
       local original_on_attach = easy_dotnet.on_attach

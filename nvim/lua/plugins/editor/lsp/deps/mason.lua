@@ -1,10 +1,11 @@
 return {
+  'neovim/nvim-lspconfig',
   dependencies = {
     'mason-org/mason.nvim',
     'mason-org/mason-lspconfig.nvim',
     'WhoIsSethDaniel/mason-tool-installer.nvim',
   },
-  fields = {
+  opts = {
     mason_registries = {
       'github:mason-org/mason-registry',
       'github:Crashdummyy/mason-registry',
