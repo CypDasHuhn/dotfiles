@@ -5,11 +5,14 @@ local function module_name(path)
   return vim.fn.fnamemodify(path, ':t:r')
 end
 
-local files = vim.fn.glob(root .. '/*.lua', false, true)
-
-for _, file in ipairs(files) do
-  local name = module_name(file)
-  if name ~= 'init' then
-    dofile(file)
+local function load_recursive(dir)
+  for _, path in ipairs(vim.fn.glob(dir .. '/*', false, true)) do
+    if vim.fn.isdirectory(path) == 1 then
+      load_recursive(path)
+    elseif path:match('%.lua$') and module_name(path) ~= 'init' then
+      dofile(path)
+    end
   end
 end
+
+load_recursive(root)

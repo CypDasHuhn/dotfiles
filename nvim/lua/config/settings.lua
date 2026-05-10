@@ -12,6 +12,8 @@ vim.o.relativenumber = true
 vim.o.mouse = 'a'
 
 vim.o.showmode = false
+vim.opt.shortmess:append 'F'
+vim.opt.shortmess:append 'A'
 
 vim.schedule(function()
   vim.o.clipboard = 'unnamedplus'
