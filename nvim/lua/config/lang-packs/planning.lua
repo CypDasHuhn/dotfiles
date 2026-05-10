@@ -21,4 +21,13 @@ return {
   },
   tools = { 'texlab', 'markdownlint-cli2' },
   treesitter = { 'latex', 'bibtex' },
+  filetypes = {
+    extension = {
+      puml = 'plantuml',
+      plantuml = 'plantuml',
+      uml = 'plantuml',
+      pu = 'plantuml',
+      iuml = 'plantuml',
+    },
+  },
 }

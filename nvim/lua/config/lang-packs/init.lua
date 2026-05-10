@@ -11,6 +11,11 @@
 --   linters = { ... },      -- nvim-lint linters_by_ft
 --   tools = { ... },        -- extra Mason tools to install
 --   treesitter = { ... },   -- treesitter parsers
+--   filetypes = {           -- vim.filetype.add args
+--     extension = { ... },
+--     filename = { ... },
+--     pattern = { ... },
+--   },
 -- }
 
 local M = {
@@ -20,6 +25,7 @@ local M = {
   linters = {},
   tools = {},
   treesitter = {},
+  filetypes = { extension = {}, filename = {}, pattern = {} },
 }
 
 -- Find this file's directory
@@ -63,6 +69,16 @@ for _, file in ipairs(files) do
       -- Append treesitter parsers
       if lang.treesitter then
         vim.list_extend(M.treesitter, lang.treesitter)
+      end
+      -- Merge filetypes
+      if lang.filetypes then
+        for _, key in ipairs { 'extension', 'filename', 'pattern' } do
+          if lang.filetypes[key] then
+            for k, v in pairs(lang.filetypes[key]) do
+              M.filetypes[key][k] = v
+            end
+          end
+        end
       end
     end
   end

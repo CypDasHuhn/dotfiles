@@ -11,4 +11,12 @@ return {
     'just-lsp',
   },
   treesitter = { 'just' },
+  filetypes = {
+    filename = {
+      justfile = 'just',
+    },
+    pattern = {
+      ['.*%.justfile'] = 'just',
+    },
+  },
 }
