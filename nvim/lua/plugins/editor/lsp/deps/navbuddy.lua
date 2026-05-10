@@ -20,6 +20,9 @@ return {
         },
         lsp = { auto_attach = true },
       },
+      keys = {
+        { '<leader>nn', function() require('nvim-navbuddy').open() end, desc = '[N]avbuddy ope[n]' },
+      },
     },
   },
 }

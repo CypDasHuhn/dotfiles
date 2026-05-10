@@ -10,7 +10,6 @@ vim.o.number = true
 vim.o.relativenumber = true
 
 vim.o.mouse = 'a'
-
 vim.o.showmode = false
 vim.opt.shortmess:append 'F'
 vim.opt.shortmess:append 'A'
@@ -77,5 +76,3 @@ vim.api.nvim_set_hl(0, 'DiagnosticUnnecessary', { undercurl = true })
 
 vim.g.loaded_netrw = 1
 vim.g.loaded_netrwPlugin = 1
-
-vim.keymap.set("n", "<leader>wn", "<cmd>noautocmd w<cr>")
