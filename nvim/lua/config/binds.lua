@@ -61,6 +61,12 @@ vim.keymap.set('x', 'P', '"_dP', { noremap = true, silent = true })
 
 vim.keymap.set('n', 'gg', 'gg0')
 
+-- nuke g* except gg and gr*
+for _, key in ipairs({ 'e', 'f', 'i', 'n', 'N', 't', 'T', 'u', 'U', 'v', 'w', 'O', 'W', '%', ',', ';', '~', '`', '\'' }) do
+    vim.keymap.set('n', 'g' .. key, '<nop>')
+end
+vim.keymap.set({ 'n', 'x' }, 'gc', '<nop>')
+
 vim.keymap.set('n', '<leader>i', ':Lazy<CR>', { noremap = true })
 
 vim.keymap.set({ 'n', 'v', 'o' }, '<leader>ts', '<cmd>set spell!<cr>', { desc = 'Toggle spell' })

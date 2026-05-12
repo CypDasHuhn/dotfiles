@@ -3,6 +3,20 @@ return {
   event = 'VimEnter',
   opts = {
     delay = 50,
+    plugins = {
+      presets = {
+        operators = false,
+        motions = false,
+        text_objects = false,
+        windows = false,
+        nav = false,
+        z = false,
+        g = false,
+      },
+    },
+    filter = function(mapping)
+      return mapping.desc and mapping.desc ~= ''
+    end,
     icons = {
       mappings = vim.g.have_nerd_font,
       keys = vim.g.have_nerd_font and {} or {
