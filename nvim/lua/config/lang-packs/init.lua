@@ -84,4 +84,6 @@ for _, file in ipairs(files) do
   end
 end
 
+vim.filetype.add(M.filetypes)
+
 return M
