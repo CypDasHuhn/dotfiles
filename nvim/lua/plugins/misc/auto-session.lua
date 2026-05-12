@@ -1,5 +1,6 @@
 return {
     "rmagatti/auto-session",
+    essential = true,
     lazy = false,
 
     ---enables autocomplete for opts
