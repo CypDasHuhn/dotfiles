@@ -14,13 +14,11 @@ return {
     )
     parsers = vim.tbl_filter(function(p) return p ~= 'latex' end, parsers)
 
-    local function enable_indent(bufnr)
-      vim.bo[bufnr].indentexpr = "v:lua.require'nvim-treesitter'.indentexpr()"
-    end
-
     local function enable_treesitter(bufnr)
       if pcall(vim.treesitter.start, bufnr) then
-        enable_indent(bufnr)
+        pcall(function()
+          require('nvim-treesitter.indent').attach(bufnr)
+        end)
       end
     end
 
