@@ -42,10 +42,6 @@ function M.setup(opts)
     },
   }
 
-  vim.lsp.config('*', {
-    capabilities = require('blink.cmp').get_lsp_capabilities(),
-  })
-
   local servers = normalize_servers(opts.servers or {}, opts.server_aliases or {})
   local mason_servers, manual_servers = split_servers(servers)
 

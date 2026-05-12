@@ -1,6 +1,11 @@
 return {
     'monaqa/dial.nvim',
-    event = 'VeryLazy',
+    keys = {
+        { '<C-a>',  mode = { 'n', 'x' }, desc = 'Increment' },
+        { '<C-x>',  mode = { 'n', 'x' }, desc = 'Decrement' },
+        { 'g<C-a>', mode = 'x',          desc = 'Increment (visual)' },
+        { 'g<C-x>', mode = 'x',          desc = 'Decrement (visual)' },
+    },
     config = function()
         local augend = require 'dial.augend'
         require('dial.config').augends:register_group {

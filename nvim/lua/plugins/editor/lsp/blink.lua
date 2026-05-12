@@ -2,7 +2,7 @@
 
 return {
   'saghen/blink.cmp',
-  event = 'VeryLazy',
+  event = { 'BufReadPost', 'InsertEnter', 'CmdlineEnter' },
   version = '1.*',
   dependencies = {
     'Exafunction/codeium.nvim',
@@ -79,5 +79,6 @@ return {
     require('luasnip.loaders.from_vscode').lazy_load {
       paths = { '~/.config/snippets' },
     }
+    vim.lsp.config('*', { capabilities = require('blink.cmp').get_lsp_capabilities() })
   end,
 }
