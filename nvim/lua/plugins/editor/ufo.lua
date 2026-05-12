@@ -6,15 +6,27 @@ return {
     close_fold_kinds_for_ft = {
       default = { 'region' },
     },
+    fold_virt_text_handler = function(virt_text, lnum, end_lnum, width, truncate)
+      local line = vim.api.nvim_buf_get_lines(0, lnum, lnum + 1, false)[1] or ''
+      local name = line:match('region%s+(.-)%s*$')
+      if name and name ~= '' then
+        local suffix = ('  %d lines'):format(end_lnum - lnum)
+        local avail = width - vim.fn.strdisplaywidth(suffix)
+        return {
+          { truncate(name, avail), 'Title' },
+          { suffix, 'Comment' },
+        }
+      end
+      return virt_text
+    end,
     provider_selector = function(_, _, _)
       return function(bufnr)
         local regions = require('lib.region-folds').get_region_ranges(bufnr)
-        return require('ufo.provider.treesitter').getFolds(bufnr):then(function(ts_ranges)
-          return vim.list_extend(ts_ranges or {}, regions)
-        end):catch(function()
-          return regions
+        local ok, ts_ranges = pcall(require('ufo.provider.treesitter').getFolds, bufnr)
+        if ok and ts_ranges then
+          return vim.list_extend(ts_ranges, regions)
         end
-        return vim.list_extend(ts_ranges or {}, regions)
+        return regions
       end
     end,
   },
