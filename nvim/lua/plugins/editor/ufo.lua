@@ -14,7 +14,7 @@ return {
         local avail = width - vim.fn.strdisplaywidth(suffix)
         return {
           { truncate(name, avail), 'Title' },
-          { suffix, 'Comment' },
+          { suffix,                'Comment' },
         }
       end
       return virt_text
@@ -31,6 +31,13 @@ return {
     end,
   },
   config = function(_, opts)
+    vim.opt.fillchars:append {
+      foldopen = '▾',
+      foldclose = '▸',
+      foldsep = ' ',
+      fold = ' ',
+    }
+
     vim.o.foldcolumn = '1'
     vim.o.foldlevel = 99
     vim.o.foldlevelstart = 99
