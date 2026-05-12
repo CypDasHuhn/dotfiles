@@ -7,6 +7,7 @@ alias gs = git status
 # endregion
 
 alias v = nvim
+def --wrapped ve [...args] { with-env { NVIM_MINIMAL: "1" } { nvim ...$args } }
 alias md = mkdir
 alias cl = clear
 alias a = arch

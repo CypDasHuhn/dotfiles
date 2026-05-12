@@ -17,6 +17,7 @@ end
 
 return {
   'nvim-neo-tree/neo-tree.nvim',
+  essential = true,
   version = '*',
   dependencies = {
     'nvim-lua/plenary.nvim',

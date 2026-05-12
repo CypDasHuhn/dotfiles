@@ -16,6 +16,8 @@ local function module_from_path(path)
   return 'plugins.' .. rel
 end
 
+local minimal = vim.env.NVIM_MINIMAL == '1'
+
 local specs = {}
 local files = vim.fn.glob(root .. '/**/*.lua', false, true)
 table.sort(files)
@@ -47,8 +49,12 @@ for _, file in ipairs(files) do
     local ok, plugin_spec = pcall(require, module_from_path(normalized))
     if ok and plugin_spec then
       if is_list(plugin_spec) then
-        vim.list_extend(specs, plugin_spec)
-      else
+        for _, spec in ipairs(plugin_spec) do
+          if not minimal or spec.essential then
+            table.insert(specs, spec)
+          end
+        end
+      elseif not minimal or plugin_spec.essential then
         table.insert(specs, plugin_spec)
       end
     end

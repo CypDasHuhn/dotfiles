@@ -1,5 +1,6 @@
 return {
     "bassamsdata/namu.nvim",
+    event = 'VeryLazy',
     opts = {
         global = {},
         namu_symbols = { -- Specific Module options

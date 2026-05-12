@@ -1,5 +1,6 @@
 return {
   'kdheepak/lazygit.nvim',
+  essential = true,
   dependencies = {
     'nvim-lua/plenary.nvim',
   },
