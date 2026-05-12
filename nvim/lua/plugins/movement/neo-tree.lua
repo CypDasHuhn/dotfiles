@@ -200,6 +200,9 @@ return {
 
       window = {
         mappings = {
+          ['o'] = function()
+            require('flash').jump { search = { multi_window = false } }
+          end,
           ['<leader>E'] = 'close_window',
           ['Z'] = 'expand_all_nodes',
           ['<C-H>'] = 'toggle_hidden',
