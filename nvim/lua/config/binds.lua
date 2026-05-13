@@ -7,9 +7,7 @@ vim.keymap.set('n', '<left>', '<cmd>echo "Use h to move!!"<CR>')
 vim.keymap.set('n', '<right>', '<cmd>echo "Use l to move!!"<CR>')
 vim.keymap.set('n', '<up>', '<cmd>echo "Use k to move!!"<CR>')
 vim.keymap.set('n', '<down>', '<cmd>echo "Use j to move!!"<CR>')
--- endregion
-
--- region Line Swap
+-- endregion region Line Swap
 vim.keymap.set('n', '<A-j>', '<cmd>m .+1<CR>==', { desc = 'Move line down' })
 vim.keymap.set('n', '<A-k>', '<cmd>m .-2<CR>==', { desc = 'Move line up' })
 vim.keymap.set('v', '<A-j>', ":m '>+1<CR>gv=gv", { desc = 'Move selection down' })
@@ -62,10 +60,16 @@ vim.keymap.set('x', 'P', '"_dP', { noremap = true, silent = true })
 vim.keymap.set('n', 'gg', 'gg0')
 
 -- nuke g* except gg and gr*
-for _, key in ipairs({ 'e', 'f', 'i', 'n', 'N', 't', 'T', 'u', 'U', 'v', 'w', 'O', 'W', '%', ',', ';', '~', '`', '\'' }) do
+for _, key in ipairs({ 'e', 'f', 'i', 'n', 'N', 't', 'T', 'u', 'U', 'v', 'w', 'O', 'W', '%', ',', ';', '~', '`', '\'', 'cc' }) do
     vim.keymap.set('n', 'g' .. key, '<nop>')
 end
-vim.keymap.set({ 'n', 'x' }, 'gc', '<nop>')
+-- gcc → rcc: comment toggle
+vim.keymap.set('n', '<leader>rc', function()
+    return require('vim._comment').operator()
+end, { expr = true, desc = 'Comment toggle' })
+vim.keymap.set('x', '<leader>rc', function()
+    return require('vim._comment').operator(vim.fn.visualmode())
+end, { expr = true, desc = 'Comment toggle' })
 
 vim.keymap.set('n', '<leader>i', ':Lazy<CR>', { noremap = true })
 
