@@ -5,6 +5,14 @@ return {
   event = 'VeryLazy',
   ---@type Flash.Config
   opts = {},
+  config = function(_, opts)
+    require('flash').setup(opts)
+    local function set_hl()
+      vim.api.nvim_set_hl(0, 'FlashLabelBackward', { fg = '#ff9e64', bold = true, nocombine = true })
+    end
+    set_hl()
+    vim.api.nvim_create_autocmd('ColorScheme', { callback = set_hl })
+  end,
   keys = {
     {
       'o',
