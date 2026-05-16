@@ -1,3 +1,5 @@
+local nav = require 'lib.treesitter-nav'
+
 return {
   'nvim-treesitter/nvim-treesitter',
   enabled = true,
@@ -7,7 +9,7 @@ return {
       '<C-l>',
       mode = { 'n', 'x', 'o' },
       function()
-        require('config.treesitter-nav').next_sibling()
+        nav.next_sibling()
       end,
       desc = 'Next sibling',
     },
@@ -15,7 +17,7 @@ return {
       '<C-h>',
       mode = { 'n', 'x', 'o' },
       function()
-        require('config.treesitter-nav').prev_sibling()
+        nav.rev_sibling()
       end,
       desc = 'Previous sibling',
     },
@@ -23,7 +25,7 @@ return {
       '<C-k>',
       mode = { 'n', 'x', 'o' },
       function()
-        require('config.treesitter-nav').parent()
+        nav.parent()
       end,
       desc = 'Parent node',
     },
@@ -31,7 +33,7 @@ return {
       '<C-j>',
       mode = { 'n', 'x', 'o' },
       function()
-        require('config.treesitter-nav').first_child()
+        nav.first_child()
       end,
       desc = 'First child',
     },
