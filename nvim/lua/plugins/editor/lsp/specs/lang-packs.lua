@@ -7,5 +7,6 @@ return {
     opts.server_aliases = vim.tbl_extend('force', opts.server_aliases or {}, langs.server_aliases or {})
     opts.tools = opts.tools or {}
     vim.list_extend(opts.tools, langs.tools or {})
+    opts.lspmux = true
   end,
 }

@@ -25,9 +25,36 @@ local function split_servers(server_map)
   return mason_servers, manual_servers
 end
 
-local function setup_server(server_name, server)
+local function apply_lspmux(server_name, config)
+  if config.lspmux == false then return config end
+  if vim.fn.executable 'lspmux' ~= 1 then return config end
+
+  local cmd = config.cmd
+  if not cmd then
+    local defaults = vim.lsp.config[server_name]
+    cmd = defaults and defaults.cmd
+  end
+  if not cmd or type(cmd) ~= 'table' then return config end
+
+  local bin = vim.fn.exepath(cmd[1])
+  if bin == '' then return config end
+
+  local wrapped = vim.deepcopy(config)
+  local lspmux_cmd = { 'lspmux', 'client', '--server-path', bin }
+  for i = 2, #cmd do
+    lspmux_cmd[#lspmux_cmd + 1] = cmd[i]
+  end
+  wrapped.cmd = lspmux_cmd
+  return wrapped
+end
+
+local function setup_server(server_name, server, use_lspmux)
   local resolved = vim.deepcopy(server or {})
   resolved.mason = nil
+  if use_lspmux then
+    resolved = apply_lspmux(server_name, resolved)
+  end
+  resolved.lspmux = nil
   vim.lsp.config(server_name, resolved)
   vim.lsp.enable(server_name)
 end
@@ -51,11 +78,11 @@ function M.setup(opts)
   }
 
   for server_name, server in pairs(mason_servers) do
-    setup_server(server_name, server)
+    setup_server(server_name, server, opts.lspmux)
   end
 
   for server_name, server in pairs(manual_servers) do
-    setup_server(server_name, server)
+    setup_server(server_name, server, opts.lspmux)
   end
 
   local tools = vim.deepcopy(opts.tools or {})
