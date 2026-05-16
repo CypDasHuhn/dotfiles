@@ -91,3 +91,5 @@ vim.keymap.set('n', '<leader>gli', ':LspInfo<cr>')
 vim.keymap.set('v', '<leader>rn', function()
   require('lib.normalize-selection').normalize_selection()
 end, { desc = 'Normalize selection' })
+
+require('lib.surround').register_keymaps()
