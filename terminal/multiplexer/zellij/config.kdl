@@ -180,7 +180,7 @@ keybinds clear-defaults=true {
         bind "Ctrl m" { SwitchToMode "move"; }
     }
     shared_except "locked" "session" {
-        bind "Ctrl o" { SwitchToMode "session"; }
+        bind "Ctrl shift o" { SwitchToMode "session"; }
     }
     shared_except "locked" "scroll" {
         bind "Alt down" { MoveFocus "down"; }
@@ -191,7 +191,7 @@ keybinds clear-defaults=true {
         bind "Ctrl Shift l" { MoveFocusOrTab "right"; }
     }
     shared_except "locked" "scroll" "search" "tmux" {
-        bind "Ctrl b" { SwitchToMode "tmux"; }
+        bind "Ctrl Shift b" { SwitchToMode "tmux"; }
     }
     shared_except "locked" "scroll" "search" {
         bind "Ctrl s" { SwitchToMode "scroll"; }
