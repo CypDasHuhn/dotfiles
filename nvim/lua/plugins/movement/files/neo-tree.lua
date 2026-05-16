@@ -205,6 +205,8 @@ return {
           end,
           ['<leader>E'] = 'close_window',
           ['Z'] = 'expand_all_nodes',
+          ['W'] = 'expand_all_subnodes',
+          ['<C-W>'] = 'close_all_subnodes',
           ['<C-H>'] = 'toggle_hidden',
           h = 'move_to_parent',
           H = 'move_to_first_sibling',
