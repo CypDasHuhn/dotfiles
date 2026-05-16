@@ -1,13 +1,14 @@
 vim.keymap.set('n', '<Esc>', '<cmd>nohlsearch<CR>')
+vim.keymap.set('t', '<Esc><Esc>', '<C-\\><C-n>', { desc = 'Exit terminal mode' })
 
-vim.keymap.set('n', '<leader>xq', vim.diagnostic.setloclist, { desc = 'Open diagnostic [Q]uickfix list' })
-
-vim.keymap.set('t', '<Esc><Esc>', '<C-\\><C-n>', { desc = 'Exit terminal mode' }) -- region Disable Arrows
+-- region Disable Arrows
 vim.keymap.set('n', '<left>', '<cmd>echo "Use h to move!!"<CR>')
 vim.keymap.set('n', '<right>', '<cmd>echo "Use l to move!!"<CR>')
 vim.keymap.set('n', '<up>', '<cmd>echo "Use k to move!!"<CR>')
 vim.keymap.set('n', '<down>', '<cmd>echo "Use j to move!!"<CR>')
--- endregion region Line Swap
+-- endregion
+
+-- region region Line Swap
 vim.keymap.set('n', '<A-j>', '<cmd>m .+1<CR>==', { desc = 'Move line down' })
 vim.keymap.set('n', '<A-k>', '<cmd>m .-2<CR>==', { desc = 'Move line up' })
 vim.keymap.set('v', '<A-j>', ":m '>+1<CR>gv=gv", { desc = 'Move selection down' })
@@ -26,6 +27,7 @@ end, { desc = 'Subword backward', silent = true })
 vim.keymap.set('n', '<CR>', 'i<CR><Esc>', { desc = 'Split line at cursor' })
 
 -- region Diagnostics
+vim.keymap.set('n', '<leader>xq', vim.diagnostic.setloclist, { desc = 'Open diagnostic [Q]uickfix list' })
 vim.keymap.set('n', '<leader>td', function()
   local new_config = not vim.diagnostic.config().virtual_lines
   vim.diagnostic.config { virtual_lines = new_config, virtual_text = not new_config }
@@ -59,17 +61,20 @@ vim.keymap.set('x', 'P', '"_dP', { noremap = true, silent = true })
 
 vim.keymap.set('n', 'gg', 'gg0')
 
--- nuke g* except gg and gr*
+-- region nuke g* except gg and gr*
 for _, key in ipairs { 'e', 'f', 'i', 'n', 'N', 't', 'T', 'u', 'U', 'v', 'w', 'O', 'W', '%', ',', ';', '~', '`', "'", 'cc' } do
   vim.keymap.set('n', 'g' .. key, '<nop>')
 end
--- gcc → rcc: comment toggle
+-- endregion
+
+-- region Comment toggle
 vim.keymap.set('n', '<leader>rc', function()
   return require('vim._comment').operator()
 end, { expr = true, desc = 'Comment toggle' })
 vim.keymap.set('x', '<leader>rc', function()
   return require('vim._comment').operator(vim.fn.visualmode())
 end, { expr = true, desc = 'Comment toggle' })
+-- endregion
 
 vim.keymap.set('n', '<leader>i', ':Lazy<CR>', { noremap = true })
 
@@ -77,9 +82,11 @@ vim.keymap.set({ 'n', 'v', 'o' }, '<leader>ts', '<cmd>set spell!<cr>', { desc = 
 
 vim.keymap.set('n', '<leader>wn', '<cmd>noautocmd w<cr>')
 
+-- region LSP
 vim.keymap.set('n', '<leader>glr', ':LspRestart<cr>')
 vim.keymap.set('n', '<leader>glg', ':LspLog<cr>')
 vim.keymap.set('n', '<leader>gli', ':LspInfo<cr>')
+-- endregion
 
 vim.keymap.set('v', '<leader>rn', function()
   require('lib.normalize-selection').normalize_selection()
