@@ -24,6 +24,20 @@ return {
       },
     }
 
+    local lsp_setup = require 'lib.lsp_setup'
+    if vim.lsp.config.easy_dotnet then
+      vim.lsp.config.easy_dotnet = lsp_setup.apply_lspmux('easy_dotnet', vim.lsp.config.easy_dotnet)
+      local clients = vim.lsp.get_clients { name = 'easy_dotnet' }
+      if #clients > 0 then
+        for _, client in ipairs(clients) do
+          client:stop(true)
+        end
+        vim.schedule(function()
+          vim.lsp.enable 'easy_dotnet'
+        end)
+      end
+    end
+
     -- easy-dotnet.nvim's debugger path calls an RPC build without an explicit
     -- configuration and then errors without surfacing MSBuild diagnostics.
     -- Patch the RPC client *after initialize* so we can:

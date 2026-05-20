@@ -25,7 +25,7 @@ local function split_servers(server_map)
   return mason_servers, manual_servers
 end
 
-local function apply_lspmux(server_name, config)
+function M.apply_lspmux(server_name, config)
   if config.lspmux == false then return config end
   if vim.fn.executable 'lspmux' ~= 1 then return config end
 
@@ -52,7 +52,7 @@ local function setup_server(server_name, server, use_lspmux)
   local resolved = vim.deepcopy(server or {})
   resolved.mason = nil
   if use_lspmux then
-    resolved = apply_lspmux(server_name, resolved)
+    resolved = M.apply_lspmux(server_name, resolved)
   end
   resolved.lspmux = nil
   vim.lsp.config(server_name, resolved)
