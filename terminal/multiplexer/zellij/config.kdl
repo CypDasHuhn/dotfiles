@@ -151,8 +151,7 @@ keybinds clear-defaults=true {
     shared_except "locked" {
         // Ctrl+Alt often equals AltGr on many layouts, and some terminals deliver it
         // inconsistently. Keep it unbound to avoid accidental Zellij actions.
-        unbind "Ctrl Alt w"
-        bind "Ctrl Shift p" {
+        bind "Ctrl Alt w" {
             // Same rationale as the `session` mode binding above.
             LaunchPlugin "session-manager" {
                 floating true
@@ -177,10 +176,10 @@ keybinds clear-defaults=true {
         unbind "Ctrl q"
     }
     shared_except "locked" "move" {
-        bind "Ctrl m" { SwitchToMode "move"; }
+        bind "Ctrl Shift m" { SwitchToMode "move"; }
     }
     shared_except "locked" "session" {
-        bind "Ctrl shift o" { SwitchToMode "session"; }
+        bind "Ctrl Shift o" { SwitchToMode "session"; }
     }
     shared_except "locked" "scroll" {
         bind "Alt down" { MoveFocus "down"; }
@@ -194,16 +193,16 @@ keybinds clear-defaults=true {
         bind "Ctrl Shift b" { SwitchToMode "tmux"; }
     }
     shared_except "locked" "scroll" "search" {
-        bind "Ctrl s" { SwitchToMode "scroll"; }
+        bind "Ctrl Shift s" { SwitchToMode "scroll"; }
     }
     shared_except "locked" "tab" {
         bind "Ctrl t" { SwitchToMode "tab"; }
     }
     shared_except "locked" "pane" {
-        bind "Ctrl Shift a" { SwitchToMode "pane"; }
+        bind "Ctrl Shift p" { SwitchToMode "pane"; }
     }
     shared_except "locked" "resize" {
-        bind "Ctrl n" { SwitchToMode "resize"; }
+        bind "Ctrl Shift n" { SwitchToMode "resize"; }
     }
     shared_except "normal" "locked" "entersearch" {
         bind "enter" { SwitchToMode "normal"; }
