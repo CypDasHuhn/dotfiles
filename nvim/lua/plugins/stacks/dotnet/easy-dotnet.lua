@@ -3,6 +3,8 @@ return {
   dependencies = { 'nvim-lua/plenary.nvim', 'nvim-telescope/telescope.nvim' },
   ft = { 'cs', 'fsproj', 'csproj', 'sln' },
   config = function()
+    local use_lspmux = false
+
     require('easy-dotnet').setup {
       lsp = {
         enabled = true,
@@ -24,8 +26,8 @@ return {
       },
     }
 
-    local lsp_setup = require 'lib.lsp_setup'
-    if vim.lsp.config.easy_dotnet then
+    if use_lspmux and vim.lsp.config.easy_dotnet then
+      local lsp_setup = require 'lib.lsp_setup'
       vim.lsp.config.easy_dotnet = lsp_setup.apply_lspmux('easy_dotnet', vim.lsp.config.easy_dotnet)
       local clients = vim.lsp.get_clients { name = 'easy_dotnet' }
       if #clients > 0 then
