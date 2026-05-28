@@ -202,7 +202,7 @@ keybinds clear-defaults=true {
         bind "Ctrl Shift p" { SwitchToMode "pane"; }
     }
     shared_except "locked" "resize" {
-        bind "Ctrl Shift n" { SwitchToMode "resize"; }
+        bind "Ctrl Shift x" { SwitchToMode "resize"; }
     }
     shared_except "normal" "locked" "entersearch" {
         bind "enter" { SwitchToMode "normal"; }
