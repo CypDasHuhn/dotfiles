@@ -13,6 +13,7 @@ return {
   init = function()
     vim.keymap.set('n', '<space>gd', ':DBUI<CR>', { noremap = true, silent = true })
     vim.g.db_ui_use_nerd_fonts = 1
+    vim.g.db_ui_execute_on_save = 0
 
     -- Setup dadbod completion omnifunc for SQL files
     vim.api.nvim_create_autocmd('FileType', {
