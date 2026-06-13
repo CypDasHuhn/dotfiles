@@ -11,6 +11,9 @@
 --   linters = { ... },      -- nvim-lint linters_by_ft
 --   tools = { ... },        -- extra Mason tools to install
 --   treesitter = { ... },   -- treesitter parsers
+--   autofold = {            -- treesitter node types to auto-fold on open
+--     kotlin = { 'import_list' },
+--   },
 --   filetypes = {           -- vim.filetype.add args
 --     extension = { ... },
 --     filename = { ... },
@@ -25,6 +28,7 @@ local M = {
   linters = {},
   tools = {},
   treesitter = {},
+  autofold = {},
   filetypes = { extension = {}, filename = {}, pattern = {} },
 }
 
@@ -69,6 +73,13 @@ for _, file in ipairs(files) do
       -- Append treesitter parsers
       if lang.treesitter then
         vim.list_extend(M.treesitter, lang.treesitter)
+      end
+      -- Merge autofold node types per filetype
+      if lang.autofold then
+        for ft, node_types in pairs(lang.autofold) do
+          if not M.autofold[ft] then M.autofold[ft] = {} end
+          vim.list_extend(M.autofold[ft], node_types)
+        end
       end
       -- Merge filetypes
       if lang.filetypes then

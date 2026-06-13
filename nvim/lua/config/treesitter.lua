@@ -3,9 +3,14 @@ local parser_dir = vim.fn.stdpath 'data' .. '/treesitter'
 
 do
   local ok, lang_packs = pcall(require, 'config.lang-packs')
-  if ok and type(lang_packs.treesitter) == 'table' then
-    for _, lang in ipairs(lang_packs.treesitter) do
-      allowed[lang] = true
+  if ok then
+    if type(lang_packs.treesitter) == 'table' then
+      for _, lang in ipairs(lang_packs.treesitter) do
+        allowed[lang] = true
+      end
+    end
+    if type(lang_packs.autofold) == 'table' then
+      require('lib.ts-autofold').setup(lang_packs.autofold)
     end
   end
 end
