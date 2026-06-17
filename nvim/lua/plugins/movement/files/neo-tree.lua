@@ -225,6 +225,7 @@ return {
         enabled = true,
         leave_dirs_open = false,
       },
+      group_empty_dirs = true,
     },
 
     event_handlers = {
