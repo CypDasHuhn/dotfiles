@@ -20,7 +20,7 @@ return {
     markdown = { 'prettier', 'markdownlint-cli2' },
   },
   tools = { 'texlab', 'markdownlint-cli2' },
-  treesitter = { 'markdown', 'markdown_inline', 'latex', 'bibtex' },
+  treesitter = { 'latex', 'bibtex' },
   filetypes = {
     extension = {
       puml = 'plantuml',
