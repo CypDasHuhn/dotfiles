@@ -4,6 +4,25 @@ alias gp = git pull
 alias gpr = git pull --rebase
 alias gps = git push
 alias gs = git status
+
+def git-update [...words: string] {
+    let message = $words | str join " "
+    git stash
+    git pull --rebase
+    if $env.LAST_EXIT_CODE != 0 {
+        git rebase --abort
+        git stash pop
+        error make { msg: "Pull --rebase failed (merge conflict). Aborted rebase." }
+    }
+    git stash pop
+    git add -u
+    git commit -m $message
+    if $env.LAST_EXIT_CODE != 0 {
+        error make { msg: "Commit failed." }
+    }
+    git push
+}
+alias gi = git-update
 # endregion
 
 alias v = nvim
