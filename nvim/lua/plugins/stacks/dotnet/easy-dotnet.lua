@@ -5,6 +5,17 @@ return {
   config = function()
     local use_lspmux = false
 
+    -- Patch the jobs module before setup so the solution-open job gets a longer
+    -- timeout. The plugin hardcodes 150 s which is too short for large solutions.
+    local job_module = require 'easy-dotnet.ui-modules.jobs'
+    local orig_register_job = job_module.register_job
+    job_module.register_job = function(opts)
+      if type(opts) == 'table' and opts.name == 'Opening solution' then
+        opts = vim.tbl_extend('force', opts, { timeout = 300000 }) -- 5 min
+      end
+      return orig_register_job(opts)
+    end
+
     require('easy-dotnet').setup {
       lsp = {
         enabled = true,
