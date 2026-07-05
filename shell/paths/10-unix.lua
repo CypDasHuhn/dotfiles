@@ -4,6 +4,7 @@ local paths = {
 	{ "${me}/.zvm/bin" },
 	{ "${me}/.zvm/self" },
 	{ "${me}/.zvm/master" },
+	{ "${me}/.cargo/bin" },
 }
 paths.only = { os = "unix" }
 return paths
