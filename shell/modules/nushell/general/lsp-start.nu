@@ -1,5 +1,5 @@
-def lsp-start [] { 
-  ^codex-lsp-bridge serve --config ~/code/codex-lsp-bridge/config/default.toml --host 127.0.0.1 --port 8000
+def lsp-start [port: int = 8000] {
+  ^codex-lsp-bridge serve --config ~/code/codex-lsp-bridge/config/default.toml --host 127.0.0.1 --port $port 
 }
 
 def lsp-setup [] {
