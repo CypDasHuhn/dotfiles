@@ -1,4 +1,5 @@
 generated/
+unix/services/generated/
 **/generated.*
 /.machine.local.lua
 .nvimlog
