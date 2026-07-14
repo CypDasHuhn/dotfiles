@@ -1,5 +1,6 @@
 local vars = {
 	enerko = { "/i2s.EES.RedispatchPortal" },
+	retrakt = { "/i2s.Retrakt.DPP" },
 	usp = { "/BDEW_Umsatzportal" },
 	otis = { "/i2s.Bayer.OTIS" },
 	sgProj = { "/i2s.SecGate.CentralUpdater" },
