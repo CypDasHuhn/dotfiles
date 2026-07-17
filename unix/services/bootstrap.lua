@@ -23,7 +23,7 @@ local dotfiles_dir = services_dir:gsub("/unix/services$", "")
 package.path = dotfiles_dir .. "/infra/?.lua;" .. services_dir .. "/?.lua;" .. package.path
 
 local c = require("colors")
-local generator = require("generator")
+local generator = require("svcgen")
 
 local ok, generated_dir_or_err, services = generator.generate()
 if not ok then
