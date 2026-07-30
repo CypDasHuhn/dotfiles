@@ -1,5 +1,5 @@
 local allowed = {}
-local parser_dir = vim.fn.stdpath 'data' .. '/treesitter'
+local parser_dir = vim.fn.stdpath 'data' .. '/site/parser'
 
 do
   local ok, lang_packs = pcall(require, 'config.lang-packs')
