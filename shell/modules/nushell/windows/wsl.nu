@@ -1,3 +1,1 @@
-def arch [] {
-  wsl -d Arch
-}
+alias arch = wsl -d Arch 
