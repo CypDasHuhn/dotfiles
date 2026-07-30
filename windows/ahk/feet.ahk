@@ -9,13 +9,12 @@ F4::{
     hwnd := FindWslgWindow()
     if !hwnd
         return
-
     WinActivate(hwnd)
     WinWaitActive(hwnd,, 1)
     Sleep 5
-
     CoordMode("Mouse", "Client")
-    MouseClick("Left", 120, 140, 1, 0)
+    WinGetClientPos(&wx, &wy, &ww, &wh, hwnd)
+    MouseClick("Left", ww // 2, wh // 2, 1, 0)
 }
 
 FindWslgWindow() {
