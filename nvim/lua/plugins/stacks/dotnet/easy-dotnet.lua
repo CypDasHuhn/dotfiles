@@ -1,7 +1,7 @@
 return {
   'GustavEikaas/easy-dotnet.nvim',
   dependencies = { 'nvim-lua/plenary.nvim', 'nvim-telescope/telescope.nvim' },
-  ft = { 'cs', 'fsproj', 'csproj', 'sln' },
+  ft = { 'cs', 'razor', 'fsproj', 'csproj', 'sln' },
   config = function()
     local use_lspmux = false
 

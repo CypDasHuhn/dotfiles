@@ -3,6 +3,12 @@ vim.g.maplocalleader = ' '
 
 vim.g.have_nerd_font = true
 
+local path_sep = vim.fn.has 'win32' == 1 and ';' or ':'
+local mason_bin = vim.fn.stdpath 'data' .. '/mason/bin'
+if vim.uv.fs_stat(mason_bin) and not string.find(vim.env.PATH or '', mason_bin, 1, true) then
+  vim.env.PATH = mason_bin .. path_sep .. (vim.env.PATH or '')
+end
+
 -- Ensure ftplugin + indent scripts are active (C#, etc. rely on this).
 vim.cmd('filetype plugin indent on')
 
