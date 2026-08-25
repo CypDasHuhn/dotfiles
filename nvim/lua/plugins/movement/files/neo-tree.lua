@@ -83,6 +83,18 @@ return {
           vim.notify('Copied path: ' .. path, vim.log.levels.INFO)
         end,
 
+        copy_relative_path = function(state)
+          local node = state.tree:get_node()
+          if not node or node.type == 'message' then
+            return
+          end
+
+          local path = node:get_id()
+          local rel = path:sub(#state.path + 2)
+          vim.fn.setreg('+', rel)
+          vim.notify('Copied relative path: ' .. rel, vim.log.levels.INFO)
+        end,
+
         move_to_parent = function(state)
           local renderer = require 'neo-tree.ui.renderer'
           local node = state.tree:get_node()
@@ -213,6 +225,7 @@ return {
           L = 'move_to_last_sibling',
           y = 'system_copy',
           Y = 'copy_system_path',
+          ['<C-y>'] = 'copy_relative_path',
           x = 'system_cut',
           p = 'system_paste',
           d = 'trash',
