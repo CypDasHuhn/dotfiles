@@ -1,9 +1,10 @@
 return {
   'CypDasHuhn/gct',
   dev = true,
-  enabled = true,
+  enabled = false,
   dir = vim.env.repos .. '/gct',
-  build = 'bash -c "cd tree-sitter-gct && tree-sitter generate && cc -shared -o parser/gct.so -fPIC -I./src src/parser.c -O2"',
+  build =
+  'bash -c "cd tree-sitter-gct && tree-sitter generate && cc -shared -o parser/gct.so -fPIC -I./src src/parser.c -O2"',
   init = function()
     local so_path = vim.env.repos .. '/gct/tree-sitter-gct/parser/gct.so'
     local queries_path = vim.env.repos .. '/gct/tree-sitter-gct'

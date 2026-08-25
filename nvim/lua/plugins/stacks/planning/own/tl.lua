@@ -1,9 +1,10 @@
 return {
   'CypDasHuhn/timeline-format',
   dev = true,
-  enabled = true,
+  enabled = false,
   dir = vim.env.repos .. '/timeline-format',
-  build = 'bash -c "cd tree-sitter-tl && tree-sitter generate && cc -shared -o parser/tl.so -fPIC -I./src src/parser.c -O2"',
+  build =
+  'bash -c "cd tree-sitter-tl && tree-sitter generate && cc -shared -o parser/tl.so -fPIC -I./src src/parser.c -O2"',
   init = function()
     local so_path = vim.env.repos .. '/timeline-format/tree-sitter-tl/parser/tl.so'
     local queries_path = vim.env.repos .. '/timeline-format/tree-sitter-tl'
