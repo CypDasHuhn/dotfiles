@@ -16,6 +16,8 @@ def --wrapped ps1 [...args] {
     pwsh -File ...$args
 }
 alias claude-danger = claude --dangerously-skip-permissions
+alias copilot-danger = copilot --allow-all
+
 
 # region Dev
 alias npm-r = npm run dev
