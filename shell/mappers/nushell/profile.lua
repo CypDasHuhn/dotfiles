@@ -280,6 +280,22 @@ function M.generate(vars, var_order, machine, modules_dir, output_dir, paths)
 	end
 
 	local platform_dir = abs_modules_dir .. "/nushell"
+
+	-- secrets.nu is gitignored and holds machine-local secrets as a NUON record.
+	-- Generate an empty placeholder if it's missing so nushell-config.nu can load it.
+	local secrets_path = platform_dir .. "/secrets.nu"
+	local secrets_f = io.open(secrets_path, "r")
+	if secrets_f then
+		secrets_f:close()
+	else
+		local ok_secrets, err_secrets = utils.write_file(secrets_path, "{ }\n")
+		if ok_secrets then
+			print("Created empty secrets file: " .. secrets_path)
+		else
+			print("Warning: could not create secrets file: " .. tostring(err_secrets))
+		end
+	end
+
 	local module_files = get_module_files(platform_dir, ".nu")
 	local included_modules = {}
 	local dir_meta_cache = {}
