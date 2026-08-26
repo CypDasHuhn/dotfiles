@@ -1,4 +1,6 @@
 -- Helper functions for common dependency patterns
+local platform = require("platform")
+
 local M = {}
 
 -- Builder metatable — chainable methods on any dependency declaration
@@ -40,8 +42,17 @@ function M.dep(t)
 end
 
 -- Condition helpers
+-- Note: callers (resolver.check_condition) already redirect stdout/stderr to
+-- the platform null device, so these commands don't redirect themselves.
+local function which_cmd(name)
+	if platform.os_type() == "windows" then
+		return "where " .. name
+	end
+	return "command -v " .. name
+end
+
 function M.which(name)
-	return "command -v " .. name .. " >/dev/null 2>&1"
+	return which_cmd(name)
 end
 
 function M.which_any(names)
@@ -50,16 +61,22 @@ function M.which_any(names)
 	end
 	local checks = {}
 	for _, name in ipairs(names) do
-		table.insert(checks, "command -v " .. name .. " >/dev/null 2>&1")
+		table.insert(checks, which_cmd(name))
 	end
 	return table.concat(checks, " || ")
 end
 
 function M.file_exists(path)
+	if platform.os_type() == "windows" then
+		return 'if exist "' .. path:gsub("/", "\\") .. '" (exit 0) else (exit 1)'
+	end
 	return "[ -f " .. path .. " ]"
 end
 
 function M.dir_exists(path)
+	if platform.os_type() == "windows" then
+		return 'if exist "' .. path:gsub("/", "\\") .. '\\*" (exit 0) else (exit 1)'
+	end
 	return "[ -d " .. path .. " ]"
 end
 

@@ -2,6 +2,8 @@
 local platform = require("platform")
 local M = {}
 
+local NULL_DEVICE = platform.os_type() == "windows" and "nul" or "/dev/null"
+
 -- Detect current environment
 function M.detect_env()
 	local env = {}
@@ -22,8 +24,14 @@ function M.detect_env()
 	end
 
 	-- CPU architecture
-	local arch = io.popen("uname -m 2>/dev/null"):read("*l")
-	env.arch = arch or "default"
+	if env.os == "unix" then
+		local arch = io.popen("uname -m 2>/dev/null"):read("*l")
+		env.arch = arch or "default"
+	else
+		local arch = os.getenv("PROCESSOR_ARCHITECTURE") or ""
+		local normalized = ({ AMD64 = "x86_64", ARM64 = "aarch64", x86 = "i686" })[arch]
+		env.arch = normalized or (arch ~= "" and arch:lower()) or "default"
+	end
 
 	return env
 end
@@ -121,7 +129,7 @@ function M.check_condition(condition)
 	if not condition then
 		return true
 	end
-	local result = os.execute(condition .. " >/dev/null 2>&1")
+	local result = os.execute(condition .. " >" .. NULL_DEVICE .. " 2>&1")
 	return result == 0 or result == true
 end
 
