@@ -285,24 +285,27 @@ function M.generate(vars, var_order, machine, modules_dir, output_dir, paths)
 	local dir_meta_cache = {}
 
 	for _, file in ipairs(module_files) do
-		local basename = get_basename(file)
-		local dir = get_dir(file)
+		-- secrets.nu is loaded conditionally by nushell-config.nu and may not exist.
+		if file ~= platform_dir .. "/secrets.nu" then
+			local basename = get_basename(file)
+			local dir = get_dir(file)
 
-		-- Load dir.lua once per directory
-		if dir_meta_cache[dir] == nil then
-			dir_meta_cache[dir] = utils.load_file(dir .. "/dir.lua") or false
-		end
+			-- Load dir.lua once per directory
+			if dir_meta_cache[dir] == nil then
+				dir_meta_cache[dir] = utils.load_file(dir .. "/dir.lua") or false
+			end
 
-		-- File-level sidecar takes precedence over dir.lua
-		local meta = utils.load_file(file .. ".lua") or dir_meta_cache[dir]
+			-- File-level sidecar takes precedence over dir.lua
+			local meta = utils.load_file(file .. ".lua") or dir_meta_cache[dir]
 
-		local include = true
-		if meta then
-			include = utils.should_include(meta, machine.name, shell_type, visual_type, machine_os_type)
-		end
+			local include = true
+			if meta then
+				include = utils.should_include(meta, machine.name, shell_type, visual_type, machine_os_type)
+			end
 
-		if include then
-			table.insert(included_modules, { file = file, name = basename })
+			if include then
+				table.insert(included_modules, { file = file, name = basename })
+			end
 		end
 	end
 

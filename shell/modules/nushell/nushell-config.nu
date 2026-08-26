@@ -1,5 +1,12 @@
 $env.EDITOR = "nvim"
 
+# Local environment secrets. The ignored file should contain a NUON record,
+# for example: { GITHUB_TOKEN: "...", API_KEY: "..." }
+const secrets_file = path self secrets.nu
+if ($secrets_file | path exists) {
+    open --raw $secrets_file | from nuon | load-env
+}
+
 $env.config.color_config.shape_internalcall = "green_bold"
 $env.config.color_config.shape_external = "green"
 $env.config.color_config.shape_garbage = "red_bold"

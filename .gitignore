@@ -2,6 +2,7 @@ generated/
 unix/services/generated/
 **/generated.*
 /.machine.local.lua
+/shell/modules/nushell/secrets.nu
 .nvimlog
 nvim/lazy-lock.json
 nvim/.tmp
