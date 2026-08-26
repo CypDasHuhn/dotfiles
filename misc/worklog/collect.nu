@@ -98,7 +98,6 @@ def format-activity [activity: string] {
                 hash: $commit.hash
                 subject: $commit.subject
                 timestamp: $commit.timestamp
-                author: $commit.author
                 branch: (infer-branch $repo $commit.hash)
             }
         } else {
@@ -126,7 +125,6 @@ def format-activity [activity: string] {
                 let time = $commit.timestamp | into datetime | format date "%H:%M"
                 $markdown = $markdown | append [
                     $"- **($time)** `($commit.hash)` — ($commit.subject)"
-                    $"  - Author: ($commit.author)"
                     $"  - Committed: ($commit.timestamp)"
                 ]
             }
@@ -197,7 +195,6 @@ def main [
         ""
         $"- Scan root: `($root | path expand)`"
         $"- Search depth: ($depth)"
-        $"- Authors: (if $all_authors { 'all' } else { 'repository Git user' })"
         "- Branches: best-effort inference from local reflogs, then current containment"
         $"- Generated: (date now | format date '%Y-%m-%dT%H:%M:%S%:z')"
         ""

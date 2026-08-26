@@ -40,7 +40,7 @@ worklog cleanup --dry-run
 worklog cleanup
 ```
 
-Local outputs are written beneath `misc/worklog/generated/`. The repository's existing `generated/` ignore rule keeps them out of Git.
+Local outputs are written beneath `misc/worklog/generated/`. During summarization, every current-date device report is merged into `commits.md`; this is the exact activity snapshot supplied to Codex. The final response is written to `summary.md`. The repository's existing `generated/` ignore rule keeps them out of Git.
 
 Useful collector options:
 

@@ -10,6 +10,11 @@ I usually work 7 hours a day, so interpolate times based on the limited
 assumptions you have. If commits are in a personal looking project, dont include
 them here.
 
+Try to keep in mind that the committed time does not need to mean exactly the
+worked time. Sometimes keeping the bigger picture of how likely it is that
+something took so long, and something took so long, is more important then
+referencing the exact time something was committed.
+
 ```md
 # Work for [YYYY-MM-DD]
 

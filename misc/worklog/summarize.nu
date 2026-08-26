@@ -7,6 +7,7 @@ const script_dir = path self .
 def main [
     --prompt: path    # Instructions for the summary.
     --output: path    # Final Codex response path.
+    --commits-output: path  # Merged multi-device activity snapshot.
 ] {
     if (which codex | is-empty) {
         error make { msg: "codex is not installed" }
@@ -14,6 +15,7 @@ def main [
 
     let prompt_file = $prompt | default ($script_dir | path join prompt.md)
     let output_file = $output | default ($script_dir | path join generated summary.md)
+    let commits_file = $commits_output | default ($script_dir | path join generated commits.md)
 
     if not ($prompt_file | path exists) {
         error make { msg: $"Required prompt file does not exist: ($prompt_file)" }
@@ -38,12 +40,22 @@ def main [
         ]
     }
 
+    let merged_activity = [
+        $"# Combined Git activity for ($today)"
+        ""
+        ($activities | str join "\n")
+    ] | str join "\n"
+
+    mkdir ($commits_file | path dirname)
+    $merged_activity | save --force $commits_file
+    print $"Saved merged Git activity to ($commits_file | path expand)"
+
     let request = [
         (open --raw $prompt_file | str trim)
         ""
         $"Use only the following collected Git activity from all devices for ($today) as source data:"
         ""
-        ($activities | str join "\n")
+        $merged_activity
         ""
         "Return only the final Markdown summary."
     ] | str join "\n"
