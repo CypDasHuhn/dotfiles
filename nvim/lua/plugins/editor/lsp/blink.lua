@@ -38,12 +38,45 @@ return {
     sources = {
       default = { 'lsp', 'path', 'snippets', 'lazydev', 'codeium' },
       per_filetype = {
-        -- SQL files use dadbod completion instead of LSP
-        sql = { 'dadbod', 'buffer', 'path', 'snippets' },
+        -- mssql.nvim provides SQL Server completion; Dadbod remains available too.
+        sql = { 'lsp', 'dadbod', 'buffer', 'path', 'snippets' },
         mysql = { 'dadbod', 'buffer', 'path', 'snippets' },
         plsql = { 'dadbod', 'buffer', 'path', 'snippets' },
       },
       providers = {
+        lsp = {
+          transform_items = function(_, items)
+            for index = #items, 1, -1 do
+              local item = items[index]
+              if item.client_name == 'mssql_ls' then
+                local text_edit = type(item.textEdit) == 'table' and item.textEdit or nil
+                if type(item.label) ~= 'string' then
+                  local fallback
+                  local candidates = { item.filterText, item.insertText, text_edit and text_edit.newText }
+                  for candidate_index = 1, 3 do
+                    local value = candidates[candidate_index]
+                    if type(value) == 'string' then
+                      fallback = value
+                      break
+                    end
+                  end
+                  if type(fallback) == 'string' then
+                    item.label = fallback
+                  else
+                    table.remove(items, index)
+                    goto continue
+                  end
+                end
+
+                for _, field in ipairs { 'filterText', 'insertText', 'sortText' } do
+                  if type(item[field]) ~= 'string' then item[field] = nil end
+                end
+              end
+              ::continue::
+            end
+            return items
+          end,
+        },
         lazydev = { module = 'lazydev.integrations.blink', score_offset = 100 },
         codeium = { name = 'Codeium', module = 'codeium.blink', async = true },
         dadbod = {
