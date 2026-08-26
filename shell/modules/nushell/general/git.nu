@@ -1,10 +1,8 @@
-touch ($nu.data-dir | path join "empty.nu")
-
 const _git_completions = ($nu.data-dir | path join "nu_scripts/custom-completions/git/git-completions.nu")
 const _git_completions_path = if ($_git_completions | path exists) {
     $_git_completions
 } else {
-    $nu.data-dir | path join "empty.nu"
+    path self empty.nu
 }
 
 use $_git_completions_path *
@@ -38,4 +36,3 @@ def git-restore [...files: string] {
     let default_ref = (git symbolic-ref refs/remotes/origin/HEAD | str trim)
     git restore --source $default_ref -- ...$files
 }
-
