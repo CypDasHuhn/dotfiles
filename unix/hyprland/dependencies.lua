@@ -1,6 +1,7 @@
 local h = require("infra.dependencies.helpers")
 
 return {
+    --[[
     -- Hyprland is in the official Arch repos (extra)
     hyprland = h.pacman("hyprland", "Hyprland"):once(),
 
@@ -18,4 +19,5 @@ return {
     ["xdg-desktop-portal-hyprland"] = h.dep({
         unix = h.pacman("xdg-desktop-portal-hyprland"),
     }):verify(h.file_exists("/usr/lib/xdg-desktop-portal-hyprland")):once(),
+    --]]
 }
