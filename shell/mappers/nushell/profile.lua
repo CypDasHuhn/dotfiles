@@ -298,7 +298,10 @@ function M.generate(vars, var_order, machine, modules_dir, output_dir, paths)
 
 	local module_files = get_module_files(platform_dir, ".nu")
 	local included_modules = {}
+	local startup_modules = {}
+	local config_module = nil
 	local dir_meta_cache = {}
+	local startup_dir = platform_dir .. "/startup/"
 
 	for _, file in ipairs(module_files) do
 		-- secrets.nu is loaded conditionally by nushell-config.nu and may not exist.
@@ -320,15 +323,30 @@ function M.generate(vars, var_order, machine, modules_dir, output_dir, paths)
 			end
 
 			if include then
-				table.insert(included_modules, { file = file, name = basename })
+				local module = { file = file, name = basename }
+				if file == platform_dir .. "/nushell-config.nu" then
+					config_module = module
+				elseif file:sub(1, #startup_dir) == startup_dir then
+					table.insert(startup_modules, module)
+				else
+					table.insert(included_modules, module)
+				end
 			end
 		end
 	end
 
-	if #included_modules > 0 then
+	if config_module or #included_modules > 0 or #startup_modules > 0 then
 		table.insert(lines, "")
 		table.insert(lines, "# Modules")
+		-- Core config loads local secrets before any modules can use them.
+		if config_module then
+			table.insert(lines, 'source "' .. config_module.file .. '"')
+		end
 		for _, mod in ipairs(included_modules) do
+			table.insert(lines, 'source "' .. mod.file .. '"')
+		end
+		-- Startup modules run last, after config and regular command definitions.
+		for _, mod in ipairs(startup_modules) do
 			table.insert(lines, 'source "' .. mod.file .. '"')
 		end
 	end
@@ -375,7 +393,12 @@ function M.generate(vars, var_order, machine, modules_dir, output_dir, paths)
 		return false, err
 	end
 
-	return true, output_path, #included_modules
+	local module_count = #included_modules + #startup_modules
+	if config_module then
+		module_count = module_count + 1
+	end
+
+	return true, output_path, module_count
 end
 
 return M
