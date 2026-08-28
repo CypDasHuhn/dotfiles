@@ -56,7 +56,12 @@ nu misc/worklog/collect.nu --fetch
 
 # Collect locally without uploading
 nu misc/worklog/collect.nu --no-upload
+
+# Collect a specific day's commits instead of today's
+nu misc/worklog/collect.nu --date 2026-08-20
 ```
+
+`summarize.nu` accepts the same `--date YYYY-MM-DD` option to merge and summarize reports uploaded for that date instead of today.
 
 Manually remove every non-today file from the personal `device-work` directory:
 

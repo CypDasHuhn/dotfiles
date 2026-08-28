@@ -8,6 +8,7 @@ def main [
     --prompt: path    # Instructions for the summary.
     --output: path    # Final Codex response path.
     --commits-output: path  # Merged multi-device activity snapshot.
+    --date: string    # Summarize commits for this day instead of today (YYYY-MM-DD).
 ] {
     if (which codex | is-empty) {
         error make { msg: "codex is not installed" }
@@ -21,7 +22,14 @@ def main [
         error make { msg: $"Required prompt file does not exist: ($prompt_file)" }
     }
 
-    let today = date now | format date "%Y-%m-%d"
+    let today = if ($date | is-empty) {
+        date now | format date "%Y-%m-%d"
+    } else {
+        if not ($date =~ '^\d{4}-\d{2}-\d{2}$') {
+            error make { msg: $"Invalid --date: ($date). Expected format YYYY-MM-DD." }
+        }
+        $date
+    }
     let activity_files = list-device-work | where {|entry|
         (not $entry.is_directory) and ($entry.name | str starts-with $"($today)-") and ($entry.name | str ends-with "-work.md")
     }
