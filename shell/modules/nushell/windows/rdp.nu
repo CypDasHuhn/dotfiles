@@ -1,4 +1,11 @@
-def rdp [name?: string] {
+def rdp_completions [] {
+    ls $env.rdp
+    | where type == file
+    | where name =~ '\.rdp$'
+    | each { |file| $file.name | path basename | str replace -r '\.rdp$' '' }
+}
+
+def rdp [name?: string@rdp_completions] {
     if ($name == null) {
         return (ls $env.rdp)
     }
