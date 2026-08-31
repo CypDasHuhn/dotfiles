@@ -55,18 +55,28 @@ return {
             desc = 'Open Diffview against origin/HEAD',
         })
     end,
-    opts = {
-        keymaps = {
-            -- active in the diff buffers themselves
-            view = {
-                { 'n', 'Y',      copy_absolute_path, { desc = 'Copy absolute path' } },
-                { 'n', '<C-y>',  copy_relative_path, { desc = 'Copy relative path' } },
+    opts = function()
+        local actions = require 'diffview.actions'
+        return {
+            keymaps = {
+                -- active in the diff buffers themselves
+                view = {
+                    { 'n', 'Y',      copy_absolute_path, { desc = 'Copy absolute path' } },
+                    { 'n', '<C-y>',  copy_relative_path, { desc = 'Copy relative path' } },
+                },
+                -- active while focused in the file panel
+                -- `L` is freed up (moved to `gL`) so <S-l>/<S-h> window navigation works here too.
+                file_panel = {
+                    { 'n', 'Y',      copy_absolute_path,     { desc = 'Copy absolute path' } },
+                    { 'n', '<C-y>',  copy_relative_path,     { desc = 'Copy relative path' } },
+                    { 'n', 'L',      false },
+                    { 'n', 'gL',     actions.open_commit_log, { desc = 'Open the commit log panel' } },
+                },
+                file_history_panel = {
+                    { 'n', 'L',      false },
+                    { 'n', 'gL',     actions.open_commit_log, { desc = 'Show commit details' } },
+                },
             },
-            -- active while focused in the file panel
-            file_panel = {
-                { 'n', 'Y',      copy_absolute_path, { desc = 'Copy absolute path' } },
-                { 'n', '<C-y>',  copy_relative_path, { desc = 'Copy relative path' } },
-            },
-        },
-    },
+        }
+    end,
 }

@@ -88,6 +88,11 @@ vim.keymap.set('n', '<leader>glg', ':LspLog<cr>')
 vim.keymap.set('n', '<leader>gli', ':LspInfo<cr>')
 -- endregion
 
+-- region Window navigation
+vim.keymap.set('n', '<S-l>', '<C-w>l', { desc = 'Window right' })
+vim.keymap.set('n', '<S-h>', '<C-w>h', { desc = 'Window left' })
+-- endregion
+
 -- Treesitter node navigation
 local nav = require 'lib.treesitter-nav'
 vim.keymap.set({ 'n', 'x', 'o' }, '<C-l>', function() nav.next_sibling() end, { desc = 'Next sibling' })

@@ -221,8 +221,12 @@ return {
           ['<C-W>'] = 'close_all_subnodes',
           ['<C-H>'] = 'toggle_hidden',
           h = 'move_to_parent',
-          H = 'move_to_first_sibling',
-          L = 'move_to_last_sibling',
+          ['['] = 'move_to_first_sibling',
+          [']'] = 'move_to_last_sibling',
+          -- Reassigned from neo-tree's default `H`/none so the global <S-h>/<S-l>
+          -- window-navigation binds (config/binds.lua) also work in the tree window.
+          H = function() vim.cmd 'wincmd h' end,
+          L = function() vim.cmd 'wincmd l' end,
           y = 'system_copy',
           Y = 'copy_system_path',
           ['<C-y>'] = 'copy_relative_path',
