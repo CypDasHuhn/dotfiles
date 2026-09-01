@@ -1,5 +1,5 @@
 def port-pid [port: int] {
-  lsof -ti $":($port)" | lines | each { into int }
+  lsof -ti $":($port)" | lines | each { |line| $line | into int }
 }
 
 def kill-port [port: int] {
@@ -9,7 +9,7 @@ def kill-port [port: int] {
     return
   }
   $pids | each { |pid|
-    kill -9 $pid
+    kill -s 9 $pid
     print $"Killed process ($pid) on port ($port)"
   }
 }
