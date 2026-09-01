@@ -5,6 +5,13 @@ return {
     ---@module 'render-markdown'
     ---@type render.md.UserConfig
     opts = {
-        render_modes = true
+        render_modes = true,
+        latex = {
+            enabled = true,
+            converter = { 'latex2text', 'utftex' },
+            inline = true,
+            block = true,
+            render_modes = true,
+        },
     },
 }
