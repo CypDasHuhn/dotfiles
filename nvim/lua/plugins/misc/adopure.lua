@@ -1,6 +1,6 @@
 return {
     "Willem-J-an/adopure.nvim",
-    dev = true,
+    enabled = false,
     dependencies = {
         "nvim-lua/plenary.nvim",
         "nvim-telescope/telescope.nvim",
