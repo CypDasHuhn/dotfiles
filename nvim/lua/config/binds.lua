@@ -91,6 +91,8 @@ vim.keymap.set('n', '<leader>gli', ':LspInfo<cr>')
 -- region Window navigation
 vim.keymap.set('n', '<S-l>', '<C-w>l', { desc = 'Window right' })
 vim.keymap.set('n', '<S-h>', '<C-w>h', { desc = 'Window left' })
+vim.keymap.set('n', '<S-j>', '<C-w>j', { desc = 'Window down' })
+vim.keymap.set('n', '<S-k>', '<C-w>k', { desc = 'Window up' })
 -- endregion
 
 -- Treesitter node navigation
