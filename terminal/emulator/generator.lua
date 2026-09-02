@@ -75,14 +75,14 @@ function M.load_base(name)
 end
 
 function M.generate(emulator_name, output_path)
+	local mapper = M.load_mapper(emulator_name)
+	if not mapper then
+		return true
+	end
+
 	local keybinds, kb_err = M.load_keybinds()
 	if not keybinds then
 		return nil, "Failed to load keybinds: " .. (kb_err or "unknown")
-	end
-
-	local mapper, map_err = M.load_mapper(emulator_name)
-	if not mapper then
-		return nil, "Failed to load mapper: " .. (map_err or "unknown")
 	end
 
 	local base_content, base_err = M.load_base(emulator_name)
