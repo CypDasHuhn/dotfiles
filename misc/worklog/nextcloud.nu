@@ -28,7 +28,11 @@ def curl-config [] {
     let config_file = $temp_dir | path join $"worklog-curl-($nu.pid)-((random chars --length 12)).conf"
 
     $"user = \"($escaped)\"\n" | save --force $config_file
-    ^chmod 600 $config_file
+    if $nu.os-info.name == "windows" {
+        ^icacls $config_file /inheritance:r /grant $"($env.USERNAME):(F)" | ignore
+    } else {
+        ^chmod 600 $config_file
+    }
     $config_file
 }
 
