@@ -108,40 +108,44 @@ return {
           return
         end
 
-        local buf = event.buf
-        local qm = vim.b[buf].query_manager
-        local states = require('mssql.query_manager').states
-        if not qm or qm.get_state() ~= states.Disconnected then
-          return
-        end
+        -- mssql.nvim creates query_manager in its LSP on_attach callback,
+        -- which completes after the LspAttach event is emitted.
+        vim.schedule(function()
+          local buf = event.buf
+          local qm = vim.b[buf].query_manager
+          local states = require('mssql.query_manager').states
+          if not qm or qm.get_state() ~= states.Disconnected then
+            return
+          end
 
-        local conn_name = find_connection_name_for_buf(buf)
-        if not conn_name then
-          return
-        end
+          local conn_name = find_connection_name_for_buf(buf)
+          if not conn_name then
+            return
+          end
 
-        -- Matches mssql.nvim's default connections_file location (data_dir
-        -- is not overridden in our opts below).
-        local connections_file = vim.fs.joinpath(vim.fn.stdpath('data'), 'mssql.nvim', 'connections.json')
+          -- Matches mssql.nvim's default connections_file location (data_dir
+          -- is not overridden in our opts below).
+          local connections_file = vim.fs.joinpath(vim.fn.stdpath('data'), 'mssql.nvim', 'connections.json')
 
-        local f = io.open(connections_file, 'r')
-        if not f then
-          return
-        end
-        local content = f:read('*a')
-        f:close()
-        local ok, connections = pcall(vim.json.decode, content)
-        if not (ok and connections and connections[conn_name]) then
-          vim.notify(
-            'mssql: no connection named "' .. conn_name .. '" found in connections.json',
-            vim.log.levels.WARN
-          )
-          return
-        end
+          local f = io.open(connections_file, 'r')
+          if not f then
+            return
+          end
+          local content = f:read('*a')
+          f:close()
+          local ok, connections = pcall(vim.json.decode, content)
+          if not (ok and connections and connections[conn_name]) then
+            vim.notify(
+              'mssql: no connection named "' .. conn_name .. '" found in connections.json',
+              vim.log.levels.WARN
+            )
+            return
+          end
 
-        require('mssql.utils').try_resume(coroutine.create(function()
-          qm.connect_async({ connection = { options = connections[conn_name] } })
-        end))
+          require('mssql.utils').try_resume(coroutine.create(function()
+            qm.connect_async({ connection = { options = connections[conn_name] } })
+          end))
+        end)
       end,
     })
 
