@@ -25,6 +25,7 @@ local function copy_relative_path()
     vim.fn.setreg('+', file.path)
     vim.notify('Copied relative path: ' .. file.path, vim.log.levels.INFO)
 end
+--
 
 -- Diffs the working tree against the remote's default branch (origin/HEAD).
 -- Auto-resolves origin/HEAD if it isn't already tracked locally (e.g. shallow clones).
@@ -48,6 +49,7 @@ return {
         { '<leader>gcO', '<cmd>DiffviewOpenOriginHead<cr>', desc = 'Open Diffview vs origin/HEAD' },
         { '<leader>gcx', '<cmd>DiffviewClose<cr>',          desc = 'Close Diffview' },
         { '<leader>gcr', '<cmd>DiffviewRefresh<cr>',        desc = 'Refresh Diffview' },
+        { '<leader>gcf', '<cmd>DiffviewFileHistory<cr>',    desc = 'Open Diffview File History' },
     },
     config = function(_, opts)
         require('diffview').setup(opts)
@@ -61,20 +63,20 @@ return {
             keymaps = {
                 -- active in the diff buffers themselves
                 view = {
-                    { 'n', 'Y',      copy_absolute_path, { desc = 'Copy absolute path' } },
-                    { 'n', '<C-y>',  copy_relative_path, { desc = 'Copy relative path' } },
+                    { 'n', 'Y',     copy_absolute_path, { desc = 'Copy absolute path' } },
+                    { 'n', '<C-y>', copy_relative_path, { desc = 'Copy relative path' } },
                 },
                 -- active while focused in the file panel
                 -- `L` is freed up (moved to `gL`) so <S-l>/<S-h> window navigation works here too.
                 file_panel = {
-                    { 'n', 'Y',      copy_absolute_path,     { desc = 'Copy absolute path' } },
-                    { 'n', '<C-y>',  copy_relative_path,     { desc = 'Copy relative path' } },
-                    { 'n', 'L',      false },
-                    { 'n', 'gL',     actions.open_commit_log, { desc = 'Open the commit log panel' } },
+                    { 'n', 'Y',     copy_absolute_path,      { desc = 'Copy absolute path' } },
+                    { 'n', '<C-y>', copy_relative_path,      { desc = 'Copy relative path' } },
+                    { 'n', 'L',     false },
+                    { 'n', 'gL',    actions.open_commit_log, { desc = 'Open the commit log panel' } },
                 },
                 file_history_panel = {
-                    { 'n', 'L',      false },
-                    { 'n', 'gL',     actions.open_commit_log, { desc = 'Show commit details' } },
+                    { 'n', 'L',  false },
+                    { 'n', 'gL', actions.open_commit_log, { desc = 'Show commit details' } },
                 },
             },
         }
