@@ -21,7 +21,7 @@ return {
 	appdata = { "${me}/AppData", only = { os = "windows" } },
 	appdataLocal = { "${appdata}/Local", only = { os = "windows" } },
 	appdataRoaming = { "${appdata}/Roaming", only = { os = "windows" } },
-	nvim = {
+	nvimDotfiles = {
 		"${dotfiles}/nvim",
 	},
 	systemNvim = {
@@ -48,7 +48,7 @@ return {
 		windows = "${appdataRoaming}/Zellij/config",
 	},
 
-	zellij = {
+	zellijDotfiles = {
 		"${dotfiles}/terminal/multiplexer/zellij",
 	},
 	systemZellij = {

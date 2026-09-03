@@ -1,7 +1,7 @@
 local vars = {
-	hyprland = { "${dotfiles}/unix/hyprland" },
+	hyprlandDotfiles = { "${dotfiles}/unix/hyprland" },
 	systemHyprland = { "${me}/.config/hypr" },
-	hyprpanel = { "${dotfiles}/unix/hyprland/hyprpanel" },
+	hyprpanelDotfiles = { "${dotfiles}/unix/hyprland/hyprpanel" },
 	systemHyprpanel = { "${me}/.config/hyprpanel" },
 }
 

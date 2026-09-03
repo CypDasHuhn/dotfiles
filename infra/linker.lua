@@ -156,11 +156,14 @@ function M.link_var(source_var, target_var)
 	return M.link(source, target)
 end
 
--- Links module dir to its system location using convention: {name} and system{Name}
+-- Links module dir to its system location using convention: {name}Dotfiles and system{Name}
+-- (the dotfiles-side var is suffixed with "Dotfiles" so it never collides with
+-- real environment variables the tool itself sets, e.g. TMUX, ZELLIJ)
 function M.link_module(module_name)
 	if not machine then M.init() end
+	local source_var = module_name .. "Dotfiles"
 	local system_var = "system" .. module_name:sub(1, 1):upper() .. module_name:sub(2)
-	return M.link_var(module_name, system_var)
+	return M.link_var(source_var, system_var)
 end
 
 M.dotfiles_dir = dotfiles_dir
