@@ -4,6 +4,7 @@ use nextcloud.nu upload-device-work
 
 const script_dir = path self .
 const repo_root = path self ../..
+const worklog_timezone = "Europe/Berlin"
 
 def machine-name [] {
     let result = do {
@@ -122,10 +123,11 @@ def format-activity [activity: string] {
             ]
 
             for commit in ($repo_commits | where branch == $branch) {
-                let time = $commit.timestamp | into datetime | format date "%H:%M"
+                let committed_at = $commit.timestamp | into datetime | date to-timezone $worklog_timezone
+                let time = $committed_at | format date "%H:%M"
                 $markdown = $markdown | append [
                     $"- **($time)** `($commit.hash)` — ($commit.subject)"
-                    $"  - Committed: ($commit.timestamp)"
+                    $"  - Committed: ($committed_at | format date '%Y-%m-%dT%H:%M:%S%:z')"
                 ]
             }
 
@@ -204,6 +206,7 @@ def main [
         ""
         $"- Scan root: `($root | path expand)`"
         $"- Search depth: ($depth)"
+        $"- Time zone: ($worklog_timezone)"
         "- Branches: best-effort inference from local reflogs, then current containment"
         $"- Generated: (date now | format date '%Y-%m-%dT%H:%M:%S%:z')"
         ""
