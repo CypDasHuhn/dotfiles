@@ -9,3 +9,6 @@ nvim/.tmp
 
 nvim/.machine.lua
 .codex
+
+# TPM-managed tmux plugins
+terminal/multiplexer/tmux/plugins/
