@@ -13,3 +13,4 @@ nvim/.machine.lua
 # TPM-managed tmux plugins
 terminal/multiplexer/tmux/plugins/
 /nvim/mssql/projects.json
+/terminal/multiplexer/tmux.lock
