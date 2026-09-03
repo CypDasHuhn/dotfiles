@@ -88,6 +88,9 @@ return {
       { '<leader>gt', group = 'Tabpages' },
       { '<leader>l',  group = 'File Locals' },
       { '<leader>o',  group = 'Tests' },
+      { '<leader>y', desc = 'Copy relative file reference', mode = 'x' },
+      { '<leader>Y', hidden = true, mode = 'x' },
+      { '<leader><C-y>', hidden = true, mode = 'x' },
     },
   },
 }
