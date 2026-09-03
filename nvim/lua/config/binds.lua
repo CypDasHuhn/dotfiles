@@ -62,7 +62,7 @@ vim.keymap.set('x', 'P', '"_dP', { noremap = true, silent = true })
 vim.keymap.set('n', 'gg', 'gg0')
 
 -- region nuke g* except gg and gr*
-for _, key in ipairs { 'e', 'f', 'i', 'n', 'N', 't', 'T', 'u', 'U', 'v', 'w', 'O', 'W', '%', ',', ';', '~', '`', "'", 'cc' } do
+for _, key in ipairs { 'e', 'f', 'i', 'n', 'N', 'u', 'U', 'v', 'w', 'O', 'W', '%', ',', ';', '~', '`', "'", 'cc' } do
   vim.keymap.set('n', 'g' .. key, '<nop>')
 end
 -- endregion
@@ -81,6 +81,13 @@ vim.keymap.set('n', '<leader>i', ':Lazy<CR>', { noremap = true })
 vim.keymap.set({ 'n', 'v', 'o' }, '<leader>ts', '<cmd>set spell!<cr>', { desc = 'Toggle spell' })
 
 vim.keymap.set('n', '<leader>wn', '<cmd>noautocmd w<cr>')
+
+-- Tabpage navigation
+vim.keymap.set('n', '<leader>gtj', '<cmd>tabnext<cr>', { desc = 'Next tabpage' })
+vim.keymap.set('n', '<leader>gtp', '<cmd>tabprevious<cr>', { desc = 'Previous tabpage' })
+for i = 1, 9 do
+  vim.keymap.set('n', '<leader>gt' .. i, '<cmd>tabnext ' .. i .. '<cr>', { desc = 'Go to tabpage ' .. i })
+end
 
 -- region LSP
 vim.keymap.set('n', '<leader>glr', ':LspRestart<cr>')

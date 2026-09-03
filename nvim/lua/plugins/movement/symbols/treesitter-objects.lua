@@ -37,20 +37,11 @@ return {
             ['gU'] = '@return.outer',
             ['gA'] = '@assignment.outer',
         }
-        local next_end = { ['gt'] = '@function.outer' }
-        local prev_end = { ['gT'] = '@function.outer' }
-
         for key, query in pairs(next_start) do
             vim.keymap.set('n', key, function() move.goto_next_start(query) end)
         end
         for key, query in pairs(prev_start) do
             vim.keymap.set('n', key, function() move.goto_previous_start(query) end)
-        end
-        for key, query in pairs(next_end) do
-            vim.keymap.set('n', key, function() move.goto_next_end(query) end)
-        end
-        for key, query in pairs(prev_end) do
-            vim.keymap.set('n', key, function() move.goto_previous_end(query) end)
         end
 
         -- flash: bidirectional jump to any match — g<C-x> variants
