@@ -33,4 +33,8 @@ return {
     pattern = "(.+)%.ts$",
     files = { "%1.spec.ts" },
   },
+  kotlin_gradle = {
+    pattern = "^build%.gradle.kts$",
+    files = { "gradle.properties", "gradlew", "gradlew.bat", "settings.gradle.kts", "kls_database.db" },
+  }
 }
