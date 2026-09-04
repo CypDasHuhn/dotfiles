@@ -29,6 +29,42 @@ return {
     { '<leader>e', ':Neotree toggle<CR>', desc = 'NeoTree reveal', silent = true },
   },
   opts = {
+    nesting_rules = {
+      project_config = {
+        pattern = "^package%.json$",
+        files = {
+          "components.json",
+          "eslint.config.js",
+          "favicon.ico",
+          "index.html",
+          "package-lock.json",
+          "tsconfig.json",
+          "tsconfig.node.json",
+          "vite.config.ts",
+          "vitest.config.ts",
+        },
+      },
+      app_vue_files = {
+        pattern = "^App%.vue$",
+        files = {
+          "auto-imports.d.ts",
+          "components.d.ts",
+          "devextreme-license.ts",
+          "main.ts",
+          "style.css",
+          "typed-router.d.ts",
+          "vite-env.d.ts",
+        },
+      },
+      vue_tests = {
+        pattern = "(.+)%.vue$",
+        files = { "%1.spec.vue", "%1.spec.ts" },
+      },
+      typescript_tests = {
+        pattern = "(.+)%.ts$",
+        files = { "%1.spec.ts" },
+      },
+    },
     filesystem = {
       commands = {
         -- region Clipboard commands
@@ -212,9 +248,9 @@ return {
 
       window = {
         mappings = {
-          ['o'] = function()
-            require('flash').jump { search = { multi_window = false } }
-          end,
+          ['<cr>'] = 'open',
+          ['<S-CR>'] = 'toggle_node',
+          o = { 'open', config = { expand_nested_files = true } },
           ['<leader>E'] = 'close_window',
           ['Z'] = 'expand_all_nodes',
           ['W'] = 'expand_all_subnodes',
