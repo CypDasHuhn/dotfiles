@@ -6,6 +6,9 @@ return {
   'nvim-treesitter/nvim-treesitter',
   build = ':TSUpdate',
   lazy = false,
+  dependencies = {
+    'HiPhish/rainbow-delimiters.nvim',
+  },
   config = function()
     require('nvim-treesitter').setup {
       install_dir = install_dir,

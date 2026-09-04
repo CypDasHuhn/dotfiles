@@ -1,8 +1,15 @@
 return {
   'nvim-neotest/neotest',
+  init = function()
+    vim.g.neotest_vstest = {
+      broad_recursive_discovery = false,
+    }
+  end,
   dependencies = {
     'nvim-neotest/nvim-nio',
     'nvim-lua/plenary.nvim',
+    'marilari88/neotest-vitest',
+    'Nsidorenco/neotest-vstest',
   },
   keys = {
     {
@@ -55,8 +62,14 @@ return {
       desc = 'Previous failed test',
     },
   },
-  opts = {
-    status = { virtual_text = true },
-    output = { open_on_run = true },
-  },
+  opts = function()
+    return {
+      adapters = {
+        require 'neotest-vitest',
+        require 'neotest-vstest',
+      },
+      status = { virtual_text = true },
+      output = { open_on_run = true },
+    }
+  end,
 }
