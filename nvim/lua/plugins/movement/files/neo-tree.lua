@@ -29,44 +29,20 @@ return {
     { '<leader>e', ':Neotree toggle<CR>', desc = 'NeoTree reveal', silent = true },
   },
   opts = {
-    nesting_rules = {
-      project_config = {
-        pattern = "^package%.json$",
-        files = {
-          "components.json",
-          "eslint.config.js",
-          "favicon.ico",
-          "index.html",
-          "package-lock.json",
-          "tsconfig.json",
-          "tsconfig.node.json",
-          "vite.config.ts",
-          "vitest.config.ts",
-        },
-      },
-      app_vue_files = {
-        pattern = "^App%.vue$",
-        files = {
-          "auto-imports.d.ts",
-          "components.d.ts",
-          "devextreme-license.ts",
-          "main.ts",
-          "style.css",
-          "typed-router.d.ts",
-          "vite-env.d.ts",
-        },
-      },
-      vue_tests = {
-        pattern = "(.+)%.vue$",
-        files = { "%1.spec.vue", "%1.spec.ts" },
-      },
-      typescript_tests = {
-        pattern = "(.+)%.ts$",
-        files = { "%1.spec.ts" },
-      },
-    },
+    nesting_rules = require 'config.neo-tree-nesting',
     filesystem = {
       commands = {
+        open_nesting_config = function(state)
+          local path = vim.fn.stdpath('config') .. '/lua/config/neo-tree-nesting.lua'
+          local utils = require 'neo-tree.utils'
+          local winid, is_neo_tree_window = utils.get_appropriate_window(state)
+          if is_neo_tree_window then
+            vim.cmd('new ' .. vim.fn.fnameescape(path))
+            return
+          end
+          vim.api.nvim_set_current_win(winid)
+          vim.cmd('edit ' .. vim.fn.fnameescape(path))
+        end,
         -- region Clipboard commands
         system_copy = function(state)
           local fs = require 'lib.neo-tree-fs'
@@ -256,6 +232,7 @@ return {
           ['W'] = 'expand_all_subnodes',
           ['<C-W>'] = 'close_all_subnodes',
           ['<C-H>'] = 'toggle_hidden',
+          gN = 'open_nesting_config',
           h = 'move_to_parent',
           ['['] = 'move_to_first_sibling',
           [']'] = 'move_to_last_sibling',
