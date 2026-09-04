@@ -24,7 +24,7 @@ return {
     'nvim-tree/nvim-web-devicons',
     'MunifTanjim/nui.nvim',
   },
-  event = 'VeryLazy',
+  cmd = 'Neotree',
   keys = {
     { '<leader>e', ':Neotree toggle<CR>', desc = 'NeoTree reveal', silent = true },
   },

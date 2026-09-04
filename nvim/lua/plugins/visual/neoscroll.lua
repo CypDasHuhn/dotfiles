@@ -1,6 +1,7 @@
 return {
     'karb94/neoscroll.nvim',
     enabled = true,
+    event = { 'BufReadPost', 'BufNewFile' },
     config = function()
         local neoscroll = require 'neoscroll'
         neoscroll.setup {
