@@ -248,6 +248,7 @@ function M.generate(vars, var_order, machine, modules_dir, output_dir, paths)
 	local visual_type = machine.os and machine.os.visual
 	local machine_os_type = machine.os and machine.os.type
 	local dir_functions = {}
+	local aliases = {}
 
 	-- Nushell profile uses fully-expanded literal values so variable order doesn't
 	-- matter at runtime. We still iterate in dependency order for consistency.
@@ -258,14 +259,18 @@ function M.generate(vars, var_order, machine, modules_dir, output_dir, paths)
 			if value then
 				-- Fully expand dotfiles variable references
 				value = utils.expand_value(value, vars, machine.name, shell_type)
-				-- Expand remaining shell env vars (e.g. $HOME) to literal paths
-				value = expand_env_vars(value)
-				-- Normalize to forward slashes
-				value = utils.normalize_path(value, shell_type)
-				value = value:gsub('"', '\\"')
-				table.insert(lines, string.format('$env.%s = "%s"', name, value))
-				if utils.has_dir_function(var_def) then
-					table.insert(dir_functions, name)
+				if utils.has_alias(var_def) then
+					table.insert(aliases, { name = name, value = value })
+				else
+					-- Expand remaining shell env vars (e.g. $HOME) to literal paths
+					value = expand_env_vars(value)
+					-- Normalize to forward slashes
+					value = utils.normalize_path(value, shell_type)
+					value = value:gsub('"', '\\"')
+					table.insert(lines, string.format('$env.%s = "%s"', name, value))
+					if utils.has_dir_function(var_def) then
+						table.insert(dir_functions, name)
+					end
 				end
 			end
 		end
@@ -276,6 +281,14 @@ function M.generate(vars, var_order, machine, modules_dir, output_dir, paths)
 		table.insert(lines, "# Directory navigation functions")
 		for _, name in ipairs(dir_functions) do
 			table.insert(lines, string.format("def --env %s [] {\n  cd $env.%s\n}", name, name))
+		end
+	end
+
+	if #aliases > 0 then
+		table.insert(lines, "")
+		table.insert(lines, "# Aliases")
+		for _, a in ipairs(aliases) do
+			table.insert(lines, string.format("alias %s = %s", a.name, a.value))
 		end
 	end
 

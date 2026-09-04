@@ -159,6 +159,14 @@ function M.has_dir_function(var_def)
 	return var_def.dir_function == true
 end
 
+-- Check if variable should be emitted as an alias instead of an env var
+function M.has_alias(var_def)
+	if type(var_def) ~= "table" then
+		return false
+	end
+	return var_def.alias == true
+end
+
 -- Convert ${var} syntax to platform-native variable reference
 function M.convert_var_refs(value, shell_type)
 	if type(value) ~= "string" then
