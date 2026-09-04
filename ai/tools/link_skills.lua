@@ -1,6 +1,13 @@
--- Shared helper for linking ai/skills/<name> into a tool's own skills directory.
--- Skills are symlinked individually (never the whole dir) so they coexist with
--- any skills the tool/user already has there.
+-- Shared helper for linking skills in ai/skills into a tool's own skills dir.
+--
+-- Two source forms are supported so authoring stays flat until a skill needs
+-- supporting files:
+--   ai/skills/<name>.md         plain single-file skill
+--   ai/skills/<name>/SKILL.md   skill with supporting files (folder wins if both)
+--
+-- Materialization at the tool side is always the loader contract the tools
+-- expect (<name>/SKILL.md), so tools never need to know our authoring schema.
+-- Links are per-skill so they coexist with any skills the tool already has.
 
 local c = require("colors")
 
@@ -10,22 +17,86 @@ local function is_windows()
 	return package.config:sub(1, 1) == "\\"
 end
 
+local function popen_line(cmd)
+	local handle = io.popen(cmd)
+	if not handle then
+		return nil
+	end
+	local line = handle:read("*l")
+	handle:close()
+	return line
+end
+
 local function dir_exists(path)
 	if not path then
 		return false
 	end
-	local handle
 	if is_windows() then
-		handle = io.popen('cmd /c if exist "' .. path:gsub("/", "\\") .. '\\NUL" (echo yes) else (echo no)')
-	else
-		handle = io.popen('test -d "' .. path .. '" && echo yes || echo no')
+		return popen_line('cmd /c if exist "' .. path:gsub("/", "\\") .. '\\NUL" (echo yes) else (echo no)') == "yes"
 	end
-	if not handle then
+	return popen_line('test -d "' .. path .. '" && echo yes || echo no') == "yes"
+end
+
+local function file_exists(path)
+	if not path then
 		return false
 	end
-	local result = handle:read("*l")
+	if is_windows() then
+		return popen_line('cmd /c if exist "' .. path:gsub("/", "\\") .. '" (echo yes) else (echo no)') == "yes"
+	end
+	return popen_line('test -e "' .. path .. '" && echo yes || echo no') == "yes"
+end
+
+local function is_symlink(path)
+	if is_windows() then
+		return false
+	end
+	return popen_line('test -L "' .. path .. '" && echo yes || echo no') == "yes"
+end
+
+-- Remove a stale symlink we manage if it still points into the skills root
+-- (e.g. an old whole-folder link after a skill switched to the flat form).
+local function remove_managed_link(path, root)
+	if not path or not is_symlink(path) then
+		return
+	end
+	local target = popen_line('readlink "' .. path .. '"')
+	if target and (target == root or target:sub(1, #root + 1) == root .. "/") then
+		os.execute('rm -rf "' .. path .. '"')
+	end
+end
+
+local function is_managed_target(target, root)
+	if not is_symlink(target) then
+		return false
+	end
+	local rl = popen_line('readlink "' .. target .. '"')
+	return rl and (rl == root or rl:sub(1, #root + 1) == root .. "/")
+end
+
+-- Remove tool-side artifacts for skills that no longer exist in the repo.
+local function prune_stale(target_root, skills_root, current)
+	local handle
+	if is_windows() then
+		handle = io.popen('cmd /c dir /b "' .. target_root:gsub("/", "\\") .. '"')
+	else
+		handle = io.popen('ls -1 "' .. target_root .. '"')
+	end
+	if not handle then
+		return
+	end
+	for line in handle:lines() do
+		local name = line:gsub("\r$", "")
+		if name ~= "" and not current[name] then
+			local child = target_root .. "/" .. name
+			if is_symlink(child) and is_managed_target(child, skills_root) then
+				os.execute('rm -rf "' .. child .. '"')
+			elseif is_managed_target(child .. "/SKILL.md", skills_root) then
+				os.execute('rm -rf "' .. child .. '"')
+			end
+		end
+	end
 	handle:close()
-	return result == "yes"
 end
 
 -- Make a path absolute. linker.dotfiles_dir can be relative when the bootstrap
@@ -42,12 +113,7 @@ function M.absolutize(path)
 	elseif path:sub(1, 1) == "/" then
 		return path
 	end
-	local handle = io.popen(is_windows() and "cd" or "pwd")
-	if not handle then
-		return path
-	end
-	local cwd = handle:read("*l")
-	handle:close()
+	local cwd = popen_line(is_windows() and "cd" or "pwd")
 	if not cwd or cwd == "" then
 		return path
 	end
@@ -55,29 +121,54 @@ function M.absolutize(path)
 	return (cwd .. "/" .. stripped):gsub("/infra/%.%./", "/")
 end
 
+-- Enumerate skills. Folder skills are collected first; a flat <stem>.md is only
+-- used when no folder skill with the same stem exists.
 local function list_skills(root)
-	local skills = {}
+	local by_stem = {}
+	local function add(entry)
+		by_stem[entry.name] = entry
+	end
+
 	local handle
 	if is_windows() then
-		handle = io.popen('cmd /c dir /b /ad "' .. root:gsub("/", "\\") .. '"')
+		handle = io.popen('cmd /c dir /b "' .. root:gsub("/", "\\") .. '"')
 	else
 		handle = io.popen('ls -1 "' .. root .. '"')
 	end
 	if not handle then
-		return skills
+		return {}
 	end
+
+	local names = {}
 	for line in handle:lines() do
 		local name = line:gsub("\r$", "")
 		if name ~= "" then
-			local f = io.open(root .. "/" .. name .. "/SKILL.md", "r")
-			if f then
-				f:close()
-				table.insert(skills, name)
-			end
+			table.insert(names, name)
 		end
 	end
 	handle:close()
-	return skills
+	table.sort(names)
+
+	for _, name in ipairs(names) do
+		if file_exists(root .. "/" .. name .. "/SKILL.md") then
+			add { name = name, kind = "folder", source = root .. "/" .. name }
+		end
+	end
+	for _, name in ipairs(names) do
+		local stem = name:match("^(.*)%.md$")
+		if stem and not by_stem[stem] and file_exists(root .. "/" .. name) then
+			add { name = stem, kind = "file", source = root .. "/" .. name }
+		end
+	end
+
+	local entries = {}
+	for _, entry in pairs(by_stem) do
+		table.insert(entries, entry)
+	end
+	table.sort(entries, function(a, b)
+		return a.name < b.name
+	end)
+	return entries
 end
 
 -- Resolve the user's home directory for the current machine.
@@ -105,12 +196,26 @@ function M.link_tool(linker, tool_name, base_rel, skills_rel)
 
 	local skills_root = M.absolutize(linker.dotfiles_dir) .. "ai/skills"
 	local target_root = home .. skills_rel
-	for _, name in ipairs(list_skills(skills_root)) do
-		local ok, err = linker.link(skills_root .. "/" .. name, target_root .. "/" .. name)
+	local current = {}
+	local entries = list_skills(skills_root)
+	for _, entry in ipairs(entries) do
+		current[entry.name] = true
+	end
+	for _, entry in ipairs(entries) do
+		local target = target_root .. "/" .. entry.name
+		local ok, err
+		if entry.kind == "file" then
+			remove_managed_link(target, skills_root)
+			ok, err = linker.link(entry.source, target .. "/SKILL.md")
+		else
+			remove_managed_link(target .. "/SKILL.md", skills_root)
+			ok, err = linker.link(entry.source, target)
+		end
 		if not ok and err ~= "already linked" then
-			c.tag_warn("ai/" .. tool_name, name .. ": " .. (err or "link failed"))
+			c.tag_warn("ai/" .. tool_name, entry.name .. ": " .. (err or "link failed"))
 		end
 	end
+	prune_stale(target_root, skills_root, current)
 	c.tag_ok("ai/" .. tool_name, "linked skills -> " .. target_root)
 end
 
