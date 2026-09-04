@@ -45,7 +45,10 @@ local skip_types = {
 local function get_node()
   local cursor = vim.api.nvim_win_get_cursor(0)
   local row, col = cursor[1] - 1, cursor[2]
-  local node = vim.treesitter.get_node({ pos = { row, col } })
+  local node = vim.treesitter.get_node({
+    pos = { row, col },
+    ignore_injections = false,
+  })
   if not node then return nil end
   -- Prefer the nearest named ancestor if current is a leaf anonymous node
   while node and not node:named() do

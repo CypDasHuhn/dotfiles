@@ -57,4 +57,9 @@ return {
   formatters = formatter_for_all(types, { 'prettier' }),
   tools = { 'prettier' },
   treesitter = types,
+  autofold = {
+    javascript = { 'import_statement' },
+    typescript = { 'import_statement' },
+    vue = { 'import_statement' },
+  },
 }
