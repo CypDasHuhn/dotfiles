@@ -12,33 +12,38 @@ return {
             easing = 'quadratic',
         }
 
+        local full_page_scroll_duration = 200
+        local half_page_scroll_duration = 100
+        local line_scroll_duration = 100
+        local half_win_center_duration = 100
+
         local keymap = {
             ['<C-u>'] = function()
-                neoscroll.ctrl_u { duration = 50 }
+                neoscroll.ctrl_u { duration = half_page_scroll_duration }
             end,
             ['<C-d>'] = function()
-                neoscroll.ctrl_d { duration = 50 }
+                neoscroll.ctrl_d { duration = half_page_scroll_duration }
             end,
             ['<C-b>'] = function()
-                neoscroll.ctrl_b { duration = 200 }
+                neoscroll.ctrl_b { duration = full_page_scroll_duration }
             end,
             ['<C-f>'] = function()
-                neoscroll.ctrl_f { duration = 200 }
+                neoscroll.ctrl_f { duration = full_page_scroll_duration }
             end,
             ['<C-y>'] = function()
-                neoscroll.scroll(-0.1, { move_cursor = false, duration = 50 })
+                neoscroll.scroll(-0.1, { move_cursor = false, duration = line_scroll_duration })
             end,
             ['<C-e>'] = function()
-                neoscroll.scroll(0.1, { move_cursor = false, duration = 50 })
+                neoscroll.scroll(0.1, { move_cursor = false, duration = line_scroll_duration })
             end,
             ['zt'] = function()
-                neoscroll.zt { half_win_duration = 100 }
+                neoscroll.zt { half_win_duration = half_win_center_duration }
             end,
             ['zz'] = function()
-                neoscroll.zz { half_win_duration = 100 }
+                neoscroll.zz { half_win_duration = half_win_center_duration }
             end,
             ['zb'] = function()
-                neoscroll.zb { half_win_duration = 100 }
+                neoscroll.zb { half_win_duration = half_win_center_duration }
             end,
         }
 
