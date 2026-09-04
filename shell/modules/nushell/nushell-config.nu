@@ -11,6 +11,8 @@ $env.config.color_config.shape_internalcall = "green_bold"
 $env.config.color_config.shape_external = "green"
 $env.config.color_config.shape_garbage = "red_bold"
 
+$env.config.edit_mode = "vi"
+
 $env.config.keybindings ++= [
     {
         name: accept_autosuggestion
@@ -18,6 +20,34 @@ $env.config.keybindings ++= [
         keycode: char_y
         mode: [emacs, vi_normal, vi_insert]
         event: { send: HistoryHintComplete }
+    }
+    {
+        name: menu_left
+        modifier: control
+        keycode: char_h
+        mode: [vi_normal, vi_insert]
+        event: { send: menuleft }
+    }
+    {
+        name: menu_down
+        modifier: control
+        keycode: char_j
+        mode: [vi_normal, vi_insert]
+        event: { send: menudown }
+    }
+    {
+        name: menu_up
+        modifier: control
+        keycode: char_k
+        mode: [vi_normal, vi_insert]
+        event: { send: menuup }
+    }
+    {
+        name: menu_right
+        modifier: control
+        keycode: char_l
+        mode: [vi_normal, vi_insert]
+        event: { send: menuright }
     }
 ]
 
