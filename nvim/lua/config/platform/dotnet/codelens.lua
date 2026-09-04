@@ -9,7 +9,7 @@ local function has_easy_dotnet_client(bufnr)
 end
 
 local function clear(bufnr)
-  vim.lsp.codelens.clear(nil, bufnr)
+  vim.lsp.codelens.enable(false, { bufnr = bufnr })
 end
 
 function M.refresh(bufnr)
@@ -18,7 +18,7 @@ function M.refresh(bufnr)
     return
   end
 
-  vim.lsp.codelens.refresh { bufnr = bufnr }
+  vim.lsp.codelens.enable(true, { bufnr = bufnr })
 end
 
 function M.toggle()
