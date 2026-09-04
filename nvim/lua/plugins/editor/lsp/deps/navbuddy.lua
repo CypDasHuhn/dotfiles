@@ -18,7 +18,10 @@ return {
             right = { preview = 'leaf' },
           },
         },
-        lsp = { auto_attach = true },
+        lsp = {
+          auto_attach = true,
+          preference = { 'vue_ls', 'ts_ls' },
+        },
       },
       keys = {
         { '<leader>nn', function() require('nvim-navbuddy').open() end, desc = '[N]avbuddy ope[n]' },
