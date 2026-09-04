@@ -15,6 +15,107 @@ local function find_visible_sibling_line(state, node, from_start)
   return nil
 end
 
+-- Session-local preference for merging single-child dirs into one line.
+-- Kept in sync with the `group_empty_dirs` default in `opts`; resets on restart.
+local merge_single_child_dirs = true
+
+local MAX_DRILL_DEPTH = 100
+
+local function visible_children(tree, id)
+  local visible = {}
+  for _, child in ipairs(tree:get_nodes(id)) do
+    if child.type == 'file' or child.type == 'directory' then
+      table.insert(visible, child)
+    end
+  end
+  return visible
+end
+
+local function tree_node(tree, id)
+  if not id then
+    return nil
+  end
+  local ok, node = pcall(tree.get_node, tree, id)
+  if ok and node then
+    return node
+  end
+  return nil
+end
+
+local open_single_child_dir
+
+local function continue_drill(state, path, parent_id, depth)
+  if depth > MAX_DRILL_DEPTH then
+    return
+  end
+  local tree = state.tree
+  local renderer = require 'neo-tree.ui.renderer'
+
+  local node = tree_node(tree, path)
+  if node and node.type == 'directory' and node:is_expanded() then
+    local children = visible_children(tree, path)
+    if #children == 1 and children[1].type == 'directory' and not children[1]:is_expanded() then
+      open_single_child_dir(state, children[1]:get_id(), path, depth + 1)
+    else
+      -- reached a directory with several entries (or none): stop drilling
+      renderer.focus_node(state, path)
+    end
+  elseif not node and parent_id then
+    -- the opened dir was merged into a single collapsed child at the parent level
+    for _, child in ipairs(visible_children(tree, parent_id)) do
+      if child.type == 'directory' and child:get_id() ~= path and vim.startswith(child:get_id(), path .. '/') then
+        open_single_child_dir(state, child:get_id(), parent_id, depth + 1)
+        return
+      end
+    end
+  end
+end
+
+open_single_child_dir = function(state, path, parent_id, depth)
+  if depth > MAX_DRILL_DEPTH then
+    return
+  end
+  local tree = state.tree
+  local node = tree_node(tree, path)
+  if not node or node.type ~= 'directory' or node:is_expanded() then
+    return
+  end
+
+  local fs = require 'neo-tree.sources.filesystem'
+  local on_done = function()
+    vim.schedule(function()
+      continue_drill(state, path, parent_id, depth)
+    end)
+  end
+
+  if node.loaded == false then
+    -- children not scanned yet; fs.toggle_directory calls back once they are rendered
+    fs.toggle_directory(state, node, nil, false, false, on_done)
+  else
+    fs.toggle_directory(state, node)
+    on_done()
+  end
+end
+
+local function open_recursively(state)
+  local tree = state.tree
+  local ok, node = pcall(tree.get_node, tree)
+  if not (ok and node) or node.type ~= 'directory' or node:is_expanded() then
+    return
+  end
+  open_single_child_dir(state, node:get_id(), node:get_parent_id(), 0)
+end
+
+local function toggle_merge_single_child_dirs()
+  merge_single_child_dirs = not merge_single_child_dirs
+  local manager = require 'neo-tree.sources.manager'
+  manager._for_each_state('filesystem', function(state)
+    state.group_empty_dirs = merge_single_child_dirs
+  end)
+  manager.refresh('filesystem')
+  vim.notify('Merge single-child directories: ' .. (merge_single_child_dirs and 'on' or 'off'))
+end
+
 return {
   'nvim-neo-tree/neo-tree.nvim',
   essential = true,
@@ -32,6 +133,23 @@ return {
     nesting_rules = require 'config.neo-tree-nesting',
     filesystem = {
       commands = {
+        -- Open that recursively descends through directories whose only child is
+        -- another directory, until a directory with several entries (or files) is hit.
+        open = function(state)
+          local tree = state.tree
+          local ok, node = pcall(tree.get_node, tree)
+          if not (ok and node) then
+            return
+          end
+          if node.type == 'directory' and not node:is_expanded() then
+            open_recursively(state)
+            return
+          end
+          require('neo-tree.sources.filesystem.commands').open(state)
+        end,
+        toggle_merged_dirs = function()
+          toggle_merge_single_child_dirs()
+        end,
         open_nesting_config = function(state)
           local path = vim.fn.stdpath('config') .. '/lua/config/neo-tree-nesting.lua'
           local utils = require 'neo-tree.utils'
@@ -233,6 +351,7 @@ return {
           ['<C-W>'] = 'close_all_subnodes',
           ['<C-H>'] = 'toggle_hidden',
           gN = 'open_nesting_config',
+          gE = 'toggle_merged_dirs',
           h = 'move_to_parent',
           ['['] = 'move_to_first_sibling',
           [']'] = 'move_to_last_sibling',
@@ -259,6 +378,14 @@ return {
     },
 
     event_handlers = {
+      {
+        event = 'state_created',
+        handler = function(state)
+          if state.name == 'filesystem' then
+            state.group_empty_dirs = merge_single_child_dirs
+          end
+        end,
+      },
       {
         event = 'file_open_requested',
         handler = function()
