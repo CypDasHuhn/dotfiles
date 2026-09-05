@@ -10,7 +10,7 @@ return {
   },
   opts = {
     cmdline = { enabled = false },
-    messages = { enabled = true },
+    messages = { enabled = false },
     notify = { enabled = true },
     lsp = {
       progress = { enabled = false },
