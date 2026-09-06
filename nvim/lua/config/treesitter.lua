@@ -15,6 +15,13 @@ do
   end
 end
 
+local ts_query_guard = require 'lib.ts-query-guard'
+ts_query_guard.setup {
+  is_enabled = function(lang)
+    return allowed[lang] == true
+  end,
+}
+
 local function register_parsers(glob_pattern)
   for _, so in ipairs(vim.fn.glob(glob_pattern, false, true)) do
     local lang = vim.fn.fnamemodify(so, ':t:r')
@@ -42,6 +49,17 @@ local function prefer_runtime_queries(lang, groups)
   end
 end
 
+-- Neovim ships parsers together with matching queries for these languages.
+-- vim.treesitter.language.add() loads a parser the first time and is sticky,
+-- so load the bundled runtime pair BEFORE nvim-treesitter/system builds: grammar
+-- drift between the registries can otherwise break highlighting (the runtime
+-- queries are newer/older than the parser). Queries are pinned to the runtime
+-- files as well, so a bundled parser never gets paired with foreign queries.
+for _, lang in ipairs { 'markdown', 'markdown_inline', 'c', 'lua', 'query', 'vim', 'vimdoc' } do
+  prefer_runtime_parser(lang)
+  prefer_runtime_queries(lang, { 'highlights', 'injections', 'folds' })
+end
+
 -- Prefer parsers managed explicitly by nvim-treesitter for this config.
 register_parsers(parser_dir .. '/*.so')
 
@@ -51,13 +69,6 @@ register_parsers(vim.fn.stdpath 'data' .. '/lazy/nvim-treesitter/parser/*.so')
 -- Fall back to parsers provided by the system.
 register_parsers '/usr/lib/tree_sitter/*.so'
 
--- Neovim 0.12 ships markdown parsers and queries together. Force those bundled
--- parsers so markdown renderers do not pick up stale user-installed parser builds.
-prefer_runtime_parser 'markdown'
-prefer_runtime_parser 'markdown_inline'
-prefer_runtime_queries('markdown', { 'folds', 'highlights', 'injections' })
-prefer_runtime_queries('markdown_inline', { 'highlights', 'injections' })
-
 -- Enable treesitter highlighting only for languages opted into via lang packs.
 vim.api.nvim_create_autocmd('FileType', {
   group = vim.api.nvim_create_augroup('treesitter-start', { clear = true }),
@@ -65,6 +76,10 @@ vim.api.nvim_create_autocmd('FileType', {
     local filetype = vim.bo[ev.buf].filetype
     local lang = vim.treesitter.language.get_lang(filetype) or filetype
     if not allowed[lang] then
+      return
+    end
+    vim.treesitter.query.get(lang, 'highlights') -- revalidate (guarded, also clears a stale "broken" state)
+    if ts_query_guard.is_broken(lang) then
       return
     end
 
