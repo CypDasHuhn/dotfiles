@@ -7,7 +7,7 @@ return {
 		}
 	},
 	nvimProfile = {
-		"high",
+		"medium",
 		machines = {
 			["bayer-cloud-pc"] = "medium",
 			["personal-tower"] = "high",
