@@ -3,6 +3,11 @@ return {
     kotlin_lsp = {
       mason = false,
       single_file_support = false,
+      init_options = {
+        projects = {
+          { type = 'jps', path = '$PROJECT_DIR$' },
+        },
+      },
       cmd = {
         'kotlin-lsp',
         '--stdio',
