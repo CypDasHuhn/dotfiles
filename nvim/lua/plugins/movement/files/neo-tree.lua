@@ -150,6 +150,13 @@ return {
         toggle_merged_dirs = function()
           toggle_merge_single_child_dirs()
         end,
+        toggle_hidden = function(state)
+          local node = state.tree:get_node()
+          if node and node.type ~= 'message' and node.type ~= 'root' then
+            require('neo-tree.ui.renderer').position.set(state, node:get_id())
+          end
+          require('neo-tree.sources.filesystem.commands').toggle_hidden(state)
+        end,
         open_nesting_config = function(state)
           local path = vim.fn.stdpath('config') .. '/lua/config/neo-tree-nesting.lua'
           local utils = require 'neo-tree.utils'
@@ -349,16 +356,15 @@ return {
           ['Z'] = 'expand_all_nodes',
           ['W'] = 'expand_all_subnodes',
           ['<C-W>'] = 'close_all_subnodes',
-          ['<C-H>'] = 'toggle_hidden',
+          ['<C-u>'] = 'toggle_hidden',
           gN = 'open_nesting_config',
           gE = 'toggle_merged_dirs',
+          ['<C-k>'] = 'move_to_parent',
           h = 'move_to_parent',
           ['['] = 'move_to_first_sibling',
           [']'] = 'move_to_last_sibling',
-          -- Reassigned from neo-tree's default `H`/none so the global <S-h>/<S-l>
-          -- window-navigation binds (config/binds.lua) also work in the tree window.
-          H = function() vim.cmd 'wincmd h' end,
-          L = function() vim.cmd 'wincmd l' end,
+          ['<C-h>'] = 'move_to_first_sibling',
+          ['<C-l>'] = 'move_to_last_sibling',
           y = 'system_copy',
           Y = 'copy_system_path',
           ['<C-y>'] = 'copy_relative_path',
