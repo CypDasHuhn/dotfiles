@@ -284,14 +284,6 @@ function M.generate(vars, var_order, machine, modules_dir, output_dir, paths)
 		end
 	end
 
-	if #aliases > 0 then
-		table.insert(lines, "")
-		table.insert(lines, "# Aliases")
-		for _, a in ipairs(aliases) do
-			table.insert(lines, string.format("alias %s = %s", a.name, a.value))
-		end
-	end
-
 	local platform_dir = abs_modules_dir .. "/nushell"
 
 	-- secrets.nu is gitignored and holds machine-local secrets as a NUON record.
@@ -361,6 +353,15 @@ function M.generate(vars, var_order, machine, modules_dir, output_dir, paths)
 		-- Startup modules run last, after config and regular command definitions.
 		for _, mod in ipairs(startup_modules) do
 			table.insert(lines, 'source "' .. mod.file .. '"')
+		end
+	end
+
+	-- Modules may define functions or aliases used as generated alias targets.
+	if #aliases > 0 then
+		table.insert(lines, "")
+		table.insert(lines, "# Aliases")
+		for _, a in ipairs(aliases) do
+			table.insert(lines, string.format("alias %s = %s", a.name, a.value))
 		end
 	end
 

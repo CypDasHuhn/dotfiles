@@ -1,4 +1,9 @@
-alias v = nvim
+def --wrapped v [...args] {
+    with-env { NVIM_PROFILE: $env.nvimProfile } { nvim ...$args }
+}
+def --wrapped vl [...args] { with-env { NVIM_PROFILE: "low" } { nvim ...$args } }
+def --wrapped vm [...args] { with-env { NVIM_PROFILE: "medium" } { nvim ...$args } }
+def --wrapped vh [...args] { with-env { NVIM_PROFILE: "high" } { nvim ...$args } }
 def --wrapped ve [...args] { with-env { NVIM_MINIMAL: "1" } { nvim ...$args } }
 alias md = mkdir
 alias cl = clear

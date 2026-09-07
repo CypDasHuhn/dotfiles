@@ -8,6 +8,15 @@ return {
     { '<leader>nP', '<cmd>AerialPrev<CR>', desc = 'Jump to previous symbol (Aerial)' },
   },
   opts = {
+    backends = {
+      ['_'] = { 'lsp', 'treesitter', 'markdown', 'asciidoc', 'man' },
+    },
+    lsp = {
+      priority = {
+        vue_ls = 20,
+        ts_ls = 10,
+      },
+    },
     keymaps = {
       -- `H`/`L` default to recursive tree close/open; free them so the global
       -- <S-h>/<S-l> window-navigation binds (config/binds/windows.lua) work here.

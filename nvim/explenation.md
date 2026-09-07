@@ -48,6 +48,17 @@ The folders are organized by rough purpose:
 - `stacks/` — tooling for specific tech stacks or workflows (dotnet, git, markdown, latex, …)
 - `misc/` — everything else that doesn't fit cleanly above
 
+### Performance Profiles
+
+Plugin specs can set `profile = "low"`, `"medium"`, or `"high"` to declare
+the minimum performance profile that loads them. Specs without a profile use
+`"medium"`; existing `essential = true` specs remain available in the low
+profile.
+
+Use `vl`, `vm`, or `vh` to start Neovim with the low, medium, or high profile.
+`v` and direct `nvim` launches use the high profile. `ve` remains a
+compatibility alias for the low profile.
+
 ## bootstrap.lua and dependencies.lua
 
 These two files are **not part of the Neovim config itself** — you can ignore them entirely if you just want to use this config.

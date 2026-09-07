@@ -16,7 +16,17 @@ local function module_from_path(path)
   return 'plugins.' .. rel
 end
 
-local minimal = vim.env.NVIM_MINIMAL == '1'
+local profiles = {
+  low = 1,
+  medium = 2,
+  high = 3,
+}
+
+local profile = vim.env.NVIM_PROFILE
+if vim.env.NVIM_MINIMAL == '1' then
+  profile = 'low'
+end
+profile = profiles[profile] and profile or 'high'
 
 local specs = {}
 local files = vim.fn.glob(root .. '/**/*.lua', false, true)
@@ -50,12 +60,16 @@ for _, file in ipairs(files) do
     if ok and plugin_spec then
       if is_list(plugin_spec) then
         for _, spec in ipairs(plugin_spec) do
-          if not minimal or spec.essential then
+          local required_profile = spec.profile or (spec.essential and 'low') or 'medium'
+          if profiles[profile] >= profiles[required_profile] then
             table.insert(specs, spec)
           end
         end
-      elseif not minimal or plugin_spec.essential then
-        table.insert(specs, plugin_spec)
+      else
+        local required_profile = plugin_spec.profile or (plugin_spec.essential and 'low') or 'medium'
+        if profiles[profile] >= profiles[required_profile] then
+          table.insert(specs, plugin_spec)
+        end
       end
     end
   end
