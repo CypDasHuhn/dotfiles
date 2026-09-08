@@ -2,7 +2,11 @@ def "nu-complete just-recipes" [] {
   ^just --list err> /dev/null
   | lines
   | each { |line| $line | str replace --regex '\s+#.*' '' | str trim }
-  | where { |s| $s != '' and $s != 'Available recipes:' }
+  | where { |s|
+      $s != ''
+      and $s != 'Available recipes:'
+      and not ($s =~ '^\[.+\]$')
+  }
 }
 
 export extern "just" [
