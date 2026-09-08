@@ -46,6 +46,7 @@ return {
     cmd = { 'DiffviewOpen', 'DiffviewFileHistory', 'DiffviewOpenOriginHead' },
     keys = {
         { '<leader>gco', '<cmd>DiffviewOpen<cr>',           desc = 'Open Diffview' },
+        { '<leader>gc<leader>', '<cmd>DiffviewOpen --selected-file=%<cr>', desc = 'Open Diffview at current file' },
         { '<leader>gcO', '<cmd>DiffviewOpenOriginHead<cr>', desc = 'Open Diffview vs origin/HEAD' },
         { '<leader>gcx', '<cmd>DiffviewClose<cr>',          desc = 'Close Diffview' },
         { '<leader>gcr', '<cmd>DiffviewRefresh<cr>',        desc = 'Refresh Diffview' },
