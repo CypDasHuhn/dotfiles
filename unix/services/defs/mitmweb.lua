@@ -7,6 +7,8 @@ return {
         "8080",
         "-s",
         "~/.config/mitmproxy/reddit_filter.py",
+        "--set",
+        "ssl_insecure=true",
     },
     restart = "on-failure",
     wanted_by = "default.target",
