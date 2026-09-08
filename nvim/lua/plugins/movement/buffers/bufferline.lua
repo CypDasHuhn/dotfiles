@@ -36,7 +36,6 @@ return {
         },
         custom_filter = function(bufnr)
           return vim.bo[bufnr].buftype == ''
-              and not vim.startswith(vim.api.nvim_buf_get_name(bufnr), 'sidebar-guard://')
         end,
         show_buffer_close_icons = false,
         show_close_icon = false,
