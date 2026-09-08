@@ -74,7 +74,10 @@ return {
     backends = {
       ['_'] = { 'lsp', 'treesitter', 'markdown', 'asciidoc', 'man' },
     },
-    filter_kind = false,
+    filter_kind = {
+      _ = { 'Class', 'Interface', 'Struct', 'Enum', 'Method', 'Constructor', 'Function' },
+      kotlin = { 'Class', 'Interface', 'Struct', 'Enum', 'Object', 'Module', 'Method', 'Constructor', 'Function' },
+    },
     lsp = {
       priority = {
         vue_ls = 20,
