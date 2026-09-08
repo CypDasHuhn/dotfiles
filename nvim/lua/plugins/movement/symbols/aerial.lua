@@ -78,6 +78,22 @@ return {
     backends = {
       ['_'] = { 'lsp', 'treesitter', 'markdown', 'asciidoc', 'man' },
     },
+    post_add_all_symbols = function(bufnr, items)
+      if #items == 0 then
+        vim.schedule(function()
+          if not vim.api.nvim_buf_is_valid(bufnr) then
+            return
+          end
+          for _, win in ipairs(vim.api.nvim_tabpage_list_wins(0)) do
+            local win_buf = vim.api.nvim_win_get_buf(win)
+            if vim.bo[win_buf].filetype == 'aerial' and vim.b[win_buf].source_buffer == bufnr then
+              vim.api.nvim_win_close(win, false)
+            end
+          end
+        end)
+      end
+      return items
+    end,
     filter_kind = false,
     lsp = {
       priority = {

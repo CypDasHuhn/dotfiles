@@ -4,11 +4,33 @@ return {
   enabled = true,
   event = 'VeryLazy',
   ---@type Flash.Config
-  opts = {},
+  opts = {
+    jump = {
+      autojump = false,
+    },
+    actions = {
+      ['<Tab>'] = function(state)
+        if #state.results == 0 then
+          return true
+        end
+        state:jump({ count = 1 })
+        return false
+      end,
+    },
+    label = {
+      format = function(format)
+        if #format.state.results == 1 then
+          return { { '<Tab>', 'FlashLabelTab' } }
+        end
+        return { { format.match.label, format.hl_group } }
+      end,
+    },
+  },
   config = function(_, opts)
     require('flash').setup(opts)
     local function set_hl()
       vim.api.nvim_set_hl(0, 'FlashLabelBackward', { fg = '#ff9e64', bold = true, nocombine = true })
+      vim.api.nvim_set_hl(0, 'FlashLabelTab', { fg = '#1a1b26', bg = '#7dcfff', bold = true, nocombine = true })
     end
     set_hl()
     vim.api.nvim_create_autocmd('ColorScheme', { callback = set_hl })
