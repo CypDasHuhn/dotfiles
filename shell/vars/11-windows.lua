@@ -11,6 +11,10 @@ local vars = {
 
 	startup = { "${appdataRoaming}/Microsoft/Windows/Start Menu/Programs/Startup" },
 
+	-- psmux reads ~/.tmux.conf; link the entry point file in addition to the config dir
+	tmuxConf = { "${dotfiles}/terminal/multiplexer/tmux/tmux.conf" },
+	systemTmuxEntry = { "${me}/.tmux.conf" },
+
 	windowsTerminalConfig = {
 		"${dotfiles}/terminal/emulator/windows-terminal/generated.json",
 	},

@@ -55,4 +55,9 @@ return {
 		unix = "${me}/.config/zellij",
 		windows = "${appdataRoaming}/Zellij/config",
 	},
+
+	tmuxDotfiles = {
+		"${dotfiles}/terminal/multiplexer/tmux",
+	},
+	systemTmux = { "${me}/.config/tmux" },
 }

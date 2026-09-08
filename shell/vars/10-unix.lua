@@ -15,7 +15,7 @@ local vars = {
 	lazygitDotfiles = { "${dotfiles}/git/lazygit" },
 	systemLazygit = { "${me}/.config/lazygit" },
 	footConfig = { "${dotfiles}/terminal/emulator/foot/foot.ini" },
-	systemFoot = { "${me}/.config/foot/foot.ini" }
+	systemFoot = { "${me}/.config/foot/foot.ini" },
 }
 
 for _, v in pairs(vars) do
