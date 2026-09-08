@@ -23,7 +23,8 @@ local function find_config_dir()
 	if os_type == "windows" then
 		candidates = {
 			normalize(os.getenv("APPDATA")) and (normalize(os.getenv("APPDATA")) .. "/zen") or nil,
-			normalize(os.getenv("USERPROFILE")) and (normalize(os.getenv("USERPROFILE")) .. "/AppData/Roaming/zen") or nil,
+			normalize(os.getenv("USERPROFILE")) and (normalize(os.getenv("USERPROFILE")) .. "/AppData/Roaming/zen") or
+			nil,
 			normalize(os.getenv("HOME")) and (normalize(os.getenv("HOME")) .. "/AppData/Roaming/zen") or nil,
 		}
 	else
