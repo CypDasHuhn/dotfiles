@@ -1,5 +1,9 @@
+local machine = require 'config.machine'
+local windsurf_machine = machine.windsurf or {}
+
 return {
   'Exafunction/windsurf.nvim',
+  enabled = windsurf_machine.enabled ~= false,
   event = 'VeryLazy',
   dependencies = {
     'nvim-lua/plenary.nvim',

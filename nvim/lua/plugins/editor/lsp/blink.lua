@@ -1,5 +1,9 @@
 -- TODO: Split up like in lsp-config for OSP
 
+local machine = require 'config.machine'
+local windsurf_machine = machine.windsurf or {}
+local codeium_enabled = windsurf_machine.enabled ~= false
+
 return {
   'saghen/blink.cmp',
   event = { 'BufReadPost', 'InsertEnter', 'CmdlineEnter' },
@@ -36,7 +40,9 @@ return {
     },
 
     sources = {
-      default = { 'lsp', 'path', 'snippets', 'lazydev', 'codeium' },
+      default = codeium_enabled
+          and { 'lsp', 'path', 'snippets', 'lazydev', 'codeium' }
+        or { 'lsp', 'path', 'snippets', 'lazydev' },
       per_filetype = {
         -- mssql.nvim provides SQL Server completion; Dadbod remains available too.
         sql = { 'lsp', 'dadbod', 'buffer', 'path', 'snippets' },

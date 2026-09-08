@@ -59,6 +59,24 @@ Use `vl`, `vm`, or `vh` to start Neovim with the low, medium, or high profile.
 `v` and direct `nvim` launches use the high profile. `ve` remains a
 compatibility alias for the low profile.
 
+### Machine Overrides
+
+Add an `nvim` subkey to the ignored root `.machine.local.lua` file to customize
+optional plugins for one machine. For example, disable Windsurf only on that
+machine:
+
+```lua
+return {
+  nvim = {
+    windsurf = {
+      enabled = false,
+    },
+  },
+}
+```
+
+The `nvim` subkey also holds the existing `vdir` settings.
+
 ## bootstrap.lua and dependencies.lua
 
 These two files are **not part of the Neovim config itself** — you can ignore them entirely if you just want to use this config.

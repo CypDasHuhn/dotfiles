@@ -36,5 +36,13 @@ return {
   kotlin_gradle = {
     pattern = "^build%.gradle.kts$",
     files = { "gradle.properties", "gradlew", "gradlew.bat", "settings.gradle.kts", "kls_database.db" },
-  }
+  },
+  readme_markdown = {
+    pattern = "^README%.md$",
+    files = { "*.md" },
+  },
+  solution_files = {
+    pattern = "^.+%.sln$",
+    files = { "*.props", "global.json" },
+  },
 }
