@@ -41,18 +41,18 @@ return {
       end)
     end
 
-    aerial.setup(opts)
     local profiles = { low = 1, medium = 2, high = 3 }
     local profile = vim.env.NVIM_PROFILE or 'high'
     if profiles[profile] and profiles[profile] >= profiles.medium then
-      vim.api.nvim_create_autocmd({ 'BufWinEnter', 'FileType' }, {
-        group = vim.api.nvim_create_augroup('aerial-autoopen', { clear = true }),
-        callback = function(args)
-          if is_openable(args.buf) then
-            aerial.open { focus = false }
-          end
-        end,
-      })
+      opts.close_automatic_events = { 'unsupported' }
+      opts.open_automatic = function(bufnr)
+        return is_openable(bufnr) and aerial.num_symbols(bufnr) > 0
+      end
+    end
+
+    aerial.setup(opts)
+
+    if profiles[profile] and profiles[profile] >= profiles.medium then
       vim.api.nvim_create_autocmd('WinClosed', {
         group = vim.api.nvim_create_augroup('aerial-close-orphaned-sidebar', { clear = true }),
         callback = function()
@@ -63,10 +63,6 @@ return {
           end)
         end,
       })
-
-      if is_openable(vim.api.nvim_get_current_buf()) then
-        aerial.open { focus = false }
-      end
     end
   end,
   keys = {
@@ -78,22 +74,6 @@ return {
     backends = {
       ['_'] = { 'lsp', 'treesitter', 'markdown', 'asciidoc', 'man' },
     },
-    post_add_all_symbols = function(bufnr, items)
-      if #items == 0 then
-        vim.schedule(function()
-          if not vim.api.nvim_buf_is_valid(bufnr) then
-            return
-          end
-          for _, win in ipairs(vim.api.nvim_tabpage_list_wins(0)) do
-            local win_buf = vim.api.nvim_win_get_buf(win)
-            if vim.bo[win_buf].filetype == 'aerial' and vim.b[win_buf].source_buffer == bufnr then
-              vim.api.nvim_win_close(win, false)
-            end
-          end
-        end)
-      end
-      return items
-    end,
     filter_kind = false,
     lsp = {
       priority = {
