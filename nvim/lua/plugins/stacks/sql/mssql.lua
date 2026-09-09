@@ -181,6 +181,50 @@ return {
   config = function(_, opts)
     require('mssql').setup(opts)
 
+    local wide_results_window
+    local function open_wide_results(bufnr)
+      local original_window = vim.api.nvim_get_current_win()
+      if not (wide_results_window and vim.api.nvim_win_is_valid(wide_results_window)) then
+        vim.cmd('split')
+        wide_results_window = vim.api.nvim_get_current_win()
+      end
+      vim.api.nvim_set_option_value('buflisted', true, { buf = bufnr })
+      vim.api.nvim_win_set_buf(wide_results_window, bufnr)
+      vim.api.nvim_set_current_win(original_window)
+    end
+
+    local wide_result_opts = vim.tbl_deep_extend('force', require('mssql.default_opts'), opts, {
+      max_column_width = 1000000,
+      open_results_in = open_wide_results,
+    })
+    local display_query_results = require('mssql.display_query_results')
+    local query_states = require('mssql.query_manager').states
+    local utils = require('mssql.utils')
+    local function execute_wide_query()
+      local query_manager = vim.b.query_manager
+      if not query_manager then
+        utils.log_error('No mssql connection is attached to this buffer')
+        return
+      end
+      if query_manager.get_state() ~= query_states.Connected then
+        utils.log_error('Connect before running a query with wide results')
+        return
+      end
+
+      utils.try_resume(coroutine.create(function()
+        local result = query_manager.execute_async(utils.get_selected_text())
+        if result then
+          display_query_results(wide_result_opts, result)
+        end
+      end))
+    end
+    vim.api.nvim_create_user_command('MSSQLExecuteWide', execute_wide_query, {
+      desc = 'Execute selection with untruncated MSSQL result columns',
+    })
+    vim.keymap.set({ 'n', 'v' }, '<leader>mE', execute_wide_query, {
+      desc = 'Execute MSSQL query with wide results',
+    })
+
     -- mssql.nvim renders query results as a markdown pipe table (rendered
     -- nicely via render-markdown.nvim). It escapes newlines in cell values,
     -- but not literal `|` characters. Columns containing unescaped pipes
@@ -189,7 +233,6 @@ return {
     -- leaving the raw, unrendered pipe text visible. Escape `|` (and any
     -- literal `\`, so our new escapes aren't ambiguous) before mssql.nvim
     -- builds the table.
-    local utils = require('mssql.utils')
     local get_rows_async = utils.get_rows_async
     utils.get_rows_async = function(...)
       local rows = get_rows_async(...)
