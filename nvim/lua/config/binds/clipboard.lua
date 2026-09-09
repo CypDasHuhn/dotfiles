@@ -24,6 +24,16 @@ local function copy_visual_reference(absolute, include_selection)
   vim.notify('Copied ' .. reference:match '^[^\n]+', vim.log.levels.INFO)
 end
 
+local function paste_escaped_newlines()
+  local text = vim.fn.getreg '+'
+  text = text:gsub('\\r\\n', '\n'):gsub('\\n', '\n')
+  vim.api.nvim_paste(text, true, -1)
+end
+
+vim.keymap.set({ 'n', 'i' }, '<C-p>', paste_escaped_newlines, {
+  desc = 'Paste clipboard with escaped newlines',
+})
+
 vim.keymap.set('x', '<leader>y', function()
   copy_visual_reference(false, false)
 end, { desc = 'Copy relative file reference' })
