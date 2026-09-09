@@ -1,5 +1,7 @@
 -- Read ./explanation.md to understand the config files!
 
+vim.loader.enable()
+
 vim.g.mapleader = ' '
 vim.g.maplocalleader = ' '
 

@@ -9,6 +9,12 @@ return {
     'nvim-lua/plenary.nvim',
   },
   config = function()
+    -- Windows guard
+    local git_usr_bin = 'C:/Program Files/Git/usr/bin'
+    if vim.fn.executable 'gzip' == 0 and vim.fn.executable(git_usr_bin .. '/gzip.exe') == 1 then
+      vim.env.PATH = git_usr_bin .. ';' .. vim.env.PATH
+    end
+
     vim.keymap.set('n', '<leader>tc', '<cmd>Codeium Toggle', { buffer = true })
 
     require('codeium').setup {

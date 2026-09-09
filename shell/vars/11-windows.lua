@@ -12,7 +12,9 @@ local vars = {
 	startup = { "${appdataRoaming}/Microsoft/Windows/Start Menu/Programs/Startup" },
 
 	-- psmux reads ~/.tmux.conf; link the entry point file in addition to the config dir
-	tmuxConf = { "${dotfiles}/terminal/multiplexer/tmux/tmux.conf" },
+	-- psmux does not reliably evaluate the WINDIR conditional in the shared
+	-- config, so give its ~/.tmux.conf entry point an explicit Windows variant.
+	tmuxConf = { "${dotfiles}/terminal/multiplexer/tmux/tmux.windows.conf" },
 	systemTmuxEntry = { "${me}/.tmux.conf" },
 
 	windowsTerminalConfig = {

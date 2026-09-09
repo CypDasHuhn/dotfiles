@@ -122,8 +122,21 @@ function M.link(source, target)
 	end
 
 	local result = os.execute(cmd)
+	-- A standard Windows symlink needs Developer Mode or elevation.  Junctions
+	-- and hard links provide the same behaviour for our local dotfiles without
+	-- that prerequisite.
+	if (result ~= 0 and result ~= true) and machine.os.type == "windows" then
+		if fs.is_directory(source) then
+			cmd = string.format('cmd /c mklink /J "%s" "%s"', target:gsub("/", "\\"), source:gsub("/", "\\"))
+		else
+			cmd = string.format('cmd /c mklink /H "%s" "%s"', target:gsub("/", "\\"), source:gsub("/", "\\"))
+		end
+		result = os.execute(cmd)
+	end
 	if result == 0 or result == true then
-		if backup then fs.remove_path(backup) end
+		if backup then
+			c.tag_warn("linker", "previous target retained at: " .. backup)
+		end
 		c.tag_ok("linker", "linked: " .. target .. " -> " .. source)
 		return true
 	end

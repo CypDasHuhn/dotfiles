@@ -13,15 +13,19 @@ def --wrapped tmux [...args] {
 
     tmux-ensure-plugins
 
-    let server = (do -i { ^tmux has-session } | complete)
-    if $server.exit_code == 0 {
-        ^tmux attach-session
+    # `has-session` without a target probes psmux's default session ("0"),
+    # which may not exist even though the server already has restored sessions.
+    # psmux reports success for `list-sessions` without returning session text,
+    # so probe the bootstrap session explicitly instead of parsing its output.
+    let restore = (do -i { ^tmux has-session -t __tmux_restore__ } | complete)
+    if $restore.exit_code == 0 {
+        ^tmux attach-session -t __tmux_restore__
         return
     }
 
     ^tmux new-session -d -s __tmux_restore__
     sleep 1500ms
-    ^tmux attach-session
+    ^tmux attach-session -t __tmux_restore__
 }
 
 def tmux-config-file [] {
