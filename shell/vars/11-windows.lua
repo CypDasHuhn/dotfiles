@@ -10,6 +10,8 @@ local vars = {
 	systemPsProfile = { "C:/Program Files/PowerShell/7/profile.ps1" },
 
 	startup = { "${appdataRoaming}/Microsoft/Windows/Start Menu/Programs/Startup" },
+	mitmproxyDotfiles = { "${dotfiles}/unix/mitmproxy" },
+	systemMitmproxy = { "${me}/.config/mitmproxy" },
 
 	-- psmux reads ~/.tmux.conf; link the entry point file in addition to the config dir
 	-- psmux does not reliably evaluate the WINDIR conditional in the shared

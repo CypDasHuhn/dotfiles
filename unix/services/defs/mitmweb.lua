@@ -1,8 +1,11 @@
 return {
     name = "mitmweb",
-    description = "Mitmweb proxy",
+    description = "Headless mitmproxy",
     command = {
-        "mitmweb",
+        "mitmdump",
+        "--quiet",
+        "--listen-host",
+        "127.0.0.1",
         "--listen-port",
         "8080",
         "-s",
