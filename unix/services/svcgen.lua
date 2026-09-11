@@ -124,6 +124,22 @@ local function unit_content(service)
 		table.insert(lines, "Restart=" .. service.restart)
 	end
 
+	if service.environment then
+		local keys = {}
+		for key in pairs(service.environment) do
+			table.insert(keys, key)
+		end
+		table.sort(keys)
+		for _, key in ipairs(keys) do
+			local value = expand_env(tostring(service.environment[key]))
+			local assignment = key .. "=" .. value
+			if value:match("%s") then
+				assignment = '"' .. assignment:gsub('"', '\\"') .. '"'
+			end
+			table.insert(lines, "Environment=" .. assignment)
+		end
+	end
+
 	table.insert(lines, "")
 	table.insert(lines, "[Install]")
 	table.insert(lines, "WantedBy=" .. (service.wanted_by or "default.target"))
