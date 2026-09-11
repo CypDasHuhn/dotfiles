@@ -10,6 +10,9 @@ nvim/.tmp
 nvim/.machine.lua
 .codex
 
+__pycache__/
+*.pyc
+
 # TPM-managed tmux plugins
 terminal/multiplexer/tmux/plugins/
 /nvim/mssql/projects.json
