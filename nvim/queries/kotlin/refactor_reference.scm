@@ -1,9 +1,3 @@
-; Experimental Kotlin support for refactoring.nvim.
-; Reference/declaration capture, modelled after the Java queries.
-
-; --- declarations ---
-
-; fun f(a: Int, b: String)
 (parameter
   (simple_identifier) @reference.identifier
   (user_type (type_identifier) @_type)
@@ -11,7 +5,6 @@
   (#set! reference_type write)
   (#set! declaration))
 
-; class Foo(val a: Int)
 (class_parameter
   (simple_identifier) @reference.identifier
   (user_type (type_identifier) @_type)
@@ -19,7 +12,6 @@
   (#set! reference_type write)
   (#set! declaration))
 
-; val/var name[: Type] = value
 (property_declaration
   (variable_declaration
     (simple_identifier) @reference.identifier
@@ -30,13 +22,11 @@
   (#set! reference_type write)
   (#set! declaration))
 
-; fun name(...)
 (function_declaration
   (simple_identifier) @reference.identifier
   (#set! reference_type write)
   (#set! declaration))
 
-; { a, b -> ... }
 (lambda_parameters
   (variable_declaration
     (simple_identifier) @reference.identifier
@@ -45,27 +35,20 @@
   (#set! reference_type write)
   (#set! declaration))
 
-; for (x in xs)
 (for_statement
   (variable_declaration
     (simple_identifier) @reference.identifier)
   (#set! reference_type write)
   (#set! declaration))
 
-; --- writes ---
-
 (assignment
   (directly_assignable_expression
     (simple_identifier) @reference.identifier)
   (#set! reference_type write))
 
-; --- reads ---
-
-; "Hello $name"
 (interpolated_identifier) @reference.identifier
   (#set! reference_type read)
 
-; Any simple_identifier whose immediate parent is an expression context.
 ((simple_identifier) @reference.identifier
   (#has-parent? @reference.identifier
     value_argument

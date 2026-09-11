@@ -1,7 +1,3 @@
--- Refactoring powered by tree-sitter (+ LSP for inline operations).
--- Kotlin support here is experimental: queries live in nvim/queries/kotlin.
--- Types resolve from explicit annotations, shallow literal inference, then a
--- synchronous LSP hover fallback (needed for things like lambda parameters).
 local ts = vim.treesitter
 local iter = vim.iter
 
@@ -85,8 +81,6 @@ local function infer_type(node, source)
 end
 
 -- region LSP type fallback
--- Treesitter can't resolve inferred types (notably lambda parameters). Fall back
--- to a synchronous hover request when a client supports it.
 local hover_cache = {}
 
 local function parse_hover_type(text, name)
@@ -184,7 +178,6 @@ local kotlin_code_generation = {
   function_declaration = {
     kotlin = function(opts)
       local return_type = #opts.return_values == 0 and 'Unit' or (opts.return_values[1].type or 'Any')
-      -- `private` is only valid on class members, not local functions.
       local visibility = opts.method and 'private ' or ''
       return ([[
 %sfun %s(%s): %s {
@@ -232,11 +225,6 @@ return {
     },
   },
   config = function()
-    -- Both kevinhwang91/promise-async (nvim-ufo) and lewis6991/async.nvim
-    -- (refactoring.nvim) publish `require('async')`, with incompatible APIs.
-    -- ufo loads first on BufReadPost and caches promise-async's module. Load
-    -- refactoring.nvim's async-using modules while async.nvim's implementation
-    -- is visible, then restore promise-async's for ufo's lazily loaded modules.
     local async_modules = {
       'refactoring',
       'refactoring.config',

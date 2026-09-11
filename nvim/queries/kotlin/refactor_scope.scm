@@ -1,6 +1,3 @@
-; Experimental Kotlin support for refactoring.nvim.
-; Scopes used to map declarations to their enclosing block.
-
 (function_declaration
   (function_value_parameters) @scope
   (function_body

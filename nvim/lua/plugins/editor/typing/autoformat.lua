@@ -63,9 +63,6 @@ return {
         end
       end,
       formatters = {
-        -- ktlint exits 1 when there are non-auto-correctable violations (e.g.
-        -- wildcard imports) even though it still formatted the file. Treat 1 as
-        -- success so the formatted output isn't discarded.
         ktlint = {
           exit_codes = { 0, 1 },
         },
