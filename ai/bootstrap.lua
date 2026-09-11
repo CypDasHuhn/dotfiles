@@ -1,6 +1,6 @@
--- Module bootstrap: link the shared AI skills in ai/skills/<name>/SKILL.md into
--- each installed tool's own skills directory (opencode, claude, codex,
--- copilot-cli). Tools that are not installed on the current machine are skipped.
+-- Module bootstrap: sync the shared AI skills into each installed tool's own
+-- skills directory (opencode, claude, codex, copilot-cli). Tools that are not
+-- installed on the current machine are skipped.
 local c = require("colors")
 local linker = require("linker")
 

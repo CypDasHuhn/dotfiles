@@ -1,7 +1,5 @@
--- codex: skills are read from ~/.codex/skills
--- NOTE: codex is not installed on this machine yet; the actual skills dir may
--- differ. The presence check keeps this a no-op until codex exists here, so it
--- can be corrected later without side effects.
+-- Codex stores local skills under ~/.codex/skills by default. The presence
+-- check keeps this a no-op on machines where Codex is not installed.
 local link_skills = require("link_skills")
 
 return function(linker)

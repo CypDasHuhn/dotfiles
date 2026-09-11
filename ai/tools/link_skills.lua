@@ -7,7 +7,9 @@
 --
 -- Materialization at the tool side is always the loader contract the tools
 -- expect (<name>/SKILL.md), so tools never need to know our authoring schema.
--- Links are per-skill so they coexist with any skills the tool already has.
+-- Folder skills remain direct links. Flat skills are copied into regular
+-- SKILL.md files because Codex's catalogue does not index nested file links.
+-- Links and generated files are per-skill so they coexist with user skills.
 
 local c = require("colors")
 
@@ -49,9 +51,89 @@ end
 
 local function is_symlink(path)
 	if is_windows() then
-		return false
+		local win_path = path:gsub("/", "\\")
+		return popen_line(
+			'cmd /c if exist "'
+				.. win_path
+				.. '" (fsutil reparsepoint query "'
+				.. win_path
+				.. '" >nul 2>&1 && echo yes || echo no) else echo no'
+		) == "yes"
 	end
 	return popen_line('test -L "' .. path .. '" && echo yes || echo no') == "yes"
+end
+
+local function readlink(path)
+	if is_windows() then
+		local win_path = path:gsub("/", "\\")
+		local ps_path = win_path:gsub("'", "''")
+		return popen_line(
+			"powershell -NoProfile -Command \"$item = Get-Item -LiteralPath '"
+				.. ps_path
+				.. "'; if ($item -and $item.Target) { @($item.Target)[0] }\""
+		)
+	end
+	return popen_line('readlink "' .. path .. '"')
+end
+
+local function remove_path(path)
+	if is_windows() then
+		local win_path = path:gsub("/", "\\")
+		os.execute('cmd /c del /F /Q "' .. win_path .. '" >nul 2>&1')
+		os.execute('cmd /c rmdir /S /Q "' .. win_path .. '" >nul 2>&1')
+	else
+		local result = os.execute('rm -rf "' .. path .. '"')
+		if result ~= 0 and result ~= true then
+			return false, "failed to remove " .. path
+		end
+	end
+	if file_exists(path) or is_symlink(path) then
+		return false, "path still exists after removal: " .. path
+	end
+	return true
+end
+
+local function ensure_parent(path)
+	local parent = path:match("^(.*)[/\\][^/\\]+$")
+	if not parent or parent == "" or dir_exists(parent) then
+		return true
+	end
+	local result
+	if is_windows() then
+		result = os.execute('mkdir "' .. parent:gsub("/", "\\") .. '" 2>nul')
+	else
+		result = os.execute('mkdir -p "' .. parent .. '"')
+	end
+	if result ~= 0 and result ~= true and not dir_exists(parent) then
+		return false, "failed to create directory: " .. parent
+	end
+	return true
+end
+
+local function read_file(path)
+	local input, err = io.open(path, "rb")
+	if not input then
+		return nil, err
+	end
+	local contents = input:read("*a")
+	input:close()
+	return contents
+end
+
+local function write_file(path, contents)
+	local output, err = io.open(path, "wb")
+	if not output then
+		return false, err
+	end
+	local ok, write_err = output:write(contents)
+	local closed, close_err = output:close()
+	if not ok then
+		return false, write_err or "write failed"
+	end
+	if not closed then
+		return false, close_err or "close failed"
+	end
+	return true
 end
 
 -- Remove a stale symlink we manage if it still points into the skills root
@@ -60,9 +142,9 @@ local function remove_managed_link(path, root)
 	if not path or not is_symlink(path) then
 		return
 	end
-	local target = popen_line('readlink "' .. path .. '"')
+	local target = readlink(path)
 	if target and (target == root or target:sub(1, #root + 1) == root .. "/") then
-		os.execute('rm -rf "' .. path .. '"')
+		remove_path(path)
 	end
 end
 
@@ -70,8 +152,65 @@ local function is_managed_target(target, root)
 	if not is_symlink(target) then
 		return false
 	end
-	local rl = popen_line('readlink "' .. target .. '"')
+	local rl = readlink(target)
 	return rl and (rl == root or rl:sub(1, #root + 1) == root .. "/")
+end
+
+local function materialize_file(source, target, target_dir, skills_root)
+	local contents, read_err = read_file(source)
+	if not contents then
+		return false, "could not read source: " .. (read_err or source)
+	end
+	if is_symlink(target_dir) then
+		return false, "refusing to write through foreign symlink: " .. target_dir
+	end
+
+	if is_symlink(target) then
+		if not is_managed_target(target, skills_root) then
+			return false, "refusing to replace foreign symlink: " .. target
+		end
+		local removed, remove_err = remove_path(target)
+		if not removed then
+			return false, remove_err
+		end
+	elseif dir_exists(target) then
+		return false, "target is a directory: " .. target
+	elseif file_exists(target) then
+		local existing = read_file(target)
+		local marker = target_dir .. "/.dotfiles-skill"
+		local managed = file_exists(marker)
+		if existing == contents then
+			local marked, marker_err = write_file(marker, source .. "\n")
+			if not marked then
+				return false, "could not write ownership marker: " .. (marker_err or marker)
+			end
+			return true, "already linked"
+		end
+		if not managed then
+			local backup = target .. ".dotbak"
+			if not file_exists(backup) and not is_symlink(backup) then
+				local moved, move_err = os.rename(target, backup)
+				if not moved then
+					return false, "could not preserve existing target: " .. (move_err or target)
+				end
+			end
+		end
+	end
+
+	local parent_ok, parent_err = ensure_parent(target)
+	if not parent_ok then
+		return false, parent_err
+	end
+	local written, write_err = write_file(target, contents)
+	if not written then
+		return false, "could not write target: " .. (write_err or target)
+	end
+	local marker = target_dir .. "/.dotfiles-skill"
+	local marked, marker_err = write_file(marker, source .. "\n")
+	if not marked then
+		return false, "could not write ownership marker: " .. (marker_err or marker)
+	end
+	return true
 end
 
 -- Remove tool-side artifacts for skills that no longer exist in the repo.
@@ -90,9 +229,11 @@ local function prune_stale(target_root, skills_root, current)
 		if name ~= "" and not current[name] then
 			local child = target_root .. "/" .. name
 			if is_symlink(child) and is_managed_target(child, skills_root) then
-				os.execute('rm -rf "' .. child .. '"')
+				remove_path(child)
 			elseif is_managed_target(child .. "/SKILL.md", skills_root) then
-				os.execute('rm -rf "' .. child .. '"')
+				remove_path(child)
+			elseif not is_symlink(child) and file_exists(child .. "/.dotfiles-skill") then
+				remove_path(child)
 			end
 		end
 	end
@@ -206,7 +347,7 @@ function M.link_tool(linker, tool_name, base_rel, skills_rel)
 		local ok, err
 		if entry.kind == "file" then
 			remove_managed_link(target, skills_root)
-			ok, err = linker.link(entry.source, target .. "/SKILL.md")
+			ok, err = materialize_file(entry.source, target .. "/SKILL.md", target, skills_root)
 		else
 			remove_managed_link(target .. "/SKILL.md", skills_root)
 			ok, err = linker.link(entry.source, target)

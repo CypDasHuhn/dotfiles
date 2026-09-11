@@ -33,6 +33,8 @@ overwrite foreign files), `bootstrapper.lua` (module discovery), `platform.lua`,
 - Everything generated is derived from Lua; prefer editing the source module,
   not generated artifacts (`shell/generated`, `out/` dirs).
 - Bootstraps are idempotent and skip services not installed on the machine.
-- Skills live flat as `ai/skills/<name>.md` (or `<name>/SKILL.md` when the
-  skill needs supporting files); `ai/tools/link_skills.lua` links them into
-  opencode (and claude/codex/copilot-cli) skill dirs per machine.
+- Skills may be authored flat as `ai/skills/<name>.md` or as a standard
+  `<name>/SKILL.md` folder when supporting files are needed. The linker
+  materializes flat skills as regular `<name>/SKILL.md` files and links folder
+  skills into opencode, Claude, Codex, and Copilot CLI skill directories per
+  machine.
