@@ -3,7 +3,8 @@ return {
 		alias = true,
 		machines = {
 			["bayer-cloud-pc"] = "copilot-danger",
-			["personal-tower"] = "opencode"
+			["personal-tower"] = "opencode",
+			["work-arch-rdp"] = "codex"
 		}
 	},
 	nvimProfile = {
