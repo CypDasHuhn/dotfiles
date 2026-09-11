@@ -1,5 +1,6 @@
-# With no arguments, resume tmux instead of creating a new session. A cold
-# server needs a detached bootstrap session so Continuum can restore saved ones.
+# With no arguments, resume tmux instead of creating a new session. On a cold
+# server, invoking tmux directly lets Continuum restore into its normal
+# temporary startup session, which Resurrect removes when appropriate.
 def --wrapped tmux [...args] {
     if not ($args | is-empty) {
         ^tmux ...$args
@@ -13,19 +14,22 @@ def --wrapped tmux [...args] {
 
     tmux-ensure-plugins
 
-    # `has-session` without a target probes psmux's default session ("0"),
-    # which may not exist even though the server already has restored sessions.
-    # psmux reports success for `list-sessions` without returning session text,
-    # so probe the bootstrap session explicitly instead of parsing its output.
-    let restore = (do -i { ^tmux has-session -t __tmux_restore__ } | complete)
+    # Older versions of this wrapper created __tmux_restore__ as a bootstrap
+    # session. Remove it so it cannot be kept alive or saved again.
+    let restore = (do -i { ^tmux has-session -t "=__tmux_restore__" } | complete)
     if $restore.exit_code == 0 {
-        ^tmux attach-session -t __tmux_restore__
+        ^tmux kill-session -t "=__tmux_restore__"
+    }
+
+    # Use the exit status rather than parsing output: psmux has returned an
+    # empty list for list-sessions in some versions.
+    let server = (do -i { ^tmux list-sessions } | complete)
+    if $server.exit_code == 0 {
+        ^tmux attach-session
         return
     }
 
-    ^tmux new-session -d -s __tmux_restore__
-    sleep 1500ms
-    ^tmux attach-session -t __tmux_restore__
+    ^tmux
 }
 
 def tmux-config-file [] {
@@ -33,62 +37,13 @@ def tmux-config-file [] {
     $xdg | path join "tmux" "tmux.conf"
 }
 
-def tmux-plugins-root [] {
-    tmux-config-file | path dirname | path join "plugins"
-}
-
-# Parse `set -g @plugin 'owner/repo'` entries from the config text the same way
-# TPM does: tmux keeps only the last value of a repeated user option, so the
-# running server can't report the full list and TPM reads the file instead.
-def tmux-declared-plugins [] {
-    let conf = (tmux-config-file | path dirname | path join "options.conf")
-    if not ($conf | path exists) {
-        return []
-    }
-
-    open --raw $conf
-    | lines
-    | where {|l| ($l | str trim | str starts-with "set") and ($l | str contains "@plugin") }
-    | each {|l|
-        $l
-        | str replace --all "'" ""
-        | str replace --all '"' ""
-        | str trim
-        | split row ' '
-        | last
-        | str trim
-    }
-}
-
-# Bootstrap TPM (it can't clone itself) and install any plugins that are still
-# missing. No-ops quickly once everything is present.
+# Install missing plugins before a cold server starts, so Continuum is loaded
+# in time for its server-start restore.
 def tmux-ensure-plugins [] {
-    let root = (tmux-plugins-root)
-    let tpm = ($root | path join "tpm" "tpm")
-
-    if not ($tpm | path exists) {
-        if not ($root | path exists) { mkdir $root }
-        ^git clone --quiet https://github.com/tmux-plugins/tpm ($root | path join "tpm")
-    }
-
-    let missing = (
-        tmux-declared-plugins
-        | each {|p| $p | str replace --regex '\.git$' '' | path basename }
-        | each {|name| $root | path join $name }
-        | where {|dir| not ($dir | path exists) }
-    )
-
-    if ($missing | is-empty) {
+    let script = (tmux-config-file | path dirname | path join "scripts" "ensure-plugins.sh")
+    if not ($script | path exists) {
         return
     }
 
-    # TPM's installer reads the @plugin list and its install target from a
-    # running server. Bring one up and point TMUX_PLUGIN_MANAGER_PATH at the
-    # plugins dir; a server that started before tpm existed won't have it set.
-    ^tmux start-server
-    ^tmux set-environment -g TMUX_PLUGIN_MANAGER_PATH $root
-    ^bash ($root | path join "tpm" "bin" "install_plugins")
-
-    # Reload so the running server sources the plugins we just installed.
-    ^tmux source-file (tmux-config-file)
+    ^bash $script
 }
