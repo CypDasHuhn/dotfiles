@@ -83,6 +83,7 @@ return {
       { '<leader>x',  group = 'Issues' },
       { '<leader>r',  group = 'Edit Helpers' },
       { '<leader>b',  group = '[B]uffer' },
+      { '<leader>v',  group = '[V]iew' },
       { '<leader>g',  group = 'Misc' },
       { '<leader>gc', group = 'Diffview' },
       { '<leader>gt', group = 'Tabpages' },

@@ -1,3 +1,5 @@
+vim.keymap.set('n', '<leader>vs', '<cmd>vsplit<cr>', { desc = 'Split vertically' })
+
 vim.keymap.set('n', '<S-l>', '<C-w>l', { desc = 'Window right' })
 vim.keymap.set('n', '<S-h>', '<C-w>h', { desc = 'Window left' })
 vim.keymap.set('n', '<S-j>', '<C-w>j', { desc = 'Window down' })
