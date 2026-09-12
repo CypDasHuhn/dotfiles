@@ -18,6 +18,7 @@ return {
   },
   tools = {
     'ktlint',
+    'detekt',
   },
   treesitter = { 'kotlin' },
   autofold = {
