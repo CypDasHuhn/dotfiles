@@ -76,6 +76,7 @@ return {
     },
     filter_kind = {
       _ = { 'Class', 'Interface', 'Struct', 'Enum', 'Method', 'Constructor', 'Function' },
+      markdown = { 'Interface', 'String' },
       kotlin = { 'Class', 'Interface', 'Struct', 'Enum', 'Object', 'Module', 'Method', 'Constructor', 'Function' },
     },
     lsp = {
