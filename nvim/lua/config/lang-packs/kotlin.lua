@@ -3,12 +3,7 @@ return {
     kotlin_lsp = {
       mason = false,
       single_file_support = false,
-      cmd = {
-        'kotlin-lsp',
-        '--stdio',
-        '--system-path',
-        vim.fn.stdpath 'data' .. '/kotlin-lsp',
-      },
+      cmd = require 'lib.kotlin-lsp-server',
       on_attach = function(client)
         client.server_capabilities.documentFormattingProvider = false
         client.server_capabilities.documentRangeFormattingProvider = false
