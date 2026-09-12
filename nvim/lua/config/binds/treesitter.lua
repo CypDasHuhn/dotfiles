@@ -1,7 +1,9 @@
 local nav = require 'lib.treesitter-nav'
 
 vim.keymap.set({ 'n', 'x', 'o' }, '<C-l>', function() nav.next_sibling() end, { desc = 'Next sibling' })
-vim.keymap.set({ 'n', 'x', 'o' }, '<C-h>', function() nav.rev_sibling() end, { desc = 'Previous sibling' })
+vim.keymap.set({ 'n', 'x', 'o' }, '<C-h>', function() nav.prev_sibling() end, { desc = 'Previous sibling' })
+vim.keymap.set({ 'n', 'x' }, '<C-.>', function() nav.expand() end, { desc = 'Expand selection to node' })
+vim.keymap.set('x', '<C-,>', function() nav.contract() end, { desc = 'Shrink selection' })
 vim.keymap.set('n', '<C-k>', function()
   if vim.wo.diff then
     vim.cmd.normal { '[c', bang = true }
