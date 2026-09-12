@@ -9,6 +9,13 @@ def main [current_session?: string] {
 
 	let pending = (do { ^tmux show-option -gqv "@session_pending" } | complete | get stdout | str trim)
 
+	let view = (do { ^tmux show-option -gqv "@group-view" } | complete | get stdout | str trim)
+	let visible = if ($view | is-empty) or $view == "All" {
+		[]
+	} else {
+		(do { ^tmux show-option -gqv $"@group:($view)" } | complete | get stdout | str trim | split row "," | where { |s| $s != "" })
+	}
+
 	let rows = (
 		^tmux list-sessions -F "#{session_last_attached}\t#{session_name}"
 		| lines
@@ -21,7 +28,9 @@ def main [current_session?: string] {
 		| get name
 	)
 
-	let out = ($rows | reduce --fold "" { |name, acc|
+	let out = ($rows
+		| if (($view | is-empty) or $view == "All") { $in } else { where { |name| $name in $visible } }
+		| reduce --fold "" { |name, acc|
 		let sep = if $acc == "" { "" } else { " " }
 		let styled = if ($pending | is-not-empty) and $name == $pending and $name != $current {
 			$"#[fg=#000000,bg=#e0af68,bold] ($name) #[fg=#ffffff,bg=#2f3045,nobold]"
@@ -30,8 +39,8 @@ def main [current_session?: string] {
 		} else {
 			$"#[fg=#ffffff,bg=#111111] ($name) #[fg=#ffffff,bg=#2f3045,nobold]"
 		}
-		$acc + $sep + $styled
-	})
+			$acc + $sep + $styled
+		})
 
 	print -n $"($out)#[fg=#ffffff,bg=#2f3045,nobold]"
 }

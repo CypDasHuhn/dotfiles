@@ -24,7 +24,17 @@ def clear_selection [client_name: string] {
 	}
 }
 
+def group_view [] {
+	let view = (do { ^tmux show-option -gqv "@group-view" } | complete | get stdout | str trim)
+	if ($view | is-empty) or $view == "All" {
+		[]
+	} else {
+		(do { ^tmux show-option -gqv $"@group:($view)" } | complete | get stdout | str trim | split row "," | where { |s| $s != "" })
+	}
+}
+
 def get_sessions [] {
+	let visible = (group_view)
 	^tmux list-sessions -F "#{session_last_attached}\t#{session_name}"
 	| lines
 	| filter { |l| $l | is-not-empty }
@@ -33,6 +43,7 @@ def get_sessions [] {
 		{ ts: ($parts | get 0), name: ($parts | get 1) }
 	}
 	| sort-by ts --reverse
+	| where { |s| ($visible | is-empty) or ($s.name in $visible) }
 	| get name
 }
 
