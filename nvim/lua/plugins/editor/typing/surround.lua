@@ -7,6 +7,17 @@ return {
   opts = {},
   config = function(_, opts)
     require('nvim-surround').setup(opts)
-    vim.keymap.set('x', 'r', '<Plug>(nvim-surround-visual)', { desc = 'Surround selection' })
+    local surrounds = {
+      { '(', ')' },
+      { '[', ']' },
+      { '{', '}' },
+      { "'", "'" },
+      { '"', '"' },
+    }
+    for _, pair in ipairs(surrounds) do
+      vim.keymap.set('x', pair[1], '<Plug>(nvim-surround-visual)' .. pair[1], {
+        desc = 'Surround selection with ' .. pair[1] .. pair[2],
+      })
+    end
   end,
 }
