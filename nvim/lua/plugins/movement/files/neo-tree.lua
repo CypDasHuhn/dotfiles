@@ -116,6 +116,38 @@ local function toggle_merge_single_child_dirs()
   vim.notify('Merge single-child directories: ' .. (merge_single_child_dirs and 'on' or 'off'))
 end
 
+-- Directory a scoped search should run from: the highlighted directory, or
+-- the containing directory of the highlighted file.
+local function node_dir(state)
+  local ok, node = pcall(state.tree.get_node, state.tree)
+  if not (ok and node) or node.type == 'message' then
+    return nil
+  end
+  if node.type == 'directory' or node.type == 'root' then
+    return node:get_id()
+  end
+  local path = node:get_id()
+  if not path or path == '' then
+    return nil
+  end
+  return vim.fn.fnamemodify(path, ':h')
+end
+
+local function scoped_search(kind, profile)
+  return function(state)
+    local dir = node_dir(state)
+    if not dir then
+      return
+    end
+    local scopes = require 'lib.scopes'
+    if kind == 'find' then
+      scopes.find_files(profile, { cwd = dir })
+    else
+      scopes.live_grep(profile, { cwd = dir })
+    end
+  end
+end
+
 return {
   'nvim-neo-tree/neo-tree.nvim',
   essential = true,
@@ -147,6 +179,24 @@ return {
           end
           require('neo-tree.sources.filesystem.commands').open(state)
         end,
+        -- `s` on a directory is a group key (scoped searches); on a file it
+        -- keeps the default behaviour of opening a vertical split.
+        search = function(state)
+          local node = state.tree:get_node()
+          if node and node.type ~= 'directory' and node.type ~= 'root' then
+            require('neo-tree.sources.filesystem.commands').open_vsplit(state)
+          end
+        end,
+        scoped_find = scoped_search('find', nil),
+        scoped_find_code = scoped_search('find', 'code'),
+        scoped_find_tests = scoped_search('find', 'tests'),
+        scoped_find_docs = scoped_search('find', 'docs'),
+        scoped_find_all = scoped_search('find', 'all'),
+        scoped_grep = scoped_search('grep', nil),
+        scoped_grep_code = scoped_search('grep', 'code'),
+        scoped_grep_tests = scoped_search('grep', 'tests'),
+        scoped_grep_docs = scoped_search('grep', 'docs'),
+        scoped_grep_all = scoped_search('grep', 'all'),
         toggle_merged_dirs = function()
           toggle_merge_single_child_dirs()
         end,
@@ -350,6 +400,17 @@ return {
       window = {
         mappings = {
           ['<cr>'] = 'open',
+          s = { command = 'search', desc = 'Open split / search group', nowait = false },
+          ['s<leader>'] = { command = 'scoped_find', desc = 'Find files under directory' },
+          sa = { command = 'scoped_find_all', desc = 'Find all under directory' },
+          sc = { command = 'scoped_find_code', desc = 'Find code under directory' },
+          st = { command = 'scoped_find_tests', desc = 'Find tests under directory' },
+          sd = { command = 'scoped_find_docs', desc = 'Find docs under directory' },
+          sg = { command = 'scoped_grep', desc = 'Grep under directory', nowait = false },
+          sga = { command = 'scoped_grep_all', desc = 'Grep all under directory' },
+          sgc = { command = 'scoped_grep_code', desc = 'Grep code under directory' },
+          sgt = { command = 'scoped_grep_tests', desc = 'Grep tests under directory' },
+          sgd = { command = 'scoped_grep_docs', desc = 'Grep docs under directory' },
           ['<S-CR>'] = 'toggle_node',
           o = { 'open', config = { expand_nested_files = true } },
           ['<leader>E'] = 'close_window',

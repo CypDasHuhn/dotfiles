@@ -40,16 +40,26 @@ return {
     pcall(require('telescope').load_extension, 'ui-select')
 
     local builtin = require 'telescope.builtin'
+    local scopes = require 'lib.scopes'
     vim.keymap.set('n', '<leader>sh', builtin.help_tags, { desc = '[S]earch [H]elp' })
     vim.keymap.set('n', '<leader>sk', builtin.keymaps, { desc = '[S]earch [K]eymaps' })
     vim.keymap.set('n', '<leader><leader>', builtin.find_files, { desc = '[S]earch [F]iles' })
     vim.keymap.set('n', '<leader>ss', builtin.builtin, { desc = '[S]earch [S]elect Telescope' })
-    vim.keymap.set('n', '<leader>sw', builtin.grep_string, { desc = '[S]earch current [W]ord' })
     vim.keymap.set('n', '<leader>sg', builtin.live_grep, { desc = '[S]earch by [G]rep' })
     vim.keymap.set('n', '<leader>sq', builtin.diagnostics, { desc = '[S]earch [D]iagnostics' })
-    vim.keymap.set('n', '<leader>sr', builtin.resume, { desc = '[S]earch [R]esume' })
-    vim.keymap.set('n', '<leader>s.', builtin.oldfiles, { desc = '[S]earch Recent Files ("." for repeat)' })
-    vim.keymap.set('n', '<leader>sb', builtin.buffers, { desc = '[S]earch in existing [B]uffers' })
+
+    --region Scoped Search
+    vim.keymap.set('n', '<leader>sf', builtin.find_files, { desc = 'Search [F]iles' })
+    vim.keymap.set('n', '<leader>sfc', function() scopes.find_files 'code' end, { desc = 'Find [C]ode' })
+    vim.keymap.set('n', '<leader>sft', function() scopes.find_files 'tests' end, { desc = 'Find [T]ests' })
+    vim.keymap.set('n', '<leader>sfd', function() scopes.find_files 'docs' end, { desc = 'Find [D]ocs' })
+    vim.keymap.set('n', '<leader>sfa', function() scopes.find_files 'all' end, { desc = 'Find [A]ll' })
+
+    vim.keymap.set('n', '<leader>sgc', function() scopes.live_grep 'code' end, { desc = 'Grep [C]ode' })
+    vim.keymap.set('n', '<leader>sgt', function() scopes.live_grep 'tests' end, { desc = 'Grep [T]ests' })
+    vim.keymap.set('n', '<leader>sgd', function() scopes.live_grep 'docs' end, { desc = 'Grep [D]ocs' })
+    vim.keymap.set('n', '<leader>sga', function() scopes.live_grep 'all' end, { desc = 'Grep [A]ll' })
+    --endregion
 
     --region Directories Search
     vim.keymap.set('n', '<leader>sd', function()
@@ -76,38 +86,11 @@ return {
     end)
     --endregion
 
-    --region Fuzzy search only files
-    local make_entry = require('telescope.make_entry')
-
-    vim.keymap.set('n', '<leader>sf', function()
-      require('telescope.builtin').find_files({
-        entry_maker = function(filepath)
-          local entry = make_entry.gen_from_file({})(filepath)
-          -- ordinal drives the matching, display drives what you see
-          entry.ordinal = vim.fn.fnamemodify(filepath, ':t')
-          return entry
-        end,
-      })
-    end)
-    --endregion
-
     vim.keymap.set('n', '<leader>/', function()
       builtin.current_buffer_fuzzy_find(require('telescope.themes').get_dropdown {
         winblend = 10,
         previewer = false,
       })
     end, { desc = '[/] Fuzzily search in current buffer' })
-
-    vim.keymap.set('n', '<leader>s/', function()
-      builtin.live_grep {
-        grep_open_files = true,
-        prompt_title = 'Live Grep in Open Files',
-      }
-    end, { desc = '[S]earch [/] in Open Files' })
-
-    -- Shortcut for searching your Neovim configuration files
-    vim.keymap.set('n', '<leader>sn', function()
-      builtin.find_files { cwd = vim.fn.stdpath 'config' }
-    end, { desc = '[S]earch [N]eovim files' })
   end,
 }

@@ -74,6 +74,8 @@ return {
       { 'ga',  desc = 'Next assignment' },
       { 'gA',  desc = 'Prev assignment' },
       { '<leader>s',  group = '[S]earch' },
+      { '<leader>sf', group = '[F]iles by scope' },
+      { '<leader>sg', group = '[G]rep by scope' },
       { '<leader>t',  group = '[T]oggle' },
       { '<leader>d',  group = '[D]ebug' },
       { '<leader>h',  group = 'Git [H]unk',  mode = { 'n', 'v' } },
