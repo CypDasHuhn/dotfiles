@@ -9,6 +9,6 @@ return {
     }
   end,
   keys = {
-    { '<leader>se', '<cmd>ToggleSolutionExplorer<cr>', desc = 'Toggle Solution Explorer' },
+    { '<leader>gs', '<cmd>ToggleSolutionExplorer<cr>', desc = 'Toggle Solution Explorer' },
   },
 }
