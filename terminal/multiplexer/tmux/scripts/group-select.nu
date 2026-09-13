@@ -4,6 +4,10 @@ def opt [name: string] {
 	do { ^tmux show-option -gqv $name } | complete | get stdout | str trim
 }
 
+def save_groups [] {
+	^nu ~/.config/tmux/scripts/groups-store.nu save
+}
+
 def clear_selection [client_name: string] {
 	^tmux set-option -gu "@group_pending"
 	^tmux set-option -gu "@group_pending_token"
@@ -132,6 +136,7 @@ def main [action: string, ...rest: string] {
 			^tmux set-option -g "@groups" $list
 			^tmux set-option -g $"@group:($name)" $current
 			^tmux set-option -g "@group-view" $name
+			save_groups
 			clear_selection $client_name
 		}
 		"remove" => {
@@ -143,6 +148,7 @@ def main [action: string, ...rest: string] {
 			}
 			let kept = (opt $"@group:($target)" | split row "," | filter { |s| $s != "" and $s != $current })
 			^tmux set-option -g $"@group:($target)" ($kept | str join ",")
+			save_groups
 			if $view == $target {
 				attach_mru $kept
 			}
@@ -158,6 +164,7 @@ def main [action: string, ...rest: string] {
 			^tmux set-option -g $"@group:($new_name)" $old_members
 			^tmux set-option -g "@groups" (opt "@groups" | split row "," | each { |g| if $g == $old_name { $new_name } else { $g } } | str join ",")
 			if $view == $old_name { ^tmux set-option -g "@group-view" $new_name }
+			save_groups
 			^tmux set-option -gu "@group_pending"
 			clear_selection $client_name
 		}
@@ -171,6 +178,7 @@ def main [action: string, ...rest: string] {
 			^tmux set-option -gu $"@group:($target)"
 			^tmux set-option -g "@groups" (opt "@groups" | split row "," | filter { |g| $g != "" and $g != $target } | str join ",")
 			if $view == $target { ^tmux set-option -g "@group-view" "" }
+			save_groups
 			clear_selection $client_name
 		}
 		_ => {

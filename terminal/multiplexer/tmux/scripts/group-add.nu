@@ -66,5 +66,6 @@ def main [group?: string] {
 
 	let updated = ($existing ++ $chosen | uniq)
 	^tmux set-option -g $"@group:($target)" ($updated | str join ",")
+	^nu ~/.config/tmux/scripts/groups-store.nu save
 	^tmux refresh-client -S
 }
