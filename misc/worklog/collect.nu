@@ -1,5 +1,6 @@
 #!/usr/bin/env nu
 
+use period.nu resolve-period
 use nextcloud.nu upload-device-work
 
 const script_dir = path self .
@@ -146,6 +147,8 @@ def main [
     --fetch                      # Run `git fetch --all` in each repository first.
     --no-upload                  # Keep the report local instead of uploading it.
     --date: string               # Collect commits for this day instead of today (YYYY-MM-DD).
+    --from: string
+    --to: string
 ] {
     if (which git-standup | is-empty) {
         error make { msg: "git-standup is not installed; run the dotfiles dependency setup first" }
@@ -155,18 +158,11 @@ def main [
         error make { msg: $"Scan root does not exist: ($root)" }
     }
 
-    let day = if ($date | is-empty) {
-        date now | format date "%Y-%m-%d"
-    } else {
-        if not ($date =~ '^\d{4}-\d{2}-\d{2}$') {
-            error make { msg: $"Invalid --date: ($date). Expected format YYYY-MM-DD." }
-        }
-        $date
-    }
-    let start = $"($day) 00:00:00"
-    let end = ($day | into datetime) + 1day | format date "%Y-%m-%d 00:00:00"
+    let period = resolve-period $date $from $to
+    let start = $"($period.start_date) 00:00:00"
+    let end = $period.end_exclusive | format date "%Y-%m-%d 00:00:00"
     let machine = machine-name
-    let remote_name = $"($day)-($machine)-work.md"
+    let remote_name = $"($period.slug)-($machine)-work.md"
     let output_file = $output | default ($script_dir | path join generated $remote_name)
 
     mut args = [
@@ -202,7 +198,7 @@ def main [
     let activity_text = format-activity $activity
 
     let document = [
-        $"# Git activity for ($day)"
+        $"# Git activity for ($period.display)"
         ""
         $"- Scan root: `($root | path expand)`"
         $"- Search depth: ($depth)"

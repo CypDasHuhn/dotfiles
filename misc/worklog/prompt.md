@@ -15,8 +15,11 @@ worked time. Sometimes keeping the bigger picture of how likely it is that
 something took so long, and something took so long, is more important then
 referencing the exact time something was committed.
 
+For a multi-day period, group entries by date so each work entry clearly shows
+which date it belongs to.
+
 ```md
-# Work for [YYYY-MM-DD]
+# Work for [YYYY-MM-DD or YYYY-MM-DD to YYYY-MM-DD]
 
 ## [hh:mm] to [hh:mm] - [Project Worked on]
 

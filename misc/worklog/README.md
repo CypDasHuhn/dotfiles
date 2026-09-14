@@ -1,6 +1,6 @@
-# Daily Git worklog
+# Git worklog
 
-This workflow uses [git-standup](https://github.com/nilbuild/git-standup) for recursive repository discovery and same-day commit collection. Each device uploads its report to the authenticated user's `device-work` directory on `https://nextcloud.i2solutions.de`. The summarizer downloads all reports for the current date and sends them with a separate prompt to Codex.
+This workflow uses [git-standup](https://github.com/nilbuild/git-standup) for recursive repository discovery and date-range commit collection. Each device uploads its report to the authenticated user's `device-work` directory on `https://nextcloud.i2solutions.de`. The summarizer downloads reports within the requested period and sends them with a separate prompt to Codex.
 
 Nextcloud credentials come from the Nushell environment:
 
@@ -23,12 +23,18 @@ Collect today's commits beneath the home directory and upload them:
 nu misc/worklog/collect.nu
 ```
 
-The machine name is read from `.machine.local.lua`. The uploaded filename is `YYYY-MM-DD-machine-name-work.md`; collecting again on the same device and date replaces that device's previous report.
+The machine name is read from `.machine.local.lua`. A single-day upload uses `YYYY-MM-DD-machine-name-work.md`, while a range upload uses `YYYY-MM-DD-to-YYYY-MM-DD-machine-name-work.md`. Collecting again on the same device and period replaces that device's previous report.
 
 After all devices have uploaded, generate one combined summary:
 
 ```sh
 nu misc/worklog/summarize.nu
+```
+
+To summarize an inclusive range:
+
+```sh
+nu misc/worklog/summarize.nu --from 2026-08-17 --to 2026-08-21
 ```
 
 After regenerating the shell profile, the same scripts are available directly in Nushell:
@@ -40,7 +46,7 @@ worklog cleanup --dry-run
 worklog cleanup
 ```
 
-Local outputs are written beneath `misc/worklog/generated/`. During summarization, every current-date device report is merged into `commits.md`; this is the exact activity snapshot supplied to Codex. The final response is written to `summary.md`. The repository's existing `generated/` ignore rule keeps them out of Git.
+Local outputs are written beneath `misc/worklog/generated/`. During summarization, every device report within the requested period is merged into a date-labeled `commits-*.md`; this is the exact activity snapshot supplied to Codex. The final response is written to a matching date-labeled `summary-*.md`. The repository's existing `generated/` ignore rule keeps them out of Git.
 
 Useful collector options:
 
@@ -59,11 +65,13 @@ nu misc/worklog/collect.nu --no-upload
 
 # Collect a specific day's commits instead of today's
 nu misc/worklog/collect.nu --date 2026-08-20
+
+nu misc/worklog/collect.nu --from 2026-08-17 --to 2026-08-21
 ```
 
-`summarize.nu` accepts the same `--date YYYY-MM-DD` option to merge and summarize reports uploaded for that date instead of today.
+`summarize.nu` accepts `--date YYYY-MM-DD` or an inclusive `--from YYYY-MM-DD --to YYYY-MM-DD` range. The default local files include the selected date or range in their names.
 
-Manually remove every non-today file from the personal `device-work` directory:
+Manually remove every worklog that does not include today from the personal `device-work` directory:
 
 ```sh
 nu misc/worklog/cleanup.nu --dry-run
