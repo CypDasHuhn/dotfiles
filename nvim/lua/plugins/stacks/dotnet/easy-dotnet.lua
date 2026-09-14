@@ -117,28 +117,5 @@ return {
       wrap_msbuild()
     end
 
-    local csharp_codelens = require 'config.platform.dotnet.codelens'
-    local function attach_codelens(client, bufnr)
-      if client.name == 'easy_dotnet' then
-        csharp_codelens.on_attach(client, bufnr)
-      end
-    end
-
-    vim.api.nvim_create_autocmd('LspAttach', {
-      group = vim.api.nvim_create_augroup('easy-dotnet-codelens', { clear = true }),
-      callback = function(args)
-        local client_id = args.data and args.data.client_id
-        local client = client_id and vim.lsp.get_client_by_id(client_id)
-        if client then
-          attach_codelens(client, args.buf)
-        end
-      end,
-    })
-
-    for _, client in ipairs(vim.lsp.get_clients { name = 'easy_dotnet' }) do
-      for _, bufnr in ipairs(vim.lsp.get_buffers_by_client_id(client.id)) do
-        attach_codelens(client, bufnr)
-      end
-    end
   end,
 }

@@ -3,6 +3,8 @@ return {
   event = 'LspAttach',
   opts = function()
     local providers = require 'lensline.providers'
+    require('lib.lensline-typescript-symbols').install()
+    providers.available_providers.usages = require 'lib.lensline-csharp'
     providers.available_providers.detekt = require 'lib.lensline-kotlin'
 
     return {
