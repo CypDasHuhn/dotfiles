@@ -37,6 +37,58 @@ local function patch_lsp_signature(plugin)
     "if type(nextParameter.documentation) == 'string' and #nextParameter.documentation > 0 then",
     'null-documentation'
   )
+  patch_source(
+    plugin.dir .. '/lua/lsp_signature/helper.lua',
+    'helper%.remove_doc = function%(result%)\n'
+      .. '  for i = 1, #result%.signatures do\n'
+      .. '    log%(result%.signatures%[i%]%)\n'
+      .. '    if result%.signatures%[i%] and result%.signatures%[i%]%.documentation then\n'
+      .. '      if result%.signatures%[i%]%.documentation%.value then\n'
+      .. '        result%.signatures%[i%]%.documentation%.value = nil\n'
+      .. '      else\n'
+      .. '        result%.signatures%[i%]%.documentation = nil\n'
+      .. '      end\n'
+      .. '    end\n'
+      .. '  end\n'
+      .. 'end',
+    "helper.remove_doc = function(result)\n"
+      .. '  for i = 1, #result.signatures do\n'
+      .. '    log(result.signatures[i])\n'
+      .. '    local documentation = result.signatures[i] and result.signatures[i].documentation\n'
+      .. "    if type(documentation) == 'table' and documentation.value then\n"
+      .. '      documentation.value = nil\n'
+      .. '    elseif result.signatures[i] then\n'
+      .. '      result.signatures[i].documentation = nil\n'
+      .. '    end\n'
+      .. '  end\n'
+      .. 'end',
+    'signature-null-documentation'
+  )
+  patch_source(
+    plugin.dir .. '/lua/lsp_signature/helper.lua',
+    'helper%.get_doc = function%(result%)\n'
+      .. '  for i = 1, #result%.signatures do\n'
+      .. '    if result%.signatures%[i%] and result%.signatures%[i%]%.documentation then\n'
+      .. '      if result%.signatures%[i%]%.documentation%.value then\n'
+      .. '        return result%.signatures%[i%]%.documentation%.value\n'
+      .. '      else\n'
+      .. '        return result%.signatures%[i%]%.documentation\n'
+      .. '      end\n'
+      .. '    end\n'
+      .. '  end\n'
+      .. 'end',
+    "helper.get_doc = function(result)\n"
+      .. '  for i = 1, #result.signatures do\n'
+      .. '    local documentation = result.signatures[i] and result.signatures[i].documentation\n'
+      .. "    if type(documentation) == 'table' then\n"
+      .. '      return documentation.value\n'
+      .. "    elseif type(documentation) == 'string' then\n"
+      .. '      return documentation\n'
+      .. '    end\n'
+      .. '  end\n'
+      .. 'end',
+    'signature-null-documentation'
+  )
 end
 
 return {
