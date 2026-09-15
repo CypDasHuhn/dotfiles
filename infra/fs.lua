@@ -14,7 +14,8 @@ local function new(os_type)
 		end
 
 		if os_type == "windows" then
-			local handle = io.popen("cmd /c if exist " .. quote_cmd_arg(path:gsub("/", "\\")) .. " (echo yes) else (echo no)")
+			local handle =
+				io.popen("cmd /c if exist " .. quote_cmd_arg(path:gsub("/", "\\")) .. " (echo yes) else (echo no)")
 			if handle then
 				local result = handle:read("*l")
 				handle:close()
@@ -42,12 +43,11 @@ local function new(os_type)
 			end
 		else
 			local win_path = path:gsub("/", "\\")
+			local ps_path = win_path:gsub("'", "''")
 			local handle = io.popen(
-				"cmd /c if exist "
-					.. quote_cmd_arg(win_path)
-					.. " (fsutil reparsepoint query "
-					.. quote_cmd_arg(win_path)
-					.. " >nul 2>&1 && echo yes || echo no) else echo no"
+				"powershell -NoProfile -Command \"$item = Get-Item -Force -LiteralPath '"
+					.. ps_path
+					.. "' -ErrorAction SilentlyContinue; if ($item -and ($item.Attributes -band [IO.FileAttributes]::ReparsePoint)) { 'yes' } else { 'no' }\""
 			)
 			if handle then
 				local result = handle:read("*l")
@@ -69,8 +69,9 @@ local function new(os_type)
 		else
 			local win_path = path:gsub("/", "\\")
 			local ps_path = win_path:gsub("'", "''")
-			local cmd = 'powershell -NoProfile -Command "$item = Get-Item -LiteralPath \'' .. ps_path
-				.. '\'; if ($item -and $item.Target) { @($item.Target)[0] }"'
+			local cmd = "powershell -NoProfile -Command \"$item = Get-Item -LiteralPath '"
+				.. ps_path
+				.. "'; if ($item -and $item.Target) { @($item.Target)[0] }\""
 			local handle = io.popen(cmd)
 			if handle then
 				local target = handle:read("*l")
