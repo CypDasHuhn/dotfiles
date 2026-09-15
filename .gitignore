@@ -17,6 +17,6 @@ __pycache__/
 terminal/multiplexer/tmux/plugins/
 
 # mitmproxy runtime state and locally generated CA material
-unix/mitmproxy/mitmproxy-*
+misc/mitmproxy/mitmproxy-*
 /nvim/mssql/projects.json
 /terminal/multiplexer/tmux.lock

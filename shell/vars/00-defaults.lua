@@ -60,4 +60,7 @@ return {
 		"${dotfiles}/terminal/multiplexer/tmux",
 	},
 	systemTmux = { "${me}/.config/tmux" },
+
+	mitmproxyDotfiles = { "${dotfiles}/misc/mitmproxy" },
+	systemMitmproxy = { "${me}/.config/mitmproxy" },
 }
