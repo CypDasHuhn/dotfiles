@@ -36,3 +36,17 @@ def git-restore [...files: string] {
     let default_ref = (git symbolic-ref refs/remotes/origin/HEAD | str trim)
     git restore --source $default_ref -- ...$files
 }
+
+def git-rebase-default [] {
+    git fetch origin
+
+    let default_branch = (
+        git symbolic-ref refs/remotes/origin/HEAD
+        | str trim
+        | str replace "refs/remotes/origin/" ""
+    )
+    let target = $"refs/remotes/origin/($default_branch)"
+
+    git rebase --autostash $target
+}
+alias gpr = git-rebase-default
