@@ -13,6 +13,9 @@ return {
   config = function()
     require('kulala').setup {
       global_keymaps = true,
+      treesitter = {
+        enable = true,
+      },
     }
   end,
 }
