@@ -163,6 +163,17 @@ return {
   },
   opts = {
     nesting_rules = require 'config.neo-tree-nesting',
+    default_component_configs = {
+      file_size = {
+        enabled = false,
+      },
+      type = {
+        enabled = false,
+      },
+      last_modified = {
+        enabled = false,
+      },
+    },
     filesystem = {
       commands = {
         -- Open that recursively descends through directories whose only child is

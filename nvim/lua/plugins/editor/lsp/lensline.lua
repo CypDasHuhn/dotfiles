@@ -1,6 +1,7 @@
 return {
   'oribarilan/lensline.nvim',
   event = 'LspAttach',
+  enabled = false,
   opts = function()
     local providers = require 'lensline.providers'
     require('lib.lensline-typescript-symbols').install()
@@ -13,8 +14,8 @@ return {
         {
           name = 'default',
           providers = {
-            { name = 'usages', enabled = true },
-            { name = 'detekt', enabled = true, event = { 'BufWritePost' } },
+            { name = 'usages',      enabled = true },
+            { name = 'detekt',      enabled = true, event = { 'BufWritePost' } },
             { name = 'last_author', enabled = true },
           },
         },

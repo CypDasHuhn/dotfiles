@@ -42,11 +42,11 @@ local function infer_type(node, source)
   if kind == 'multiplicative_expression' then return 'Int' end
 
   if
-    kind == 'comparison_expression'
-    or kind == 'equality_expression'
-    or kind == 'conjunction_expression'
-    or kind == 'disjunction_expression'
-    or kind == 'check_expression'
+      kind == 'comparison_expression'
+      or kind == 'equality_expression'
+      or kind == 'conjunction_expression'
+      or kind == 'disjunction_expression'
+      or kind == 'check_expression'
   then
     return 'Boolean'
   end
@@ -168,10 +168,10 @@ end, { force = true, all = true })
 -- region Kotlin code generation
 local function kotlin_arg_list(args)
   return iter(args)
-    :map(function(v)
-      return ('%s: %s'):format(v.identifier, v.type or 'Any')
-    end)
-    :join ', '
+      :map(function(v)
+        return ('%s: %s'):format(v.identifier, v.type or 'Any')
+      end)
+      :join ', '
 end
 
 local kotlin_code_generation = {
@@ -188,10 +188,10 @@ local kotlin_code_generation = {
   function_call = {
     kotlin = function(opts)
       local args = iter(opts.args)
-        :map(function(v)
-          return v.identifier
-        end)
-        :join ', '
+          :map(function(v)
+            return v.identifier
+          end)
+          :join ', '
       if #opts.return_values == 0 then return ('%s(%s)'):format(opts.name, args) end
       if #opts.return_values == 1 then
         return ('val %s = %s(%s)'):format(opts.return_values[1].identifier, opts.name, args)
