@@ -6,7 +6,6 @@ return {
     ---@type render.md.UserConfig
     opts = {
         render_modes = true,
-        pipe_table = { enabled = false },
         latex = {
             enabled = true,
             converter = { 'latex2text', 'utftex' },
