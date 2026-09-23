@@ -1,4 +1,6 @@
 $env.EDITOR = "nvim"
+$env.LANG = "en_US.UTF-8"
+$env.LC_CTYPE = "en_US.UTF-8"
 
 # Local environment secrets. The ignored file should contain a NUON record,
 # for example: { GITHUB_TOKEN: "...", API_KEY: "..." }
