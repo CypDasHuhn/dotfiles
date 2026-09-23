@@ -137,6 +137,7 @@ function M.chocolate(aur_name, winget_name, binary)
 end
 
 -- Tool helpers (condition = tool must exist, once = skip if already installed)
+-- TODO: Needs to invoke permissions
 function M.npm_pkg(name, binary)
 	return M.dep({
 		command = "npm install -g " .. name,
