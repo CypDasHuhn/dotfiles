@@ -124,8 +124,11 @@ local function unix_attach()
 			return
 		end
 		c.tag("seafile", "attaching library -> " .. target)
+		-- `sync` maps the folder itself as the library root; `download` would
+		-- nest it under <dir>/<library-name>. The folder must already exist.
+		os.execute('mkdir -p "' .. target .. '"')
 		os.execute(string.format(
-			"seaf-cli download -l %q -s %q -d %q -u %q -p %q",
+			"seaf-cli sync -l %q -s %q -d %q -u %q -p %q",
 			LIBRARY,
 			SERVER,
 			target,

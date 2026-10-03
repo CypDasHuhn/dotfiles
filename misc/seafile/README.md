@@ -30,7 +30,8 @@ Drives the headless `seaf-cli` (from the `seafile` AUR package):
 
 1. `seaf-cli init` if the client data dir is missing.
 2. Start `seaf-daemon` if it is not running.
-3. Download the library to the resolved `vault` path if not already attached.
+3. Sync the library into the resolved `vault` path if not already attached. The
+   folder itself is the library root (`seaf-cli sync`), not `<folder>/<name>`.
 4. Enable `seaf-cli@$USER.service` so syncing resumes on boot. It is a **system**
    unit, so no `loginctl enable-linger` is needed.
 
