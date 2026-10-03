@@ -47,6 +47,21 @@ local function process_running(name)
 	return ok(os.execute("pgrep -x " .. name .. " >/dev/null 2>&1"))
 end
 
+local function systemd_available()
+	if os_type == "windows" then
+		return false
+	end
+	return file_exists("/run/systemd/system") and command_exists("systemctl")
+end
+
+local function unit_name()
+	local user = os.getenv("USER")
+	if user and user ~= "" then
+		return "seaf-cli@" .. user .. ".service"
+	end
+	return nil
+end
+
 local function command_output(cmd)
 	local handle = io.popen(cmd)
 	if not handle then
@@ -96,7 +111,18 @@ local function unix_attach()
 		os.execute('seaf-cli init -d "' .. data_parent .. '"')
 	end
 
-	if not process_running("seaf-daemon") then
+	local unit = unit_name()
+	local systemd = unit and systemd_available()
+
+	if systemd then
+		if not ok(os.execute("systemctl is-active --quiet " .. unit)) then
+			if process_running("seaf-daemon") then
+				os.execute("seaf-cli stop")
+			end
+			c.tag("seafile", "enabling and starting " .. unit)
+			os.execute("sudo systemctl enable --now " .. unit)
+		end
+	elseif not process_running("seaf-daemon") then
 		c.tag("seafile", "starting seaf-daemon")
 		os.execute("seaf-cli start")
 	end
@@ -135,15 +161,6 @@ local function unix_attach()
 			ACCOUNT,
 			password
 		))
-	end
-
-	local user = os.getenv("USER")
-	if user and user ~= "" then
-		local unit = "seaf-cli@" .. user .. ".service"
-		if not ok(os.execute("systemctl is-enabled " .. unit .. " >/dev/null 2>&1")) then
-			c.tag("seafile", "enabling " .. unit)
-			os.execute("sudo systemctl enable --now " .. unit)
-		end
 	end
 end
 

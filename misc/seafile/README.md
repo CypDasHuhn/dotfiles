@@ -29,11 +29,15 @@ its own token.
 Drives the headless `seaf-cli` (from the `seafile` AUR package):
 
 1. `seaf-cli init` if the client data dir is missing.
-2. Start `seaf-daemon` if it is not running.
+2. Ensure `seaf-daemon` is running. When systemd is available the
+   `seaf-cli@$USER.service` **system** unit owns the daemon: any manually started
+   daemon is stopped first, then the unit is enabled and started. Only on
+   non-systemd systems is `seaf-cli start` invoked directly.
 3. Sync the library into the resolved `vault` path if not already attached. The
    folder itself is the library root (`seaf-cli sync`), not `<folder>/<name>`.
-4. Enable `seaf-cli@$USER.service` so syncing resumes on boot. It is a **system**
-   unit, so no `loginctl enable-linger` is needed.
+
+The unit is a system unit, so no `loginctl enable-linger` is needed, and syncing
+resumes on boot.
 
 ## Windows branch
 
