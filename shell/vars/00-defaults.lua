@@ -33,7 +33,11 @@ return {
 		path = "${me}/.wezterm.lua",
 	},
 	vault = {
-		path = "${me}/Documents/cyps-vault",
+		path = "${me}/vault",
+		dir_function = true,
+	},
+	vaultLegacy = {
+		"${me}/Documents/cyps-vault",
 		dir_function = true,
 	},
 	vaultOld = {

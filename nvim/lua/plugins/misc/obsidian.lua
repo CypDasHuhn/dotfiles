@@ -24,7 +24,7 @@ return {
     workspaces = {
       {
         name = 'personal',
-        path = '~/Documents/cyps-vault/',
+        path = '~/vault/',
       },
     },
 
