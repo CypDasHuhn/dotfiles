@@ -1,6 +1,6 @@
 # zsh plugins
 # Only runs in zsh
-# Dependencies defined in dependencies.lua
+# Not provisioned by dependencies.lua — install manually if you use zsh.
 
 [[ -z "$ZSH_VERSION" ]] && return
 
