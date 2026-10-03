@@ -55,7 +55,13 @@ if should_run("link") then
 	print("")
 end
 
-if should_run("modules") or cli.is_module_filter(filter, filter) then
+if should_run("deps") then
+	c.section("Dependencies")
+	require("dependencies.init").run(script_dir)
+	print("")
+end
+
+if should_run("modules") or cli.has_module_filter(filter) then
 	c.section("Module Bootstraps")
 	for _, bootstrap_path in ipairs(bootstrapper.find(script_dir, linker.machine())) do
 		local mod = bootstrap_path:match("/([^/]+)/bootstrap%.lua$")
@@ -65,12 +71,6 @@ if should_run("modules") or cli.is_module_filter(filter, filter) then
 			dofile(bootstrap_path)
 		end
 	end
-	print("")
-end
-
-if should_run("deps") then
-	c.section("Dependencies")
-	require("dependencies.init").run(script_dir)
 	print("")
 end
 
