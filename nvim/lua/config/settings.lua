@@ -23,21 +23,21 @@ vim.opt.shortmess:append 'A'
 vim.schedule(function()
   if vim.env.SSH_CLIENT or vim.env.SSH_TTY then
     local osc52 = require('vim.ui.clipboard.osc52')
-
-    -- Copy via OSC 52 is async (nvim_ui_send) — instant.
-    -- Paste via OSC 52 blocks for 1s+ querying the terminal — unusable.
-    -- Return 0 so Neovim falls back to the local register (already synced by unnamedplus on yank).
-    vim.g.clipboard = {
-      name = 'OSC 52',
-      copy = {
-        ['+'] = osc52.copy('+'),
-        ['*'] = osc52.copy('*'),
-      },
-      paste = {
-        ['+'] = function() return 0 end,
-        ['*'] = function() return 0 end,
-      },
+    local copy = {
+      ['+'] = osc52.copy('+'),
+      ['*'] = osc52.copy('*'),
     }
+
+    vim.api.nvim_create_autocmd('TextYankPost', {
+      callback = function()
+        local event = vim.v.event
+        local reg = event.regname == '' and '+' or event.regname
+        if copy[reg] then
+          copy[reg](event.regcontents)
+        end
+      end,
+    })
+
     vim.o.clipboard = 'unnamedplus'
 
     -- Explicit cross-system paste (only when you need it — expects ~1s delay for OSC 52 query).
