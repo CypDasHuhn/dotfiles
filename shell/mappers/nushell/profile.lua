@@ -286,21 +286,6 @@ function M.generate(vars, var_order, machine, modules_dir, output_dir, paths)
 
 	local platform_dir = abs_modules_dir .. "/nushell"
 
-	-- secrets.nu is gitignored and holds machine-local secrets as a NUON record.
-	-- Generate an empty placeholder if it's missing so nushell-config.nu can load it.
-	local secrets_path = platform_dir .. "/secrets.nu"
-	local secrets_f = io.open(secrets_path, "r")
-	if secrets_f then
-		secrets_f:close()
-	else
-		local ok_secrets, err_secrets = utils.write_file(secrets_path, "{ }\n")
-		if ok_secrets then
-			print("Created empty secrets file: " .. secrets_path)
-		else
-			print("Warning: could not create secrets file: " .. tostring(err_secrets))
-		end
-	end
-
 	local module_files = get_module_files(platform_dir, ".nu")
 	local included_modules = {}
 	local startup_modules = {}
@@ -309,33 +294,50 @@ function M.generate(vars, var_order, machine, modules_dir, output_dir, paths)
 	local startup_dir = platform_dir .. "/startup/"
 
 	for _, file in ipairs(module_files) do
-		-- secrets.nu is loaded conditionally by nushell-config.nu and may not exist.
-		if file ~= platform_dir .. "/secrets.nu" then
-			local basename = get_basename(file)
-			local dir = get_dir(file)
+		local basename = get_basename(file)
+		local dir = get_dir(file)
 
-			-- Load dir.lua once per directory
-			if dir_meta_cache[dir] == nil then
-				dir_meta_cache[dir] = utils.load_file(dir .. "/dir.lua") or false
+		-- Load dir.lua once per directory
+		if dir_meta_cache[dir] == nil then
+			dir_meta_cache[dir] = utils.load_file(dir .. "/dir.lua") or false
+		end
+
+		-- File-level sidecar takes precedence over dir.lua
+		local meta = utils.load_file(file .. ".lua") or dir_meta_cache[dir]
+
+		local include = true
+		if meta then
+			include = utils.should_include(meta, machine.name, shell_type, visual_type, machine_os_type)
+		end
+
+		if include then
+			local module = { file = file, name = basename }
+			if file == platform_dir .. "/nushell-config.nu" then
+				config_module = module
+			elseif file:sub(1, #startup_dir) == startup_dir then
+				table.insert(startup_modules, module)
+			else
+				table.insert(included_modules, module)
 			end
+		end
+	end
 
-			-- File-level sidecar takes precedence over dir.lua
-			local meta = utils.load_file(file .. ".lua") or dir_meta_cache[dir]
-
-			local include = true
-			if meta then
-				include = utils.should_include(meta, machine.name, shell_type, visual_type, machine_os_type)
+	-- Secrets from <dotfiles>/secrets.lua (gitignored) become environment variables.
+	local secrets = utils.load_file(abs_modules_dir .. "/../../secrets.lua")
+	if type(secrets) == "table" then
+		local secret_names = {}
+		for key, value in pairs(secrets) do
+			if type(key) == "string" and key:match("^[%w_]+$") and type(value) == "string" then
+				table.insert(secret_names, key)
 			end
-
-			if include then
-				local module = { file = file, name = basename }
-				if file == platform_dir .. "/nushell-config.nu" then
-					config_module = module
-				elseif file:sub(1, #startup_dir) == startup_dir then
-					table.insert(startup_modules, module)
-				else
-					table.insert(included_modules, module)
-				end
+		end
+		if #secret_names > 0 then
+			table.sort(secret_names)
+			table.insert(lines, "")
+			table.insert(lines, "# Secrets")
+			for _, key in ipairs(secret_names) do
+				local value = secrets[key]:gsub("\\", "\\\\"):gsub('"', '\\"'):gsub("\n", "\\n")
+				table.insert(lines, string.format('$env.%s = "%s"', key, value))
 			end
 		end
 	end

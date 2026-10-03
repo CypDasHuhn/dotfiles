@@ -15,6 +15,20 @@ package.path = script_dir .. "?.lua;" .. script_dir .. "mappers/?.lua;" .. packa
 
 local utils = require("utils")
 
+-- Ensure the gitignored secrets file exists so the mechanism is discoverable.
+local secrets_path = script_dir .. "../secrets.lua"
+local secrets_handle = io.open(secrets_path, "r")
+if secrets_handle then
+	secrets_handle:close()
+else
+	local ok_secrets, err_secrets = utils.write_file(secrets_path, "return {\n}\n")
+	if ok_secrets then
+		print("Created empty secrets file: " .. secrets_path)
+	else
+		print("Warning: could not create secrets file: " .. tostring(err_secrets))
+	end
+end
+
 -- Configuration
 local VARS_DIR = script_dir .. "vars"
 local MODULES_DIR = script_dir .. "modules"

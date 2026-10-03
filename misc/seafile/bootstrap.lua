@@ -6,8 +6,8 @@
 --              login wizard is skipped (library selection stays a GUI step).
 --
 -- The deployment details are fixed here; the only external value is the
--- account password, read from the gitignored nushell secrets file
--- (shell/modules/nushell/secrets.nu, key SEAFILE_PASSWORD).
+-- account password, read from the gitignored secrets.lua at the dotfiles root
+-- (key SEAFILE_PASSWORD).
 
 local c = require("colors")
 local platform = require("platform")
@@ -58,18 +58,22 @@ local function command_output(cmd)
 end
 
 local dir = script_dir()
-local secrets = dir .. "/../../shell/modules/nushell/secrets.nu"
+local secrets = dir .. "/../../secrets.lua"
 
 local function read_secret(key)
-	if not command_exists("nu") or not file_exists(secrets) then
+	local chunk = loadfile(secrets)
+	if not chunk then
 		return nil
 	end
-	local script = string.format("open --raw %q | from nuon | get %s", secrets, key)
-	local out = command_output("nu --no-config-file -c '" .. script .. "' 2>/dev/null")
-	if not out or out == "" then
+	local loaded, values = pcall(chunk)
+	if not loaded or type(values) ~= "table" then
 		return nil
 	end
-	return (out:gsub("%s+$", ""))
+	local value = values[key]
+	if type(value) == "string" and value ~= "" then
+		return value
+	end
+	return nil
 end
 
 local function resolve_target()
@@ -116,7 +120,7 @@ local function unix_attach()
 	else
 		local password = read_secret(SECRET_KEY)
 		if not password then
-			c.tag_err("seafile", "missing " .. SECRET_KEY .. " in secrets.nu; cannot attach")
+			c.tag_err("seafile", "missing " .. SECRET_KEY .. " in secrets.lua; cannot attach")
 			return
 		end
 		c.tag("seafile", "attaching library -> " .. target)
@@ -148,7 +152,7 @@ local function windows_attach()
 
 	local password = read_secret(SECRET_KEY)
 	if not password then
-		c.tag_err("seafile", "missing " .. SECRET_KEY .. " in secrets.nu; cannot preconfigure")
+		c.tag_err("seafile", "missing " .. SECRET_KEY .. " in secrets.lua; cannot preconfigure")
 		return
 	end
 

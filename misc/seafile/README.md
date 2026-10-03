@@ -8,18 +8,18 @@ targets one deployment. The only external value is the account password.
 
 ## Password
 
-Stored in the gitignored nushell secrets file, as key `SEAFILE_PASSWORD`:
+Stored in the gitignored `secrets.lua` at the dotfiles root:
 
 ```
-shell/modules/nushell/secrets.nu
-{
-    SEAFILE_PASSWORD: "..."
+secrets.lua
+return {
+    SEAFILE_PASSWORD = "...",
 }
 ```
 
-That is the same file the shell loads via `load-env`, so `$env.SEAFILE_PASSWORD`
-is available in nushell. `bootstrap.lua` reads it with
-`nu -c 'open --raw ... | from nuon | get SEAFILE_PASSWORD'` on both platforms.
+`bootstrap.lua` reads it directly with `loadfile` — no shell or nushell
+dependency. The nushell profile generator reads the same file and emits each key
+as `$env.<KEY>`, so `$env.SEAFILE_PASSWORD` is available in nushell too.
 
 The password is only needed for the initial attach; afterwards the client stores
 its own token.
@@ -48,6 +48,5 @@ selecting `cyps-vault` in the client after launch is a manual GUI step.
 
 ## Ordering
 
-The module bootstrap runs before dependency resolution, so on a fresh machine it
-skips with "not installed yet". Run `deps` (or the full bootstrap again) to
-install the client, then the module attaches.
+The root bootstrap resolves dependencies **before** module bootstraps, so a fresh
+machine installs the client and attaches in a single run.
