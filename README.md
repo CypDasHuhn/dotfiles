@@ -13,5 +13,5 @@ curl -fsSL https://raw.githubusercontent.com/CypDasHuhn/dotfiles/main/infra/bash
 Run install + essentials before bootstrap.lua:
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/CypDasHuhn/dotfiles/main/infra/bash/arch-bootstrap.sh | bash -s -- --no-root-login
+curl -fsSL https://raw.githubusercontent.com/CypDasHuhn/dotfiles/main/infra/bash/arch-bootstrap.sh | bash
 ```

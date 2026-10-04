@@ -20,10 +20,22 @@ fail() {
 command -v pacman >/dev/null 2>&1 || fail 'pacman is required; this script currently supports Arch Linux only'
 command -v sudo >/dev/null 2>&1 || fail 'sudo is required to install Arch packages'
 
+[[ -r /dev/tty && -w /dev/tty ]] || fail 'an interactive terminal is required; do not run this over a non-interactive session'
+
 mkdir -p "$SSH_DIR"
 chmod 700 "$SSH_DIR"
 
-sudo pacman -S --needed openssh nushell lua git
+if grep -qE '^\[community\]' /etc/pacman.conf; then
+	printf 'Disabling obsolete [community] repository in /etc/pacman.conf.\n'
+	sudo sed -i 's/^\[community\]/#[community]/' /etc/pacman.conf
+fi
+
+if [[ ! -f /etc/pacman.d/gnupg/trustdb.gpg ]]; then
+	sudo pacman-key --init
+fi
+sudo pacman-key --populate archlinux
+
+sudo pacman -Syu --needed --noconfirm openssh nushell lua git
 
 if [[ -e "$SSH_PRIVATE_KEY" && ! -f "$SSH_PRIVATE_KEY" ]]; then
 	fail "$SSH_PRIVATE_KEY exists but is not a regular file"
@@ -38,7 +50,7 @@ if [[ -f "$SSH_PUBLIC_KEY" && ! -f "$SSH_PRIVATE_KEY" ]]; then
 fi
 
 if [[ ! -f "$SSH_PRIVATE_KEY" ]]; then
-	ssh-keygen -t ed25519 -C "$SSH_KEY_COMMENT" -f "$SSH_PRIVATE_KEY"
+	ssh-keygen -t ed25519 -C "$SSH_KEY_COMMENT" -f "$SSH_PRIVATE_KEY" -N ''
 fi
 
 if [[ ! -f "$SSH_PUBLIC_KEY" ]]; then
@@ -56,7 +68,8 @@ if ! ssh-keygen -F github.com -f "$SSH_KNOWN_HOSTS" >/dev/null 2>&1; then
 fi
 
 if [[ "$(getent passwd "$(id -u)" | cut -d: -f7)" != "/usr/bin/nu" ]]; then
-	chsh -s /usr/bin/nu
+	grep -qxF /usr/bin/nu /etc/shells || printf '/usr/bin/nu\n' | sudo tee -a /etc/shells >/dev/null
+	sudo chsh -s /usr/bin/nu "$(id -un)"
 fi
 
 if [[ -d "$DOTFILES_DIR" ]]; then
@@ -71,7 +84,7 @@ fi
 (
 	cd "$DOTFILES_DIR"
 	lua bootstrap.lua
-)
+) < /dev/tty
 
 printf '\nAdd this SSH public key to GitHub:\n\n'
 cat "$SSH_PUBLIC_KEY"
