@@ -62,6 +62,8 @@ end
 function M.setup(opts)
   opts = opts or {}
 
+  vim.lsp.config('*', { flags = { debounce_text_changes = 500 } })
+
   require('mason').setup {
     registries = opts.mason_registries or {
       'github:mason-org/mason-registry',

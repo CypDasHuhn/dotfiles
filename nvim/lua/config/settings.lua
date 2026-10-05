@@ -102,6 +102,7 @@ vim.api.nvim_create_autocmd('BufWritePre', {
 vim.o.inccommand = 'split'
 
 vim.o.cursorline = true
+vim.o.cursorlineopt = 'number'
 
 vim.o.scrolloff = 10
 
