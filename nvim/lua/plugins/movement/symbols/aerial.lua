@@ -1,5 +1,6 @@
 return {
   'stevearc/aerial.nvim',
+  enabled = false,
   event = 'VeryLazy',
   dependencies = { 'nvim-treesitter/nvim-treesitter' },
   config = function(_, opts)

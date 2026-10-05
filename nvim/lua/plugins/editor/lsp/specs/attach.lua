@@ -32,7 +32,10 @@ return {
 
       map('grt', require('telescope.builtin').lsp_type_definitions, '[G]oto [T]ype Definition')
 
-      if client_supports(vim.lsp.protocol.Methods.textDocument_documentHighlight) then
+      if (vim.env.NVIM_PROFILE or 'high') == 'high'
+        and vim.env.NVIM_MINIMAL ~= '1'
+        and client_supports(vim.lsp.protocol.Methods.textDocument_documentHighlight)
+      then
         local highlight_augroup = vim.api.nvim_create_augroup('lsp-highlight', { clear = false })
         vim.api.nvim_create_autocmd({ 'CursorHold', 'CursorHoldI' }, {
           buffer = event.buf,

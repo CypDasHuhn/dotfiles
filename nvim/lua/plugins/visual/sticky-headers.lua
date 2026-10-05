@@ -9,7 +9,7 @@ return {
       line_numbers = true, -- Show line numbers in context
       multiline_threshold = 1,
       trim_scope = 'outer',
-      mode = 'cursor', -- or 'topline'
+      mode = 'topline',
     }
   end,
 }

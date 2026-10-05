@@ -3,6 +3,10 @@ vim.g.maplocalleader = ' '
 
 vim.g.have_nerd_font = true
 
+if (vim.env.NVIM_PROFILE or 'high') ~= 'high' or vim.env.NVIM_MINIMAL == '1' then
+  vim.g.loaded_matchparen = 1
+end
+
 local path_sep = vim.fn.has 'win32' == 1 and ';' or ':'
 local mason_bin = vim.fn.stdpath 'data' .. '/mason/bin'
 if vim.uv.fs_stat(mason_bin) and not string.find(vim.env.PATH or '', mason_bin, 1, true) then
