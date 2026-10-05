@@ -2,7 +2,7 @@ import re
 from mitmproxy import http
 
 REDDIT_HOSTS = {"www.reddit.com", "old.reddit.com", "reddit.com", "sh.reddit.com"}
-ALLOW_PATTERN = re.compile(r"^(/r/[^/]+/comments/[^/]+|/svc/)")
+ALLOW_PATTERN = re.compile(r"^(/r/[^/]+/(comments|s)/[^/]+|/svc/)")
 
 def request(flow: http.HTTPFlow):
     host = flow.request.pretty_host

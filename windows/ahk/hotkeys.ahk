@@ -1,32 +1,48 @@
 HotkeyFile := A_ScriptDir "\hotkeys.ini"
 
-ActivateWindow(exe, id) {
-    ; try to activate window with specific id
-    for window in WinGetList("ahk_exe " exe) {
-        if window == id {
-            WinActivate("ahk_id " window)
+ActivateWindow(title, id) {
+    if id && WinExist("ahk_id " id) {
+        if title = "" || InStr(WinGetTitle(id), title) {
+            FocusWindow(id)
             return
         }
     }
 
-    ; fallback: activate first window if any
-    for window in WinGetList("ahk_exe " exe) {
-        WinActivate("ahk_id " window)
-        FocusWSLg(window)
-        return
-    }
-
-    if exe != "" {
-        Run(exe)
+    if title != "" {
+        for hwnd in WinGetList() {
+            if InStr(WinGetTitle(hwnd), title) {
+                FocusWindow(hwnd)
+                return
+            }
+        }
     }
 }
 
-FocusWSLg(hwnd) {
-    Sleep(50)  ; let WinActivate settle
-    WinGetPos(&x, &y, &w, &h, "ahk_id " hwnd)
-    Click(x + w // 2, y + h // 2)
+FocusWindow(hwnd) {
+    if WinGetClass(hwnd) = "RAIL_WINDOW"
+        ForceFocusRail(hwnd)
+    else
+        WinActivate(hwnd)
 }
 
+ForceFocusRail(hwnd) {
+    if DllCall("IsIconic", "Ptr", hwnd)
+        DllCall("ShowWindow", "Ptr", hwnd, "Int", 9)
+
+    cur := DllCall("GetCurrentThreadId", "UInt")
+    fg := DllCall("GetForegroundWindow", "Ptr")
+    fgThread := DllCall("GetWindowThreadProcessId", "Ptr", fg, "Ptr", 0)
+    targetThread := DllCall("GetWindowThreadProcessId", "Ptr", hwnd, "Ptr", 0)
+
+    DllCall("AllowSetForegroundWindow", "UInt", 0xFFFFFFFF)
+    DllCall("AttachThreadInput", "UInt", fgThread, "UInt", cur, "Int", 1)
+    DllCall("AttachThreadInput", "UInt", targetThread, "UInt", cur, "Int", 1)
+    DllCall("SetForegroundWindow", "Ptr", hwnd)
+    DllCall("BringWindowToTop", "Ptr", hwnd)
+    DllCall("SetFocus", "Ptr", hwnd)
+    DllCall("AttachThreadInput", "UInt", targetThread, "UInt", cur, "Int", 0)
+    DllCall("AttachThreadInput", "UInt", fgThread, "UInt", cur, "Int", 0)
+}
 
 if FileExist(HotkeyFile) {
     lines := []
@@ -35,51 +51,39 @@ if FileExist(HotkeyFile) {
 
     latest := Map()
     for line in lines {
-        exe := Trim(line[2])
-        latest[exe] := line ; keep only last occurrence
+        if line.Length < 3
+            continue
+        latest[Trim(line[2])] := line
     }
 
-    ; overwrite file with filtered lines
     FileDelete(HotkeyFile)
-    for exe, line in latest {
-        FileAppend(Trim(line[1]) "|" Trim(line[2]) "|" Trim(line[3]) "`n", HotkeyFile)
-        CreateHotkey(Trim(line[1]), Trim(line[2]), Trim(line[3]))
+    for title, line in latest {
+        kb := Trim(line[1])
+        id := Trim(line[3]) != "" ? Integer(Trim(line[3])) : 0
+        FileAppend(kb "|" title "|" id "`n", HotkeyFile)
+        CreateHotkey(kb, title, id)
     }
 }
 
-CreateHotkey(kb, exe, id) {
-    Hotkey kb, (*) => ActivateWindow(exe, id)
+CreateHotkey(kb, title, id) {
+    Hotkey kb, (*) => ActivateWindow(title, id)
 }
 
+>+!r:: RegisterWindowHotkey(">+!", "Add key, pre-added with Right Shift + Alt")
 
-
->+!r:: {
-    RegisterWindowHotkey(">+!", "Add key, pre-added with Right Shift + Alt")
-}
-
-^>+!r:: {
-    RegisterWindowHotkey("", "Use AHK format like ^!E")
-}
+^>+!r:: RegisterWindowHotkey("", "Use AHK format like ^!E")
 
 RegisterWindowHotkey(prefix, prompt) {
     win := WinActive("A")
-    id := "ahk_id " win
-    exe := WinGetProcessName(win) ; just the exe name
+    if !win
+        return
 
-    ; get full path of running process
-    procPath := ""
-    for p in ComObjGet("winmgmts:").ExecQuery("Select ExecutablePath from Win32_Process where Name='" exe "'") {
-        procPath := p.ExecutablePath
-        break
-    }
-    if !procPath
-        procPath := exe  ; fallback if WMI fails
-
-    title := WinGetTitle(id)
+    title := WinGetTitle(win)
     kb := prefix . InputBox(prompt).Value
-    if kb {
-        MsgBox("Hotkey for '" title "' (" procPath ") is " kb)
-        Hotkey kb, (*) => ActivateWindow(procPath, win)
-        FileAppend(kb "|" procPath "|" win "`n", HotkeyFile)
-    }
+    if !kb
+        return
+
+    MsgBox("Hotkey for '" title "' is " kb)
+    Hotkey kb, (*) => ActivateWindow(title, win)
+    FileAppend(kb "|" title "|" win "`n", HotkeyFile)
 }

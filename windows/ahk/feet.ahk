@@ -1,26 +1,24 @@
 #Requires AutoHotkey v2.0
-#WinActivateForce
 
-#!t:: {
-    Run('wsl.exe --exec setsid feet',, 'Hide')
-}
+#!t:: Run('wsl.exe --exec setsid feet',, 'Hide')
 
-F4::{
+F4:: {
     hwnd := FindWslgWindow()
     if !hwnd
         return
-    WinActivate(hwnd)
-    WinWaitActive(hwnd,, 1)
-    Sleep 5
-    CoordMode("Mouse", "Client")
-    WinGetClientPos(&wx, &wy, &ww, &wh, hwnd)
-    MouseClick("Left", ww // 2, wh // 2, 1, 0)
+    ForceFocusRail(hwnd)
 }
 
 FindWslgWindow() {
-    for hwnd in WinGetList("ahk_class RAIL_WINDOW ahk_exe msrdc.exe") {
-        if WinGetMinMax(hwnd) != -1
+    fallback := 0
+    for hwnd in WinGetList("ahk_class RAIL_WINDOW") {
+        if WinGetMinMax(hwnd) = -1
+            continue
+        if !fallback
+            fallback := hwnd
+        title := WinGetTitle(hwnd)
+        if InStr(title, "feet") || InStr(title, "foot")
             return hwnd
     }
-    return 0
+    return fallback
 }

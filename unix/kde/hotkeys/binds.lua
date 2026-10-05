@@ -2,14 +2,15 @@ local layer = { key = "rightshift", name = "mymod" }
 
 local apps = {
 	a = "zen",
-	t = "kitty",
+	t = "foot",
 	d = "discord",
 	f = "dolphin",
 	o = "obsidian",
+	m = "minecraft"
 }
 
 local combos = {
-	{ hold = "alt", action = "focus" },
+	{ hold = "alt",      action = "focus" },
 	{ hold = "alt+ctrl", action = "open" },
 }
 
