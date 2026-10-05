@@ -2,8 +2,6 @@ local M = {}
 
 local folded = {}
 
--- Returns true when done (either folded or nothing to fold), false when ufo
--- hasn't computed fold levels yet and the caller should retry.
 local function try_close_ts_nodes(bufnr, node_types)
   local ft = vim.bo[bufnr].filetype
   local lang = vim.treesitter.language.get_lang(ft) or ft
@@ -55,18 +53,10 @@ local function try_close_ts_nodes(bufnr, node_types)
   end
   close_run()
 
-  if #rows == 0 then return true end
+  if #rows == 0 then return end
 
   local wins = vim.fn.win_findbuf(bufnr)
-  if #wins == 0 then return true end
-
-  -- foldlevel returns 0 for every line until ufo finishes its async
-  -- computation. Check one target row: if still 0, signal retry.
-  local ready = false
-  vim.api.nvim_win_call(wins[1], function()
-    ready = vim.fn.foldlevel(rows[1]) > 0
-  end)
-  if not ready then return false end
+  if #wins == 0 then return end
 
   for _, win in ipairs(wins) do
     vim.api.nvim_win_call(win, function()
@@ -78,17 +68,11 @@ local function try_close_ts_nodes(bufnr, node_types)
       pcall(vim.api.nvim_win_set_cursor, 0, saved)
     end)
   end
-  return true
 end
 
-local function schedule_fold(bufnr, node_types, attempt)
+local function schedule_fold(bufnr, node_types)
   if not vim.api.nvim_buf_is_valid(bufnr) then return end
-  if try_close_ts_nodes(bufnr, node_types) then return end
-  if attempt < 10 then
-    vim.defer_fn(function()
-      schedule_fold(bufnr, node_types, attempt + 1)
-    end, 50)
-  end
+  try_close_ts_nodes(bufnr, node_types)
 end
 
 -- config: { [filetype] = { 'ts_node_type', ... }, ... }
@@ -105,7 +89,7 @@ function M.setup(config)
       folded[ev.buf] = true
 
       vim.defer_fn(function()
-        schedule_fold(ev.buf, node_types, 0)
+        schedule_fold(ev.buf, node_types)
       end, 0)
     end,
   })
