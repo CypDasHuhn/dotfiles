@@ -41,6 +41,24 @@ local function normalize_path(path, os_type)
 	return normalized
 end
 
+-- Read the TargetPath of a Windows .lnk shortcut (nil if not a shortcut).
+local function read_shortcut_target(path)
+	local ps_path = path:gsub("/", "\\"):gsub("'", "''")
+	local cmd = "powershell -NoProfile -Command \"$s = (New-Object -ComObject WScript.Shell).CreateShortcut('"
+		.. ps_path
+		.. "'); if ($s) { $s.TargetPath }\" 2>nul"
+	local handle = io.popen(cmd)
+	if not handle then
+		return nil
+	end
+	local target = handle:read("*l")
+	handle:close()
+	if target and target ~= "" then
+		return target
+	end
+	return nil
+end
+
 function M.init()
 	local machine_path = dotfiles_dir .. ".machine.local.lua"
 	machine = utils.load_file(machine_path)
@@ -151,6 +169,88 @@ function M.link(source, target)
 		end
 	end
 	return false, "Failed to create symlink"
+end
+
+-- Create a Windows .lnk shortcut at `target` pointing to `source`.
+-- Unlike a symlink, a shortcut is not a reparse point. Windows 11 build 26200+
+-- silently skips reparse points when processing autostart locations, so
+-- Startup entries must be real files. This is how we drop launchers into the
+-- Startup folder without tripping that regression.
+function M.link_shortcut(source, target)
+	if not machine then M.init() end
+
+	if machine.os.type ~= "windows" then
+		return false, "Shortcuts are only supported on Windows"
+	end
+	if not source or not target then
+		return false, "Source and target are required"
+	end
+	if not fs.exists(source) then
+		return false, "Source does not exist: " .. source
+	end
+
+	-- Shortcut already points at the source?
+	if fs.exists(target) and not fs.is_symlink(target) then
+		local current = read_shortcut_target(target)
+		if current and normalize_path(current, "windows") == normalize_path(source, "windows") then
+			c.dim("[linker] already linked: " .. target .. " -> " .. source)
+			return true, "already linked"
+		end
+	end
+
+	local backup = nil
+	if fs.exists(target) or fs.is_symlink(target) then
+		if fs.is_symlink(target) then
+			c.tag_warn("linker", "replacing existing symlink: " .. target)
+			local removed, err = fs.remove_path(target)
+			if not removed then return false, err end
+		else
+			backup = target .. ".dotbak"
+			c.tag_warn("linker", "replacing existing target: " .. target)
+			local ok, err = os.rename(target, backup)
+			if not ok then
+				return false, "Could not move existing target to backup: " .. (err or "unknown")
+			end
+		end
+	end
+
+	fs.mkdir_p(target)
+
+	local win_target = target:gsub("/", "\\"):gsub("'", "''")
+	local win_source = source:gsub("/", "\\"):gsub("'", "''")
+	local work_dir = (source:gsub("/", "\\"):match("(.+)\\[^\\]+$") or ""):gsub("'", "''")
+
+	local ps = "$w = New-Object -ComObject WScript.Shell; $s = $w.CreateShortcut('"
+		.. win_target
+		.. "'); $s.TargetPath = '"
+		.. win_source
+		.. "'; $s.WorkingDirectory = '"
+		.. work_dir
+		.. "'; $s.Save()"
+
+	local result = os.execute('powershell -NoProfile -Command "' .. ps .. '"')
+	if result == 0 or result == true then
+		if backup then
+			c.tag_warn("linker", "previous target retained at: " .. backup)
+		end
+		c.tag_ok("linker", "linked: " .. target .. " -> " .. source)
+		return true
+	end
+
+	if backup then
+		os.rename(backup, target)
+	end
+	return false, "Failed to create shortcut: " .. target
+end
+
+-- Remove a path (real file or symlink) if it exists. Used to clear legacy
+-- launcher entries that are no longer valid.
+function M.remove(path)
+	if not machine then M.init() end
+	if fs.exists(path) or fs.is_symlink(path) then
+		return fs.remove_path(path)
+	end
+	return true
 end
 
 -- Link using variable names from shell/vars

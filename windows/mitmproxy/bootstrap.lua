@@ -23,8 +23,10 @@ if not startup_dir then
 end
 
 local launcher = source_dir:gsub("\\", "/") .. "mitmweb.vbs"
-local target = startup_dir .. "/mitmweb.vbs"
-local launcher_ok, launcher_err = linker.link(launcher, target)
+linker.remove(startup_dir .. "/mitmweb.vbs")
+linker.remove(startup_dir .. "/mitmweb.vbs.dotbak")
+local target = startup_dir .. "/mitmweb.lnk"
+local launcher_ok, launcher_err = linker.link_shortcut(launcher, target)
 if launcher_ok then
 	c.tag_ok("mitmproxy", "starts at login")
 elseif launcher_err ~= "already linked" then

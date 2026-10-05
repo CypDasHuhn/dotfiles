@@ -22,9 +22,14 @@ if not startup_dir then
 	return
 end
 
+-- Windows 11 build 26200+ skips symlinked autostart entries, so link the
+-- generated script as a real .lnk shortcut instead. Clear the legacy symlink
+-- (and its backup) left behind by earlier versions.
 local source = ahk_dir .. "generated/home.ahk"
-local target = startup_dir .. "/home.ahk"
-local ok, err = linker.link(source, target)
+linker.remove(startup_dir .. "/home.ahk")
+linker.remove(startup_dir .. "/home.ahk.dotbak")
+local target = startup_dir .. "/home.ahk.lnk"
+local ok, err = linker.link_shortcut(source, target)
 if ok then
 	c.tag_ok("ahk", "linked")
 elseif err ~= "already linked" then
