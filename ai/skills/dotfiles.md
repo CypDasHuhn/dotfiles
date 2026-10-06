@@ -1,6 +1,11 @@
 ---
 name: dotfiles
-description: Use when working in this dotfiles repo (~/dotfiles) or on any of its configs — nvim config (also called nvim config / neovim config), shell, terminal emulators, zen browser, lazygit, AutoHotkey, or when adding skills/modules. Explains the Lua-based bootstrap/linker architecture, module layout, and conventions for adding configs or skills.
+description:
+  Use when working in this dotfiles repo (~/dotfiles) or on any of its configs —
+  nvim config (also called nvim config / neovim config), shell, terminal
+  emulators, zen browser, lazygit, AutoHotkey, or when adding skills/modules.
+  Explains the Lua-based bootstrap/linker architecture, module layout, and
+  conventions for adding configs or skills.
 ---
 
 # Dotfiles Architecture
@@ -22,11 +27,11 @@ overwrite foreign files), `bootstrapper.lua` (module discovery), `platform.lua`,
 - `shell/` — generated configs via `shell/run.lua`: `shell/modules`
   (bash/nushell/pwsh/zsh/shared), mappers, `shell/generated` output
   (profile/path scripts).
-- `terminal/` — emulators (kitty, foot, konsole, wezterm, windows-terminal)
-  plus multiplexers (tmux, zellij); `emulator/generator.lua` + `keybinds.lua`
+- `terminal/` — emulators (kitty, foot, konsole, wezterm, windows-terminal) plus
+  multiplexers (tmux, zellij); `emulator/generator.lua` + `keybinds.lua`
   generate per-emulator configs from shared definitions.
 - `git/` — gitignore + lazygit.
-- `ai/` — shared AI-tool skills and linkers.
+- `ai/` — shared AI-tool skills and linkers
 
 ## Conventions
 
@@ -36,5 +41,4 @@ overwrite foreign files), `bootstrapper.lua` (module discovery), `platform.lua`,
 - Skills may be authored flat as `ai/skills/<name>.md` or as a standard
   `<name>/SKILL.md` folder when supporting files are needed. The linker
   materializes flat skills as regular `<name>/SKILL.md` files and links folder
-  skills into opencode, Claude, Codex, and Copilot CLI skill directories per
-  machine.
+  skills into each installed tool's skill directory per machine.

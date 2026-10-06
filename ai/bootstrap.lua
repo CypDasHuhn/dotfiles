@@ -6,7 +6,7 @@ local linker = require("linker")
 
 package.path = linker.dotfiles_dir .. "ai/tools/?.lua;" .. package.path
 
-local tools = { "opencode", "claude", "codex", "copilot-cli" }
+local tools = { "opencode", "claude", "codex", "copilot-cli", "cursor-cli" }
 for _, name in ipairs(tools) do
 	local ok, mod = pcall(require, name)
 	if not ok or type(mod) ~= "function" then
