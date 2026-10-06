@@ -32,6 +32,35 @@ local function patch_lsp_signature(plugin)
     'null-signatures'
   )
   patch_source(
+    plugin.dir .. '/lua/lsp_signature/init.lua',
+    '  if result.activeParameter == vim.NIL then\n'
+      .. '    result.activeParameter = nil\n'
+      .. '  end\n'
+      .. '  for _, sig in ipairs%(result.signatures%) do\n',
+    '  if result.activeSignature == vim.NIL then\n'
+      .. '    result.activeSignature = nil\n'
+      .. '  end\n'
+      .. '  if result.activeParameter == vim.NIL then\n'
+      .. '    result.activeParameter = nil\n'
+      .. '  end\n'
+      .. '  for _, sig in ipairs(result.signatures) do\n'
+      .. '    if sig.documentation == vim.NIL then\n'
+      .. '      sig.documentation = nil\n'
+      .. '    elseif type(sig.documentation) == \'table\' and sig.documentation.value == vim.NIL then\n'
+      .. '      sig.documentation.value = nil\n'
+      .. '    end\n'
+      .. '    if type(sig.parameters) == \'table\' then\n'
+      .. '      for _, parameter in ipairs(sig.parameters) do\n'
+      .. '        if parameter.documentation == vim.NIL then\n'
+      .. '          parameter.documentation = nil\n'
+      .. '        elseif type(parameter.documentation) == \'table\' and parameter.documentation.value == vim.NIL then\n'
+      .. '          parameter.documentation.value = nil\n'
+      .. '        end\n'
+      .. '      end\n'
+      .. '    end\n',
+    'null-values'
+  )
+  patch_source(
     plugin.dir .. '/lua/lsp_signature/helper.lua',
     'if nextParameter.documentation and #nextParameter.documentation > 0 then',
     "if type(nextParameter.documentation) == 'string' and #nextParameter.documentation > 0 then",

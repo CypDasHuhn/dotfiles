@@ -1,6 +1,6 @@
 return {
     'karb94/neoscroll.nvim',
-    profile = 'medium',
+    profile = 'high',
     enabled = true,
     event = { 'BufReadPost', 'BufNewFile' },
     config = function()
@@ -15,10 +15,10 @@ return {
 
         local durations = {
             medium = {
-                full_page = 100,
-                half_page = 50,
-                line = 50,
-                half_window_center = 50,
+                full_page = 50,
+                half_page = 20,
+                line = 20,
+                half_window_center = 20,
             },
             high = {
                 full_page = 200,

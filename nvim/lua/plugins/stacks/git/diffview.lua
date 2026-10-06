@@ -29,16 +29,65 @@ end
 
 -- Diffs the working tree against the remote's default branch (origin/HEAD).
 -- Auto-resolves origin/HEAD if it isn't already tracked locally (e.g. shallow clones).
-local function open_vs_origin_head()
-    vim.fn.system 'git rev-parse --verify --quiet refs/remotes/origin/HEAD'
+local function get_worktree_root()
+    local diffview = package.loaded['diffview.lib']
+    if diffview then
+        local view = diffview.get_current_view()
+        local toplevel = view
+            and view.adapter
+            and view.adapter.ctx
+            and view.adapter.ctx.toplevel
+        if toplevel then
+            return toplevel
+        end
+    end
+
+    local path = vim.api.nvim_buf_get_name(0)
+    if vim.bo.buftype ~= '' or path == '' then
+        path = vim.fn.getcwd()
+    end
+    path = vim.fn.fnamemodify(path, ':p')
+    if vim.fn.isdirectory(path) == 0 then
+        path = vim.fn.fnamemodify(path, ':h')
+    end
+
+    local output = vim.fn.systemlist({
+        'git',
+        '-C',
+        path,
+        'rev-parse',
+        '--show-toplevel',
+    })
     if vim.v.shell_error ~= 0 then
-        vim.fn.system 'git remote set-head origin --auto'
+        return nil
+    end
+    return output[1]
+end
+
+local function open_vs_origin_head()
+    local root = get_worktree_root()
+    if not root then
+        vim.notify('Could not determine the current Git worktree', vim.log.levels.ERROR)
+        return
+    end
+
+    vim.fn.systemlist({
+        'git',
+        '-C',
+        root,
+        'rev-parse',
+        '--verify',
+        '--quiet',
+        'refs/remotes/origin/HEAD',
+    })
+    if vim.v.shell_error ~= 0 then
+        vim.fn.systemlist({ 'git', '-C', root, 'remote', 'set-head', 'origin', '--auto' })
     end
     if vim.v.shell_error ~= 0 then
         vim.notify('Could not resolve origin/HEAD', vim.log.levels.ERROR)
         return
     end
-    vim.cmd 'DiffviewOpen origin/HEAD'
+    vim.cmd({ cmd = 'DiffviewOpen', args = { '-C=' .. root, 'origin/HEAD' } })
 end
 
 return {
