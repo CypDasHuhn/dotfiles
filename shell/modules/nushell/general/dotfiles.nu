@@ -1,7 +1,7 @@
 def update-dotfiles [...params: string] {
     cd $env.dotfiles
 
-    git pull
+    git-rebase-default
     lua "bootstrap.lua" ...$params
 }
 alias ud = update-dotfiles
