@@ -133,6 +133,19 @@ local function node_dir(state)
   return vim.fn.fnamemodify(path, ':h')
 end
 
+local function toggle_tree()
+  local manager = require 'neo-tree.sources.manager'
+  local utils = require 'neo-tree.utils'
+  local state = manager.get_state 'filesystem'
+  local path = vim.fn.expand '%:p'
+  local reveal = path ~= '' and state and state.path and utils.is_subpath(state.path, path)
+  require('neo-tree.command').execute {
+    action = 'focus',
+    toggle = true,
+    reveal = reveal or false,
+  }
+end
+
 local function scoped_search(kind, profile)
   return function(state)
     local dir = node_dir(state)
@@ -159,7 +172,7 @@ return {
   },
   cmd = 'Neotree',
   keys = {
-    { '<leader>e', ':Neotree toggle<CR>', desc = 'NeoTree reveal', silent = true },
+    { '<leader>e', toggle_tree, desc = 'NeoTree toggle' },
   },
   opts = {
     nesting_rules = require 'config.neo-tree-nesting',

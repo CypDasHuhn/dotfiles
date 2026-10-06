@@ -1,7 +1,27 @@
 -- Codex stores local skills under ~/.codex/skills by default. The presence
 -- check keeps this a no-op on machines where Codex is not installed.
 local link_skills = require("link_skills")
+local c = require("colors")
+
+local function link_hook(linker, source, target)
+	local ok, err = linker.link(source, target)
+	if not ok then
+		c.tag_warn("ai/codex", err or ("could not link " .. target))
+	end
+end
 
 return function(linker)
-	link_skills.link_tool(linker, "codex", "/.codex", "/.codex/skills")
+	local installed = link_skills.link_tool(linker, "codex", "/.codex", "/.codex/skills")
+	if not installed then
+		return
+	end
+
+	local home = link_skills.home(linker.machine())
+	if not home then
+		return
+	end
+
+	local root = link_skills.absolutize(linker.dotfiles_dir) .. "ai/hooks"
+	link_hook(linker, root .. "/codex.json", home .. "/.codex/hooks.json")
+	link_hook(linker, root .. "/log_prompt.py", home .. "/.codex/hooks/log_prompt.py")
 end

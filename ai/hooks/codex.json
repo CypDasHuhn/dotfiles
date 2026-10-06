@@ -1,0 +1,17 @@
+{
+  "description": "User-level prompt history.",
+  "hooks": {
+    "UserPromptSubmit": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 -B \"$HOME/.codex/hooks/log_prompt.py\" \"$HOME/dotfiles/ai/generated/prompt-history.json\"",
+            "commandWindows": "python -B \"%USERPROFILE%\\.codex\\hooks\\log_prompt.py\" \"%USERPROFILE%\\dotfiles\\ai\\generated\\prompt-history.json\"",
+            "timeout": 5
+          }
+        ]
+      }
+    ]
+  }
+}

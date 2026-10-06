@@ -1,0 +1,13 @@
+{
+  "version": 1,
+  "hooks": {
+    "UserPromptSubmit": [
+      {
+        "type": "command",
+        "bash": "python3 -B \"$HOME/.copilot/hooks/log_prompt.py\" \"$HOME/dotfiles/ai/generated/prompt-history.json\"",
+        "powershell": "python -B \"$env:USERPROFILE\\.copilot\\hooks\\log_prompt.py\" \"$env:USERPROFILE\\dotfiles\\ai\\generated\\prompt-history.json\"",
+        "timeoutSec": 5
+      }
+    ]
+  }
+}

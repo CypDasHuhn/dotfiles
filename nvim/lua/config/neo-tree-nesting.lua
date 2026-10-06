@@ -45,4 +45,9 @@ return {
     pattern = "^.+%.sln$",
     files = { "*.props", "global.json" },
   },
+  http_requests = {
+    pattern = "^(.+)%.http$",
+    files = { "%1-*.http.md" },
+    priority = 200,
+  },
 }

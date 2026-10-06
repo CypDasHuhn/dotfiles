@@ -326,13 +326,13 @@ function M.link_tool(linker, tool_name, base_rel, skills_rel)
 	local home = M.home(linker.machine())
 	if not home then
 		c.tag_warn("ai/" .. tool_name, "could not determine home directory; skipping")
-		return
+		return false
 	end
 
 	local base_dir = home .. base_rel
 	if not dir_exists(base_dir) then
 		c.tag_warn("ai/" .. tool_name, "not installed (" .. base_dir .. " missing); skipping")
-		return
+		return false
 	end
 
 	local skills_root = M.absolutize(linker.dotfiles_dir) .. "ai/skills"
@@ -358,6 +358,7 @@ function M.link_tool(linker, tool_name, base_rel, skills_rel)
 	end
 	prune_stale(target_root, skills_root, current)
 	c.tag_ok("ai/" .. tool_name, "linked skills -> " .. target_root)
+	return true
 end
 
 return M
