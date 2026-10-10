@@ -1,8 +1,12 @@
 return {
   'kristijanhusak/vim-dadbod-ui',
   dependencies = {
-    { 'tpope/vim-dadbod', lazy = true },
-    { 'kristijanhusak/vim-dadbod-completion', ft = { 'sql', 'mysql', 'plsql' }, lazy = true },
+    {
+      'kristijanhusak/vim-dadbod-completion',
+      ft = { 'sql', 'mysql', 'plsql' },
+      lazy = true,
+      dependencies = { 'tpope/vim-dadbod' },
+    },
   },
   cmd = {
     'DBUI',
@@ -11,7 +15,6 @@ return {
     'DBUIFindBuffer',
   },
   init = function()
-    vim.keymap.set('n', '<space>gd', ':DBUI<CR>', { noremap = true, silent = true })
     vim.g.db_ui_use_nerd_fonts = 1
     vim.g.db_ui_execute_on_save = 0
 
