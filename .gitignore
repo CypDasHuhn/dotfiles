@@ -16,6 +16,8 @@ __pycache__/
 # TPM-managed tmux plugins
 terminal/multiplexer/tmux/plugins/
 
+.grip/
+
 # mitmproxy runtime state and locally generated CA material
 misc/mitmproxy/mitmproxy-*
 /nvim/mssql/projects.json
