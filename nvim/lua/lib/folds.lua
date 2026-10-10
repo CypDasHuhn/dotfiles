@@ -10,33 +10,45 @@ local ts_state = {}
 
 local function resolve(value, prev)
   if type(value) == 'number' then
-    return value
+    return value, ''
   end
   if type(value) ~= 'string' then
-    return 0
+    return 0, ''
   end
 
   local first = value:sub(1, 1)
   if first == '=' then
-    return prev
+    return prev, ''
   end
   if first == '>' or first == '<' then
-    return tonumber(value:sub(2)) or 0
+    return tonumber(value:sub(2)) or 0, first
   end
-  return tonumber(value) or 0
+  return tonumber(value) or 0, ''
 end
 
 local function ts_level(bufnr, lnum)
   local ok, value = pcall(vim.treesitter.foldexpr, lnum)
   if not ok then
-    return 0
+    return 0, ''
   end
 
   local state = ts_state[bufnr]
   local prev = (state and state.lnum == lnum - 1) and state.level or 0
-  local level = resolve(value, prev)
+  local level, marker = resolve(value, prev)
   ts_state[bufnr] = { lnum = lnum, level = level }
-  return level
+  return level, marker
+end
+
+local function with_marker(marker, level)
+  if marker == '' then
+    return level
+  end
+  return marker .. level
+end
+
+local function is_blank(bufnr, lnum)
+  local line = vim.api.nvim_buf_get_lines(bufnr, lnum - 1, lnum, false)[1]
+  return line == nil or line:match '^%s*$' ~= nil
 end
 
 function M.expr(lnum)
@@ -52,13 +64,27 @@ function M.expr(lnum)
   end
 
   local region = cached.levels[lnum] or 0
+  local level, marker = ts_level(bufnr, lnum)
+  level = math.min(level, TS_MAX)
+
   if region == 0 then
-    return math.min(ts_level(bufnr, lnum), TS_MAX)
+    if level > 0 and marker ~= '>' then
+      local next_level, next_marker = ts_level(bufnr, lnum + 1)
+      if next_level == 0 or (next_marker == '>' and next_level <= level) then
+        if is_blank(bufnr, lnum) then
+          return 0
+        end
+        if cached.starts[lnum + 1] then
+          return '<' .. level
+        end
+      end
+    end
+    return with_marker(marker, level)
   end
   if cached.starts[lnum] then
-    return region * REGION_STEP
+    return with_marker('>', region * REGION_STEP)
   end
-  return region * REGION_STEP + math.min(ts_level(bufnr, lnum), TS_MAX)
+  return with_marker(marker, region * REGION_STEP + level)
 end
 
 function M.text()
