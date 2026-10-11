@@ -7,6 +7,7 @@ vim.keymap.set('n', '<S-k>', '<C-w>k', { desc = 'Window up' })
 
 vim.keymap.set('n', '<leader>gtj', '<cmd>tabnext<cr>', { desc = 'Next tabpage' })
 vim.keymap.set('n', '<leader>gtp', '<cmd>tabprevious<cr>', { desc = 'Previous tabpage' })
+vim.keymap.set('n', '<leader>gtx', '<cmd>tabclose<cr>', { desc = 'Close tabpage' })
 for i = 1, 9 do
     vim.keymap.set('n', '<leader>gt' .. i, '<cmd>tabnext ' .. i .. '<cr>', { desc = 'Go to tabpage ' .. i })
 end
