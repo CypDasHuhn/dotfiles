@@ -51,6 +51,8 @@ return {
         { '<leader>gcx', '<cmd>DiffviewClose<cr>',          desc = 'Close Diffview' },
         { '<leader>gcr', '<cmd>DiffviewRefresh<cr>',        desc = 'Refresh Diffview' },
         { '<leader>gcf', '<cmd>DiffviewFileHistory<cr>',    desc = 'Open Diffview File History' },
+        { '<leader>gcv', function() require('lib.review').open() end, desc = 'Review: working tree vs accepted' },
+        { '<leader>gcl', function() require('lib.review').log() end, desc = 'Review: accepted log' },
     },
     config = function(_, opts)
         require('diffview').setup(opts)
@@ -66,6 +68,8 @@ return {
                 view = {
                     { 'n', 'Y',     copy_absolute_path, { desc = 'Copy absolute path' } },
                     { 'n', '<C-y>', copy_relative_path, { desc = 'Copy relative path' } },
+                    { 'n', 'A',     function() require('lib.review').accept_current() end, { desc = 'Accept entry' } },
+                    { 'n', 'gA',    function() require('lib.review').undo_current() end,   { desc = 'Un-accept last entry' } },
                 },
                 -- active while focused in the file panel
                 -- `L` is freed up (moved to `gL`) so <S-l>/<S-h> window navigation works here too.
@@ -74,6 +78,8 @@ return {
                     { 'n', '<C-y>', copy_relative_path,      { desc = 'Copy relative path' } },
                     { 'n', 'L',     false },
                     { 'n', 'gL',    actions.open_commit_log, { desc = 'Open the commit log panel' } },
+                    { 'n', 'A',     function() require('lib.review').accept_current() end, { desc = 'Accept entry' } },
+                    { 'n', 'gA',    function() require('lib.review').undo_current() end,   { desc = 'Un-accept last entry' } },
                 },
                 file_history_panel = {
                     { 'n', 'L',  false },
