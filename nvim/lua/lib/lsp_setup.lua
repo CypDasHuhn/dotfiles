@@ -1,4 +1,30 @@
+local guard = require 'lib.lsp-guard'
+
+local uv = vim.uv
+
 local M = {}
+
+M.mason_servers = {}
+
+local function resolve_cmd(cmd)
+  if type(cmd) ~= 'table' or type(cmd[1]) ~= 'string' then
+    return cmd
+  end
+
+  local exe = vim.fn.exepath(cmd[1])
+  if exe == '' then
+    return cmd
+  end
+
+  local real = uv.fs_realpath(exe)
+  if not real or real == exe then
+    return cmd
+  end
+
+  local resolved = vim.deepcopy(cmd)
+  resolved[1] = real
+  return resolved
+end
 
 local function normalize_servers(server_map, aliases)
   local normalized = {}
@@ -51,6 +77,25 @@ end
 local function setup_server(server_name, server, use_lspmux)
   local resolved = vim.deepcopy(server or {})
   resolved.mason = nil
+
+  local original_exit = resolved.on_exit
+  resolved.on_exit = function(code, signal, client_id)
+    if original_exit then
+      original_exit(code, signal, client_id)
+    end
+    guard.on_exit(server_name, code)
+  end
+
+  local cmd = resolved.cmd
+  if not cmd then
+    local defaults = vim.lsp.config[server_name]
+    cmd = defaults and defaults.cmd
+  end
+  local resolved_cmd = resolve_cmd(cmd)
+  if resolved_cmd ~= cmd then
+    resolved.cmd = resolved_cmd
+  end
+
   if use_lspmux then
     resolved = M.apply_lspmux(server_name, resolved)
   end
@@ -73,6 +118,7 @@ function M.setup(opts)
 
   local servers = normalize_servers(opts.servers or {}, opts.server_aliases or {})
   local mason_servers, manual_servers = split_servers(servers)
+  M.mason_servers = mason_servers
 
   require('mason-lspconfig').setup {
     ensure_installed = vim.tbl_keys(mason_servers),
@@ -89,6 +135,11 @@ function M.setup(opts)
 
   local tools = vim.deepcopy(opts.tools or {})
   require('mason-tool-installer').setup { ensure_installed = tools }
+
+  guard.setup {
+    servers = vim.tbl_keys(mason_servers),
+    auto_reinstall = opts.auto_reinstall,
+  }
 
   if opts.diagnostics then
     vim.diagnostic.config(opts.diagnostics)

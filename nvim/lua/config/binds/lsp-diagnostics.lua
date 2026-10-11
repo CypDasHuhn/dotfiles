@@ -3,6 +3,7 @@ vim.keymap.set('n', '<leader>glg', function()
     vim.cmd('tabnew ' .. vim.lsp.log.get_filename())
 end, { desc = 'Open LSP log' })
 vim.keymap.set('n', '<leader>gli', '<cmd>checkhealth vim.lsp<cr>', { desc = 'LSP info' })
+vim.keymap.set('n', '<leader>glR', '<cmd>LspRepair<cr>', { desc = '[R]einstall broken LSP servers' })
 
 vim.keymap.set('n', '<leader>xq', vim.diagnostic.setloclist, { desc = 'Open diagnostic [Q]uickfix list' })
 vim.keymap.set('n', '<leader>td', function()
