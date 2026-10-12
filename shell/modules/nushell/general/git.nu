@@ -155,3 +155,10 @@ def git-rotate-branch-diff [
     print $"Created '($source_branch)' from '($base_ref)' and preserved the previous branch as '($old_branch)'."
 }
 #endregion
+
+def update-dotfiles [...params: string] {
+    cd $env.dotfiles
+    git-rebase-default
+    lua "bootstrap.lua" ...$params
+}
+alias ud = update-dotfiles
