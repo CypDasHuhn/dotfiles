@@ -1,7 +1,7 @@
 local paths = {
     { "${appdataLocal}/Zellij" },
     { "C:/Program Files/LLVM/bin" },
-    { "${programFiles}/Seafile/bin" },
+    { "${programFiles}/Nextcloud" },
 }
 paths.only = { os = "windows" }
 return paths
