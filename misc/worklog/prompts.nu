@@ -28,40 +28,16 @@ def default-history [] {
     $nu.home-dir | path join dotfiles ai generated prompt-history.json
 }
 
-def parse-target [target: string, machine: string] {
-    let matches = $target | parse --regex '^(?<name>[A-Za-z0-9][A-Za-z0-9._-]*)-(?<from>\d{4}-\d{2}-\d{2}):(?<to>\d{4}-\d{2}-\d{2})$'
-    if ($matches | is-empty) {
-        error make {
-            msg: "Invalid prompt-history target"
-            help: $"Expected prompt-history-($machine)-[YYYY-MM-DD]:[YYYY-MM-DD], for example prompt-history-($machine)-2026-10-01:2026-10-12."
-        }
-    }
-
-    let match = $matches | first
-    let expected_name = $"prompt-history-($machine)"
-    if $match.name != $expected_name {
-        error make {
-            msg: $"Prompt-history target must use this machine name: ($expected_name)"
-            help: $"Use ($expected_name)-YYYY-MM-DD:YYYY-MM-DD."
-        }
-    }
-
-    {
-        name: $match.name
-        remote_name: $target
-        period: (resolve-period "" $match.from $match.to)
-    }
-}
-
 export def main [
-    target: string
+    --from: string
+    --to: string
     --history-file: path
     --output: path
     --no-upload
 ] {
     let machine = machine-name
-    let selected = parse-target $target $machine
-    let period = $selected.period
+    let period = resolve-period "" $from $to
+    let remote_name = $"prompt-history-($machine)-($period.start_date):($period.end_date).json"
     let history_file = $history_file | default (default-history)
 
     if not ($history_file | path exists) {
@@ -91,9 +67,9 @@ export def main [
         prompts: $prompts
     }
 
-    let local_name = $selected.remote_name | str replace ":" "_"
+    let local_name = $remote_name | str replace ":" "_"
     let output_file = $output | default (
-        $script_dir | path join generated $"($local_name).json"
+        $script_dir | path join generated $local_name
     )
     mkdir ($output_file | path dirname)
     $document | to json --indent 2 | save --force $output_file
@@ -101,7 +77,7 @@ export def main [
     print $"Saved ($prompts | length) prompt-history entries to ($output_file | path expand)"
 
     if not $no_upload {
-        upload-device-work $output_file $selected.remote_name
-        print $"Uploaded prompt history to Nextcloud device-work/($selected.remote_name)"
+        upload-device-work $output_file $remote_name
+        print $"Uploaded prompt history to Nextcloud device-work/($remote_name)"
     }
 }

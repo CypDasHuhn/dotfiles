@@ -6,6 +6,7 @@ unix/services/generated/
 .nvimlog
 nvim/lazy-lock.json
 nvim/.tmp
+misc/worklog/.tmp/
 
 nvim/.machine.lua
 .codex
