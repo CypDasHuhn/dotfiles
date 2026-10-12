@@ -1,15 +1,15 @@
 # nextcloud
 
 Syncs the `vault` folder with the self-hosted Nextcloud server at
-`https://nextcloud.cypdashuhn.de` as user `cyp`. One module, two OS branches —
-the mechanisms genuinely differ.
+`https://nextcloud.cypdashuhn.de` as user `cyp`.
 
-The server URL, account and target var are fixed in `bootstrap.lua`; this repo
-targets one deployment. The only external value is an **app password**.
+`dependencies.lua` handles installs (`nextcloud-client` on Unix,
+`Nextcloud.NextcloudDesktop` via winget on Windows); `bootstrap.lua`
+orchestrates the setup per OS and decommissions an existing Seafile client.
 
 ## Password
 
-Stored in the gitignored `secrets.lua` at the dotfiles root:
+The app password is stored in the gitignored `secrets.lua` at the dotfiles root:
 
 ```
 secrets.lua
@@ -18,48 +18,48 @@ return {
 }
 ```
 
-An app password (not the account password) is used so the account password is
-never stored and the token can be revoked per-device. Generate one in the web UI
+Use an app password, not the account password. Generate one in the web UI
 (personal settings → Security → Devices & sessions → *Create new app password*)
-or server-side:
+or server-side (`occ user:auth-tokens:add <user> --name=<device> -n`).
 
-```nu
-docker exec -u www-data nc-app php occ user:auth-tokens:add cyp --name=<device> -n
-```
+## Branches
 
-## Unix branch
+The client that consumes Nextcloud **Client Push** (`notify_push`, i.e.
+real-time sync) is the official desktop client — so it is used wherever a
+display + keyring exist:
 
-Drives headless `nextcloudcmd` (from the `nextcloud-client` package) through a
-**system** systemd unit + timer:
+- **Windows** → desktop client. Installs a Startup-folder launcher running
+  `nextcloud --background`.
+- **Linux desktop** (`$DISPLAY`/`$WAYLAND_DISPLAY` set) → desktop client.
+  Installs `~/.config/autostart/nextcloud.desktop` (XWayland, `--background`)
+  and removes any leftover headless `nextcloudcmd` units.
+- **Linux headless** → `nextcloudcmd` driven by a systemd service + 3-min timer.
+  The desktop client needs a keyring/display, so headless uses the CLI instead
+  (poll-based, no push).
 
-1. Writes `/etc/nextcloud-vault.env` (`NC_USER`, `NC_PASSWORD`, root `600`).
-2. Writes `/etc/systemd/system/nextcloud-vault.service` (oneshot, `User=<you>`,
-   `EnvironmentFile=/etc/nextcloud-vault.env`) and `nextcloud-vault.timer`
-   (every 3 min + 2 min after boot).
-3. `systemctl enable --now nextcloud-vault.timer`, then runs one sync.
+The module does **not** pre-write the account config — seeding an account without
+credentials just makes the client prompt forever. Instead you add the account in
+the client **once** (log in with the app password, set the sync folder to
+`vault`); it then writes the config and stores credentials in the keyring. The
+module only sets up autostart and removes the headless units so exactly one
+engine owns `~/vault`.
 
-`nextcloudcmd` only syncs the account **root**, so the resolved `vault` folder
-maps to the account root (there is no subfolder targeting).
+The tray/window is background-only: hide the tray icon via the OS (Windows:
+Taskbar settings → *Other system tray icons*; KDE: System Tray → Entries →
+Hidden). Headless has no UI at all.
 
-## Windows branch
+## Seafile migration
 
-Uses the Nextcloud desktop client (winget). There is no supported headless
-preconfiguration, so logging in and choosing the sync folder is a manual GUI
-step.
-
-> The Windows branch has not been run on a Windows machine yet. Treat it as a
-> first cut and iterate on the actual box.
-
-## Migration from Seafile
-
-`bootstrap.lua` decommissions an existing Seafile client before starting sync:
-if `seaf-cli`/`seaf-daemon` or `~/.ccnet` is present it disables
+If `seaf-cli`/`seaf-daemon` or `~/.ccnet` is present, the module disables
 `seaf-cli@<user>`, removes the `seafile` package (pacman) and deletes
-`~/.ccnet` and `~/.local/share/seafile`. This stops the two clients from
-fighting over `~/vault`; the vault folder itself is left untouched. Idempotent,
-and a no-op on machines that never ran Seafile.
+`~/.ccnet` / `~/.local/share/seafile` before configuring Nextcloud, so the two
+clients never fight over `~/vault`. Idempotent.
 
 ## Ordering
 
-The root bootstrap resolves dependencies **before** module bootstraps, so a fresh
-machine installs the client and starts syncing in a single run.
+The root bootstrap resolves dependencies **before** module bootstraps, so a
+fresh machine installs the client and configures sync in a single run.
+
+> One syncer per folder: never run `nextcloudcmd` and the desktop client over the
+> same folder/account — they fork conflicted copies. The desktop branch removes
+> the `nextcloudcmd` units automatically; going the other way is manual.

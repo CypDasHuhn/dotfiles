@@ -1,6 +1,6 @@
 -- Nextcloud sync client.
---   Unix    -> `nextcloud-client` (provides nextcloudcmd + the desktop client)
---   Windows -> `Nextcloud.NextcloudDesktop` via winget (GUI sync client)
+--   Unix    -> `nextcloud-client` (provides the desktop client + nextcloudcmd)
+--   Windows -> `Nextcloud.NextcloudDesktop` via winget (desktop client)
 local h = require("infra.dependencies.helpers")
 
 return {

@@ -1,15 +1,17 @@
 -- Sync this machine's vault with the self-hosted Nextcloud server.
 --
 -- Cross-platform:
---   Unix    -> headless `nextcloudcmd` driven by a systemd service + timer.
---              Credentials come from an EnvironmentFile generated out of the
---              gitignored secrets.lua at the dotfiles root
---              (key NEXTCLOUD_APP_PASSWORD).
---   Windows -> Nextcloud desktop client; account setup stays a manual GUI step
---              (there is no supported headless preconfiguration).
+--   Windows        -> official desktop client (tray), autostarts with --background.
+--   Linux desktop  -> official desktop client, autostarts with --background.
+--   Linux headless -> nextcloudcmd (systemd service + timer).
 --
--- The deployment details are fixed here; the only external value is the app
--- password, read from the gitignored secrets.lua at the dotfiles root.
+-- The desktop client is the only client that consumes Nextcloud Client Push
+-- (notify_push), so it is what gives real-time sync. It needs a display and a
+-- keyring to store credentials, so headless hosts use the CLI instead (poll).
+-- A previously installed Seafile client is decommissioned first.
+--
+-- The only external value is the app password in the gitignored secrets.lua at
+-- the dotfiles root (key NEXTCLOUD_APP_PASSWORD).
 
 local c = require("colors")
 local platform = require("platform")
@@ -51,6 +53,14 @@ local function systemd_available()
 		return false
 	end
 	return file_exists("/run/systemd/system") and command_exists("systemctl")
+end
+
+local function is_headless()
+	if os_type == "windows" then
+		return false
+	end
+	local display = os.getenv("DISPLAY") or os.getenv("WAYLAND_DISPLAY")
+	return display == nil or display == ""
 end
 
 local function seafile_present()
@@ -116,8 +126,7 @@ local function resolve_target()
 	return home .. "/vault"
 end
 
--- Write a root-owned file via sudo. Content goes through a user-writable temp
--- file so nothing needs shell quoting.
+-- Write a root-owned file via sudo (content via temp file, no quoting).
 local function sudo_write(path, content, mode)
 	local tmp = os.tmpname()
 	local handle = io.open(tmp, "w")
@@ -139,7 +148,83 @@ local function sudo_write(path, content, mode)
 	return result
 end
 
-local function service_unit(user, home, target)
+local function write_file(path, content)
+	local handle = io.open(path, "w")
+	if not handle then
+		return false
+	end
+	handle:write(content)
+	handle:close()
+	return true
+end
+
+-- ---------------------------------------------------------------------------
+-- Desktop client (Windows / Linux with a display)
+-- ---------------------------------------------------------------------------
+
+-- When a machine moves to the GUI client, any headless nextcloudcmd units from
+-- an earlier bootstrap must be removed, or two engines fight over the folder
+-- and fork conflicted copies.
+local function remove_headless_units()
+	if not systemd_available() then
+		return
+	end
+	local unit = "/etc/systemd/system/" .. UNIT .. ".service"
+	local timer = "/etc/systemd/system/" .. UNIT .. ".timer"
+	if not file_exists(unit) and not file_exists(timer) then
+		return
+	end
+	c.tag("nextcloud", "removing headless nextcloudcmd units (desktop uses the GUI client)")
+	os.execute("sudo systemctl disable --now " .. UNIT .. ".timer 2>/dev/null")
+	os.execute("sudo rm -f " .. unit .. " " .. timer .. " " .. ENV_FILE)
+	os.execute("sudo systemctl daemon-reload")
+end
+
+local function configure_desktop_unix(home, target)
+	remove_headless_units()
+
+	-- The client owns its config once you have logged in, so never seed it here;
+	-- the one-time login in the client writes the account, credentials and folder.
+	local autostart_path = home .. "/.config/autostart/nextcloud.desktop"
+	if not file_exists(autostart_path) then
+		os.execute('mkdir -p "' .. home .. '/.config/autostart"')
+		write_file(autostart_path, "[Desktop Entry]\n"
+			.. "Type=Application\n"
+			.. "Name=Nextcloud\n"
+			.. "Exec=env QT_QPA_PLATFORM=xcb nextcloud --background\n"
+			.. "X-GNOME-Autostart-enabled=true\n"
+			.. "Terminal=false\n")
+		c.tag("nextcloud", "wrote autostart (XWayland)")
+	end
+
+	c.tag_ok("nextcloud", "log in once in the client and set the sync folder to " .. target)
+end
+
+local function configure_desktop_windows(target)
+	local appdata = os.getenv("APPDATA")
+	if not appdata then
+		c.tag_err("nextcloud", "APPDATA not set")
+		return
+	end
+
+	-- Autostart via a Startup-folder launcher (no registry needed).
+	local startup = appdata .. "\\Microsoft\\Windows\\Start Menu\\Programs\\Startup"
+	local launcher = startup .. "\\nextcloud-background.cmd"
+	if not file_exists(launcher) then
+		local exe = "C:\\Program Files\\Nextcloud\\nextcloud.exe"
+		os.execute('if not exist "' .. startup .. '" mkdir "' .. startup .. '"')
+		write_file(launcher, '@echo off\r\nstart "" "' .. exe .. '" --background\r\n')
+		c.tag("nextcloud", "wrote autostart launcher")
+	end
+
+	c.tag_ok("nextcloud", "log in once in the client and set the sync folder to " .. target)
+end
+
+-- ---------------------------------------------------------------------------
+-- Headless Linux (nextcloudcmd + systemd timer)
+-- ---------------------------------------------------------------------------
+
+local function synccmd_service(user, home, target)
 	return string.format(
 		"[Unit]\n"
 			.. "Description=Sync %s with Nextcloud (nextcloudcmd)\n"
@@ -165,7 +250,7 @@ local function service_unit(user, home, target)
 	)
 end
 
-local function timer_unit()
+local function synccmd_timer()
 	return "[Unit]\n"
 		.. "Description=Periodic Nextcloud vault sync\n"
 		.. "\n"
@@ -179,24 +264,7 @@ local function timer_unit()
 		.. "WantedBy=timers.target\n"
 end
 
-local function unix_sync()
-	local user = os.getenv("USER") or os.getenv("LOGNAME")
-	local home = os.getenv("HOME")
-	if not user or not home then
-		c.tag_err("nextcloud", "could not determine user/home")
-		return
-	end
-
-	decommission_seafile(user)
-
-	local password = read_secret(SECRET_KEY)
-	if not password then
-		c.tag_err("nextcloud", "missing " .. SECRET_KEY .. " in secrets.lua; cannot sync")
-		return
-	end
-
-	local target = resolve_target()
-
+local function headless_sync(user, home, target, password)
 	if not systemd_available() then
 		c.tag_warn("nextcloud", "systemd unavailable; running a one-shot sync")
 		os.execute(string.format(
@@ -211,32 +279,53 @@ local function unix_sync()
 
 	c.tag("nextcloud", "writing " .. ENV_FILE)
 	sudo_write(ENV_FILE, string.format("NC_USER=%s\nNC_PASSWORD=%s\n", ACCOUNT, password), "600")
-	sudo_write("/etc/systemd/system/" .. UNIT .. ".service", service_unit(user, home, target), "644")
-	sudo_write("/etc/systemd/system/" .. UNIT .. ".timer", timer_unit(), "644")
+	sudo_write("/etc/systemd/system/" .. UNIT .. ".service", synccmd_service(user, home, target), "644")
+	sudo_write("/etc/systemd/system/" .. UNIT .. ".timer", synccmd_timer(), "644")
 
 	os.execute("sudo systemctl daemon-reload")
-	c.tag("nextcloud", "enabling " .. UNIT .. ".timer")
 	os.execute("sudo systemctl enable --now " .. UNIT .. ".timer")
 	os.execute("sudo systemctl start " .. UNIT .. ".service")
 	c.tag_ok("nextcloud", "syncing " .. target .. " -> " .. SERVER)
 end
 
-local function windows_sync()
-	decommission_seafile(os.getenv("USERNAME") or os.getenv("USER") or "")
-	if not command_exists("nextcloud") then
-		c.tag("nextcloud", "Nextcloud client not installed yet; run bootstrap deps")
-		return
-	end
-	local target = resolve_target()
-	c.tag_ok("nextcloud", "installed; log in as " .. ACCOUNT .. " and sync into " .. target)
-end
+-- ---------------------------------------------------------------------------
+-- Dispatch
+-- ---------------------------------------------------------------------------
 
 if os_type == "windows" then
-	windows_sync()
-else
-	if not command_exists("nextcloudcmd") then
-		c.tag("nextcloud", "nextcloudcmd not installed yet; run bootstrap deps")
+	local user = os.getenv("USERNAME") or ""
+	decommission_seafile(user)
+	if not command_exists("nextcloud") then
+		c.tag("nextcloud", "desktop client not installed yet; run bootstrap deps")
 		return
 	end
-	unix_sync()
+	configure_desktop_windows(resolve_target())
+else
+	local user = os.getenv("USER") or os.getenv("LOGNAME")
+	local home = os.getenv("HOME")
+	if not user or not home then
+		c.tag_err("nextcloud", "could not determine user/home")
+		return
+	end
+
+	decommission_seafile(user)
+
+	if is_headless() then
+		if not command_exists("nextcloudcmd") then
+			c.tag("nextcloud", "nextcloudcmd not installed yet; run bootstrap deps")
+			return
+		end
+		local password = read_secret(SECRET_KEY)
+		if not password then
+			c.tag_err("nextcloud", "missing " .. SECRET_KEY .. " in secrets.lua; cannot sync")
+			return
+		end
+		headless_sync(user, home, resolve_target(), password)
+	else
+		if not command_exists("nextcloud") then
+			c.tag("nextcloud", "desktop client not installed yet; run bootstrap deps")
+			return
+		end
+		configure_desktop_unix(home, resolve_target())
+	end
 end
