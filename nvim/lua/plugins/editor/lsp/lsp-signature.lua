@@ -33,10 +33,7 @@ local function patch_lsp_signature(plugin)
   )
   patch_source(
     plugin.dir .. '/lua/lsp_signature/init.lua',
-    '  if result.activeParameter == vim.NIL then\n'
-      .. '    result.activeParameter = nil\n'
-      .. '  end\n'
-      .. '  for _, sig in ipairs%(result.signatures%) do\n',
+    '  _LSP_SIG_CFG%.signature_result = result\n',
     '  if result.activeSignature == vim.NIL then\n'
       .. '    result.activeSignature = nil\n'
       .. '  end\n'
@@ -57,7 +54,9 @@ local function patch_lsp_signature(plugin)
       .. '          parameter.documentation.value = nil\n'
       .. '        end\n'
       .. '      end\n'
-      .. '    end\n',
+      .. '    end\n'
+      .. '  end\n'
+      .. '  _LSP_SIG_CFG.signature_result = result\n',
     'null-values'
   )
   patch_source(
