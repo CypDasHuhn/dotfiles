@@ -29,7 +29,8 @@ def curl-config [] {
 
     $"user = \"($escaped)\"\n" | save --force $config_file
     if $nu.os-info.name == "windows" {
-        ^icacls $config_file /inheritance:r /grant $"($env.USERNAME):(F)" | ignore
+        let grant = [$env.USERNAME ":(F)"] | str join ""
+        ^icacls $config_file /inheritance:r /grant $grant | ignore
     } else {
         ^chmod 600 $config_file
     }

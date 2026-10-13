@@ -5,7 +5,7 @@ use nextcloud.nu upload-device-work
 
 const script_dir = path self .
 const repo_root = path self ../..
-const graph_origin = "https://graph.microsoft.com/v1.0"
+const graph_tenant = "837a9f42-e8ba-4b3c-a0b4-89cd0bfa5b01"
 
 def machine-name [] {
     let result = do {
@@ -32,37 +32,15 @@ def result-details [result: record] {
         | str join "\n"
 }
 
-def graph-token [] {
-    if (which az | is-empty) {
+def graph-login [] {
+    if (which pwsh | is-empty) {
         error make {
-            msg: "Azure CLI (az) is required for Microsoft Graph calendar access"
-            help: "Run az login first, then retry. No separate Graph secret is used by this script."
+            msg: "PowerShell 7 is required for Microsoft Graph calendar access"
+            help: "Install PowerShell 7 and Microsoft.Graph.Authentication, then run worklog calendar --login."
         }
     }
 
-    let result = do {
-        ^az account get-access-token --resource https://graph.microsoft.com --output json
-    } | complete
-
-    if $result.exit_code != 0 {
-        error make {
-            msg: "Could not obtain a Microsoft Graph access token"
-            help: (result-details $result)
-        }
-    }
-
-    let token_response = try {
-        $result.stdout | from json
-    } catch {
-        error make { msg: "Azure CLI returned invalid token JSON" }
-    }
-    let token = $token_response.accessToken? | default ""
-
-    if ($token | is-empty) {
-        error make { msg: "Azure CLI did not return an access token" }
-    }
-
-    $token
+    ^pwsh -NoProfile -Command $'Import-Module Microsoft.Graph.Authentication; Connect-MgGraph -TenantId "($graph_tenant)" -Scopes "Calendars.Read" -ContextScope CurrentUser -UseDeviceCode'
 }
 
 def local-midnight [date: string, timezone: string] {
@@ -79,52 +57,58 @@ def local-midnight [date: string, timezone: string] {
     }
 }
 
-def calendar-url [start: string, end: string] {
-    let encoded_start = $start | url encode
-    let encoded_end = $end | url encode
-    $"($graph_origin)/me/calendar/calendarView?startDateTime=($encoded_start)&endDateTime=($encoded_end)&%24top=1000"
-}
+def calendar-events [start: string, end: string] {
+    if (which pwsh | is-empty) {
+        error make {
+            msg: "PowerShell 7 is required for Microsoft Graph calendar access"
+            help: "Install PowerShell 7 and Microsoft.Graph.Authentication, then run worklog calendar --login."
+        }
+    }
 
-def graph-page [token: string, url: string] {
-    try {
-        http get --raw --max-time 120sec --headers {
-            Authorization: $"Bearer ($token)"
-            Accept: "application/json"
-        } $url | from json
-    } catch {
+    let graph_script = $script_dir | path join calendar-graph.ps1
+    let result = do {
+        ^pwsh -NoProfile -File $graph_script -TenantId $graph_tenant -StartDateTime $start -EndDateTime $end
+    } | complete
+
+    if $result.exit_code != 0 {
+        let details = result-details $result
+        let help = if ($details | is-empty) {
+            "Run worklog calendar --login once, then retry."
+        } else {
+            [$details "Run worklog calendar --login once, then retry."] | str join "\n"
+        }
         error make {
             msg: "Microsoft Graph calendar request failed"
-            help: "Check az login, the account's calendar permission, and the selected date range."
-        }
-    }
-}
-
-def calendar-events [token: string, start: string, end: string] {
-    mut next_url = (calendar-url $start $end)
-    mut events = []
-
-    while $next_url != null {
-        let page = graph-page $token $next_url
-        let page_events = if ("value" in $page) { $page.value } else { [] }
-        $events = $events | append $page_events
-        $next_url = if ("@odata.nextLink" in $page) {
-            $page | get "@odata.nextLink"
-        } else {
-            null
+            help: $help
         }
     }
 
-    $events
+    let response = try {
+        $result.stdout | from json
+    } catch {
+        error make {
+            msg: "Microsoft Graph returned invalid calendar JSON"
+            help: "Run worklog calendar --login once, then retry."
+        }
+    }
+
+    if ("value" in $response) { $response.value } else { [] }
 }
 
 def main [
     --output: path
     --no-upload
+    --login
     --date: string
     --from: string
     --to: string
     --timezone: string = "Europe/Berlin"
 ] {
+    if $login {
+        graph-login
+        return
+    }
+
     let period = resolve-period $date $from $to
     let machine = machine-name
     let remote_name = $"($period.slug)-($machine)-calendar.json"
@@ -134,8 +118,7 @@ def main [
     # keeps DST transitions from turning local midnight into 23:00 or 01:00.
     let exclusive_date = $period.end_exclusive | format date "%Y-%m-%d"
     let end = local-midnight $exclusive_date $timezone
-    let token = graph-token
-    let events = calendar-events $token $start $end
+    let events = calendar-events $start $end
 
     let document = {
         source: "calendar"

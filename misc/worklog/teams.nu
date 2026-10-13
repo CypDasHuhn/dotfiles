@@ -9,23 +9,6 @@ def default-extractor [] {
     $nu.home-dir | path join source repos msteams-history-extractor
 }
 
-def parse-target [target: string] {
-    let matches = $target | parse --regex '^(?<name>[A-Za-z0-9][A-Za-z0-9._-]*)-(?<from>\d{4}-\d{2}-\d{2}):(?<to>\d{4}-\d{2}-\d{2})$'
-    if ($matches | is-empty) {
-        error make {
-            msg: "Invalid Teams worklog target"
-            help: "Expected [name]-[YYYY-MM-DD]:[YYYY-MM-DD], for example msteams-2026-10-01:2026-10-12."
-        }
-    }
-
-    let match = $matches | first
-    {
-        name: $match.name
-        remote_name: $target
-        period: (resolve-period "" $match.from $match.to)
-    }
-}
-
 def result-details [result: record] {
     [$result.stderr $result.stdout]
         | each { str trim }
@@ -34,14 +17,22 @@ def result-details [result: record] {
 }
 
 def main [
-    target: string
+    --from: string
+    --to: string
     --extractor: path
     --leveldb: path
     --output: path
     --no-upload
 ] {
-    let selected = parse-target $target
-    let period = $selected.period
+    if ($from == null) or ($to == null) {
+        error make {
+            msg: "Both --from and --to are required"
+            help: "Use --from YYYY-MM-DD --to YYYY-MM-DD."
+        }
+    }
+
+    let period = resolve-period "" $from $to
+    let remote_name = $"msteams-($period.start_date):($period.end_date).json"
     let extractor_dir = $extractor | default (default-extractor)
     let extractor_script = $extractor_dir | path join extract.py
 
@@ -59,7 +50,7 @@ def main [
 
     let output_file = $output | default (
         $script_dir
-            | path join generated $"($selected.name)-($period.start_date)_($period.end_date).json"
+            | path join generated $"msteams-($period.start_date)_($period.end_date).json"
     )
     mkdir ($output_file | path dirname)
 
@@ -93,7 +84,7 @@ def main [
 
     let document = {
         source: "msteams"
-        name: $selected.name
+        name: "msteams"
         from: $period.start_date
         to: $period.end_date
         generated: (date now | format date "%Y-%m-%dT%H:%M:%S%:z")
@@ -110,8 +101,8 @@ def main [
     print $"Saved MS Teams worklog to ($output_file | path expand)"
 
     if not $no_upload {
-        upload-device-work $output_file $selected.remote_name
-        print $"Uploaded MS Teams worklog to Nextcloud device-work/($selected.remote_name)"
+        upload-device-work $output_file $remote_name
+        print $"Uploaded MS Teams worklog to Nextcloud device-work/($remote_name)"
     }
 }
 

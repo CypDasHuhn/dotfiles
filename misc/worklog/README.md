@@ -33,7 +33,7 @@ nu misc/worklog/collect.nu
 Run the MS Teams extractor for an inclusive date range and upload it:
 
 ```sh
-nu misc/worklog/teams.nu msteams-2026-10-01:2026-10-12
+nu misc/worklog/teams.nu --from 2026-10-01 --to 2026-10-12
 ```
 
 Upload the Codex and Copilot prompt history for an inclusive date range:

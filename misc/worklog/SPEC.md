@@ -14,7 +14,7 @@
 | `llm_chats` | provider API (per configured provider) | per device |
 | `personal_log` | `worklog log "..."` CLI insert | ad hoc |
 
-**MS Graph auth:** `az account get-access-token --resource https://graph.microsoft.com` reuses the existing Azure CLI session. No separate OAuth flow.
+**MS Graph auth:** `Microsoft.Graph.Authentication` uses delegated `Calendars.Read` access in the company tenant. No Azure subscription, Azure resource, client secret, or Graph environment secret is required.
 
 Each source script outputs a JSON array. Every record shares this envelope:
 

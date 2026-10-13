@@ -90,7 +90,7 @@ export def resolve-period [
 }
 
 export def report-info [name: string] {
-    let named_range = $name | parse --regex '^(?<device>[A-Za-z0-9][A-Za-z0-9._-]*)-(?<start>\d{4}-\d{2}-\d{2}):(?<end>\d{4}-\d{2}-\d{2})$'
+    let named_range = $name | parse --regex '^(?<device>[A-Za-z0-9][A-Za-z0-9._-]*)-(?<start>\d{4}-\d{2}-\d{2}):(?<end>\d{4}-\d{2}-\d{2})(?:\.json)?$'
     if not ($named_range | is-empty) {
         let report = $named_range | first
         return {
