@@ -108,17 +108,12 @@ uploads `YYYY-MM-DD[-to-YYYY-MM-DD]-machine-calendar.json` to `device-work`. Use
 `--no-upload` to generate the local JSON only or `--timezone ZONE` to change the
 date-boundary timezone.
 
-Local outputs are written beneath `misc/worklog/generated/`. During
-summarization, every device report within the requested period is merged into a
-date-labeled `commits-*.md`; this is the exact activity snapshot supplied to
-Codex. The final response is written to a matching date-labeled `summary-*.md`.
-The repository's existing `generated/` ignore rule keeps them out of Git. Local
-outputs are written beneath `misc/worklog/generated/`. During summarization,
-`misc/worklog/.tmp/` is removed and recreated, then every Nextcloud resource
-ending in the requested `YYYY-MM-DD:YYYY-MM-DD.json` range is downloaded into
-it. Codex runs from that directory so it can inspect all resources, and its
-final response is written to a matching date-labeled `summary-*.md`. Both
-locations are ignored by Git.
+During summarization, `misc/worklog/.tmp/` is removed and recreated, then
+every Nextcloud JSON or Markdown resource whose filename date range is
+contained in the requested period is downloaded into it. This includes exact
+matches and narrower source ranges, but excludes sources that extend beyond
+the request. After listing the downloaded sources and receiving confirmation,
+Codex opens interactively from that directory with the prompt preloaded.
 
 Useful collector options:
 
