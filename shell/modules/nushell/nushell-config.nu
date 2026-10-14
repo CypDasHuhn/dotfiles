@@ -57,3 +57,47 @@ $env.PROMPT_COMMAND = {||
     let dir = ($env.PWD | str replace $nu.home-dir "~")
     $"($user):($dir)"
 }
+
+alias __sorted_builtin_ls = ls
+
+def ls [
+    --all (-a)
+    --long (-l)
+    --short-names (-s)
+    --full-paths (-f)
+    --du (-d)
+    --directory (-D)
+    --mime-type (-m)
+    --threads (-t)
+    ...pattern: oneof<glob, string>
+] {
+    let entries = if ($pattern | is-empty) {
+        (__sorted_builtin_ls
+            --all=$all
+            --long=$long
+            --short-names=$short_names
+            --full-paths=$full_paths
+            --du=$du
+            --directory=$directory
+            --mime-type=$mime_type
+            --threads=$threads
+        )
+    } else {
+        (__sorted_builtin_ls
+            --all=$all
+            --long=$long
+            --short-names=$short_names
+            --full-paths=$full_paths
+            --du=$du
+            --directory=$directory
+            --mime-type=$mime_type
+            --threads=$threads
+            ...$pattern
+        )
+    }
+
+    $entries
+    | upsert __directory_order { |entry| $entry.type != "dir" }
+    | sort-by __directory_order name
+    | reject __directory_order
+}

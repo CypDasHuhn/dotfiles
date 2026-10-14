@@ -33,7 +33,11 @@ def --env fcd [
         error make { msg: $"(ansi red)No directory matching '($pattern)' found(ansi reset)"}
     }
     let dir = ($matches | first | get name)
-    cd $dir
+    cd $dir | ignore
+
+    if (($env.IS_NAVIGATION_MODE? | default false) | into bool) {
+        ls
+    }
 }
 
 def --env web [] {
