@@ -29,14 +29,37 @@ vim.opt.foldmethod = 'expr'
 vim.opt.foldexpr = foldexpr
 vim.opt.foldtext = foldtext
 
+local function is_diffview_window(win)
+  local bufnr = vim.api.nvim_win_get_buf(win)
+  return vim.wo[win].diff or vim.bo[bufnr].filetype:match '^Diffview' ~= nil
+end
+
+local function is_diffview_buffer(bufnr)
+  if vim.bo[bufnr].filetype:match '^Diffview' then
+    return true
+  end
+  for _, win in ipairs(vim.fn.win_findbuf(bufnr)) do
+    if is_diffview_window(win) then
+      return true
+    end
+  end
+  return false
+end
+
 local function apply(bufnr)
   if not vim.api.nvim_buf_is_valid(bufnr) then
     return
   end
   for _, win in ipairs(vim.fn.win_findbuf(bufnr)) do
-    vim.wo[win].foldmethod = 'expr'
-    vim.wo[win].foldexpr = foldexpr
-    vim.wo[win].foldtext = foldtext
+    if is_diffview_window(win) then
+      vim.wo[win].foldmethod = 'manual'
+      vim.wo[win].foldexpr = ''
+      vim.wo[win].foldenable = false
+    else
+      vim.wo[win].foldmethod = 'expr'
+      vim.wo[win].foldexpr = foldexpr
+      vim.wo[win].foldtext = foldtext
+    end
   end
 end
 
@@ -55,6 +78,9 @@ local pending = {}
 
 local function autofold(bufnr)
   if not vim.api.nvim_buf_is_valid(bufnr) then
+    return
+  end
+  if is_diffview_buffer(bufnr) then
     return
   end
 

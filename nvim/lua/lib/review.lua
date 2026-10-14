@@ -46,13 +46,13 @@ local function branch(tl)
   return b == 'HEAD' and 'detached' or b
 end
 
-local function review_ref(tl)
-  return M.config.ref_prefix .. branch(tl)
-end
-
-local function resolve_base(tl)
+local function comparison_branch(tl)
   if M.config.base then
     return M.config.base
+  end
+  local configured = git({ 'config', '--local', '--get', 'diffview.comparisonBranch' }, tl)
+  if configured.code == 0 and vim.trim(configured.stdout or '') ~= '' then
+    return vim.trim(configured.stdout)
   end
   if git_ok({ 'rev-parse', '--verify', '--quiet', 'origin/HEAD' }, tl) then
     return 'origin/HEAD'
@@ -60,10 +60,25 @@ local function resolve_base(tl)
   return 'HEAD'
 end
 
+local function resolve_base(tl)
+  return git_out({ 'rev-parse', '--verify', comparison_branch(tl) .. '^{commit}' }, tl)
+end
+
+local function review_context(tl)
+  local source = branch(tl)
+  local target = comparison_branch(tl)
+  local base = resolve_base(tl)
+  local key = vim.fn.sha256(source .. '\0' .. target):sub(1, 12) .. '-' .. base:sub(1, 12)
+  return M.config.ref_prefix .. key, target, base
+end
+
+local function review_ref(tl)
+  return review_context(tl)
+end
+
 local function ensure_ref(tl)
-  local ref = review_ref(tl)
+  local ref, _, base = review_context(tl)
   if not git_ok({ 'rev-parse', '--verify', '--quiet', ref }, tl) then
-    local base = git_out({ 'rev-parse', '--verify', resolve_base(tl) }, tl)
     git_out({ 'update-ref', ref, base }, tl)
   end
   return ref
@@ -231,11 +246,12 @@ function M.log()
   local tl = toplevel()
   local ref = ensure_ref(tl)
   local entries = collect_accepts(tl, ref)
+  local prompt = 'Accepted (' .. comparison_branch(tl) .. ')'
 
   local ok, pickers = pcall(require, 'telescope.pickers')
   if not ok then
     return vim.ui.select(entries, {
-      prompt = 'Accepted (' .. ref .. ')',
+      prompt = prompt,
       format_item = function(e)
         return e.display
       end,
@@ -253,7 +269,7 @@ function M.log()
   local action_state = require 'telescope.actions.state'
 
   pickers.new({}, {
-    prompt_title = 'Accepted (' .. ref .. ')',
+    prompt_title = prompt,
     finder = finders.new_table {
       results = entries,
       entry_maker = function(e)
