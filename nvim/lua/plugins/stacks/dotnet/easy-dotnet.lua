@@ -18,7 +18,7 @@ return {
 
     require('easy-dotnet').setup {
       lsp = {
-        enabled = true,
+        enabled = false,
         auto_refresh_codelens = false,
         config = {
           settings = {
