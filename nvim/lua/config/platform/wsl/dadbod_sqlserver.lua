@@ -15,5 +15,6 @@ end
 -- which installs sqlcmd to /usr/bin/sqlcmd (symlinked from /opt/mssql-tools/bin/sqlcmd).
 require('db.adapter.sqlserver_wsl')
 vim.g.db_adapter_sqlserver = '_DbAdapterSqlserverWsl_'
+vim.g.db_adapter_mssql = '_DbAdapterSqlserverWsl_'
 vim.g.db_sqlserver_sqlcmd = '/usr/bin/sqlcmd'
 
