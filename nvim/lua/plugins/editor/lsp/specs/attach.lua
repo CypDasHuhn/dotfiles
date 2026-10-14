@@ -14,10 +14,12 @@ return {
         return client and client:supports_method(method, event.buf)
       end
 
+      local jump_history = require 'lib.lsp-jump-history'
+
       map('grn', vim.lsp.buf.rename, '[R]e[n]ame')
       map('gra', vim.lsp.buf.code_action, '[G]oto Code [A]ction', { 'n', 'x' })
-      map('grr', require('telescope.builtin').lsp_references, '[G]oto [R]eferences')
-      map('gri', require('telescope.builtin').lsp_implementations, '[G]oto [I]mplementation')
+      map('grr', jump_history.track(require('telescope.builtin').lsp_references), '[G]oto [R]eferences')
+      map('gri', jump_history.track(require('telescope.builtin').lsp_implementations), '[G]oto [I]mplementation')
       vim.keymap.set('n', 'grI', function()
         vim.lsp.buf.code_action {
           filter = function(action)
@@ -27,10 +29,12 @@ return {
           apply = true,
         }
       end, { desc = '[I]mport actions' })
-      map('grd', require('telescope.builtin').lsp_definitions, '[G]oto [D]efinition')
-      map('grD', vim.lsp.buf.declaration, '[G]oto [D]eclaration')
+      map('grd', jump_history.track(require('telescope.builtin').lsp_definitions), '[G]oto [D]efinition')
+      map('grD', jump_history.track(vim.lsp.buf.declaration), '[G]oto [D]eclaration')
 
-      map('grt', require('telescope.builtin').lsp_type_definitions, '[G]oto [T]ype Definition')
+      map('grt', jump_history.track(require('telescope.builtin').lsp_type_definitions), '[G]oto [T]ype Definition')
+      map('grh', jump_history.back, '[G]oto [R]ecent jump back')
+      map('grl', jump_history.forward, '[G]oto jump forward')
 
       if (vim.env.NVIM_PROFILE or 'high') == 'high'
         and vim.env.NVIM_MINIMAL ~= '1'
