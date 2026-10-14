@@ -19,9 +19,13 @@ return {
   },
   config = function()
     local actions = require 'telescope.actions'
+    local full_width = function(_, max_columns) return max_columns end
 
     require('telescope').setup {
       defaults = {
+        layout_config = {
+          width = full_width,
+        },
         mappings = {
           i = {
             ['<C-j>'] = actions.move_selection_next,
@@ -31,7 +35,9 @@ return {
       },
       extensions = {
         ['ui-select'] = {
-          require('telescope.themes').get_dropdown(),
+          require('telescope.themes').get_dropdown {
+            layout_config = { width = full_width },
+          },
         },
       },
     }
@@ -90,6 +96,7 @@ return {
       builtin.current_buffer_fuzzy_find(require('telescope.themes').get_dropdown {
         winblend = 10,
         previewer = false,
+        layout_config = { width = full_width },
       })
     end, { desc = '[/] Fuzzily search in current buffer' })
   end,

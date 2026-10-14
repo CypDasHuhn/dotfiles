@@ -8,5 +8,6 @@ return {
       -- dark, darker, cold, deep, warm, warmer
     }
     require('onedark').load()
+    vim.api.nvim_set_hl(0, 'CursorLineNr', { fg = '#D4AF37' })
   end,
 }
