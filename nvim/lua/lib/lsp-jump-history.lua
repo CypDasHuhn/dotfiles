@@ -29,10 +29,11 @@ end
 
 local function clear_pending()
   pending = nil
-  if pending_timer then
-    pending_timer:stop()
-    pending_timer:close()
-    pending_timer = nil
+  local timer = pending_timer
+  pending_timer = nil
+  if timer then
+    pcall(timer.stop, timer)
+    pcall(timer.close, timer)
   end
 end
 

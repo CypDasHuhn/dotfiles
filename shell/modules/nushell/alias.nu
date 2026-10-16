@@ -20,6 +20,9 @@ def --wrapped powershell [...args] {
 def --wrapped ps1 [...args] {
     pwsh -File ...$args
 }
+def --wrapped just [...args] {
+    ^just --shell pwsh --clear-shell-args --shell-arg=-NoProfile --shell-arg=-Command ...$args
+}
 alias claude-danger = claude --dangerously-skip-permissions
 alias copilot-danger = copilot --allow-all
 

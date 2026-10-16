@@ -84,7 +84,7 @@ local function ensure_ref(tl)
   return ref
 end
 
-function M.accept(tl, path, oldpath)
+local function accept_entries(tl, entries, subject)
   local ref = ensure_ref(tl)
   local head = git_out({ 'rev-parse', ref }, tl)
   local index = vim.fn.tempname()
@@ -93,9 +93,15 @@ function M.accept(tl, path, oldpath)
   local ok, changed = pcall(function()
     git_out({ 'read-tree', head }, tl, env)
 
-    local paths = { path }
-    if oldpath and oldpath ~= '' then
-      paths[#paths + 1] = oldpath
+    local paths = {}
+    local seen = {}
+    for _, entry in ipairs(entries) do
+      for _, path in ipairs({ entry.path, entry.oldpath }) do
+        if path and path ~= '' and not seen[path] then
+          seen[path] = true
+          paths[#paths + 1] = path
+        end
+      end
     end
     git_out(vim.list_extend({ 'add', '-A', '--' }, paths), tl, env)
 
@@ -104,7 +110,7 @@ function M.accept(tl, path, oldpath)
       return false
     end
 
-    local new = git_out({ 'commit-tree', tree, '-p', head, '-m', 'accept: ' .. path }, tl)
+    local new = git_out({ 'commit-tree', tree, '-p', head, '-m', 'accept: ' .. subject }, tl)
     git_out({ 'update-ref', ref, new, head }, tl)
     return true
   end)
@@ -114,6 +120,10 @@ function M.accept(tl, path, oldpath)
     error(changed)
   end
   return changed
+end
+
+function M.accept(tl, path, oldpath)
+  return accept_entries(tl, { { path = path, oldpath = oldpath } }, path)
 end
 
 function M.undo(tl)
@@ -148,18 +158,36 @@ function M.accept_current()
     return vim.notify('review: no diffview open', vim.log.levels.WARN)
   end
 
-  local file = view:infer_cur_file()
+  local file = view:infer_cur_file(true)
   if not file then
     return vim.notify('review: no entry under cursor', vim.log.levels.WARN)
   end
 
-  local ok2, changed = pcall(M.accept, view.adapter.ctx.toplevel, file.path, file.oldpath)
+  local entries = { file }
+  local subject = file.path
+  local is_directory = type(file.collapsed) == 'boolean'
+  if is_directory then
+    local prefix = file.path == '' and '' or file.path .. '/'
+    entries = {}
+    for _, candidate in ipairs(view.panel:ordered_file_list()) do
+      if prefix == '' or vim.startswith(candidate.path, prefix) then
+        entries[#entries + 1] = candidate
+      end
+    end
+    subject = 'directory ' .. file.path
+  end
+
+  if #entries == 0 then
+    return vim.notify('review: no files under ' .. subject, vim.log.levels.INFO)
+  end
+
+  local ok2, changed = pcall(accept_entries, view.adapter.ctx.toplevel, entries, subject)
   if not ok2 then
     return vim.notify('review: ' .. tostring(changed), vim.log.levels.ERROR)
   end
 
   vim.notify(
-    changed and ('review: accepted ' .. file.path) or ('review: ' .. file.path .. ' already accepted'),
+    changed and ('review: accepted ' .. subject) or ('review: ' .. subject .. ' already accepted'),
     vim.log.levels.INFO
   )
   refresh_view(view)
