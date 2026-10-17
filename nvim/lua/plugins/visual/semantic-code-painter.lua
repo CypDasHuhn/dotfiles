@@ -5,7 +5,7 @@ return {
       auto_render = true,
       live = true,
       server_cmd = {
-        vim.fn.expand('~/repos/semantic-code-painter/analysis-engine/build/install/semantic-code-painter-server/bin/semantic-code-painter-server'),
+        vim.fn.expand '~/repos/semantic-code-painter/analysis-engine/build/install/semantic-code-painter-server/bin/semantic-code-painter-server',
       },
 
       resolve = {
@@ -21,8 +21,8 @@ return {
       },
 
       tags = {
-        Logging = { meaning = 'CONCEAL', bg = '#1f2d1f', priority = 10 },
-        ErrorHandling = { meaning = 'SHOW', bg = '#2d1f1f', priority = 50 },
+        LOGGING = { meaning = 'CONCEAL', priority = 10 },
+        ERROR_HANDLING = { meaning = 'SHOW', bg = '#2d1f1f', priority = 50 },
         UNTAGGED = { meaning = 'SHOW' },
       },
 
