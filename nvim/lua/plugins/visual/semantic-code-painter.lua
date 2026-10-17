@@ -4,7 +4,18 @@ return {
     require('semantic_code_painter').setup {
       auto_render = true,
 
-      meanings = {
+      intentMeanings = {
+        Logging = 'CONCEAL',
+        ErrorHandling = 'SHOW',
+        UNTAGGED = 'SHOW',
+      },
+
+      resolve = {
+        precedence = { 'SHOW', 'HIGHLIGHT', 'IGNORE', 'CONCEAL' },
+        default = 'SHOW',
+      },
+
+      rules = {
         CONCEAL = { conceal = { lines = true } },
         SHOW = { highlight = true },
         HIGHLIGHT = { highlight = true },
