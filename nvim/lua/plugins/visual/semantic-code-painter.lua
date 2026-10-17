@@ -4,12 +4,6 @@ return {
     require('semantic_code_painter').setup {
       auto_render = true,
 
-      intentMeanings = {
-        Logging = 'CONCEAL',
-        ErrorHandling = 'SHOW',
-        UNTAGGED = 'SHOW',
-      },
-
       resolve = {
         precedence = { 'SHOW', 'HIGHLIGHT', 'IGNORE', 'CONCEAL' },
         default = 'SHOW',
@@ -23,8 +17,9 @@ return {
       },
 
       tags = {
-        Logging = { bg = '#1f2d1f', priority = 10, conceal = { lines = true } },
-        ErrorHandling = { bg = '#2d1f1f', priority = 50, highlight = true },
+        Logging = { meaning = 'CONCEAL', bg = '#1f2d1f', priority = 10 },
+        ErrorHandling = { meaning = 'SHOW', bg = '#2d1f1f', priority = 50 },
+        UNTAGGED = { meaning = 'SHOW' },
       },
 
       keymaps = {
