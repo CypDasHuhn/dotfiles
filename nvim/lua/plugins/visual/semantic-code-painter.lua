@@ -26,6 +26,11 @@ return {
         Logging = { bg = '#1f2d1f', priority = 10, conceal = { lines = true } },
         ErrorHandling = { bg = '#2d1f1f', priority = 50, highlight = true },
       },
+
+      keymaps = {
+        pick = '<leader>pp',
+        edit = '<leader>pe',
+      },
     }
   end,
 }

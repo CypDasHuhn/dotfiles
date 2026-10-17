@@ -87,6 +87,7 @@ return {
       { '<leader>b',  group = '[B]uffer' },
       { '<leader>v',  group = '[V]iew' },
       { '<leader>g',  group = 'Misc' },
+      { '<leader>p',  group = 'Semantic Painter' },
       { '<leader>gc', group = 'Diffview' },
       { '<leader>gt', group = 'Tabpages' },
       { '<leader>l',  group = 'File Locals' },
