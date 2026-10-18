@@ -1,11 +1,12 @@
 return {
-  dir = '~/repos/semantic-code-painter/nvim-renderer',
+  dir = '~/repos/codeintent/nvim-renderer',
+  lazy = false,
   config = function()
-    require('semantic_code_painter').setup {
+    require('cint').setup {
       auto_render = true,
-      live = true,
+      scope = 'global',
       server_cmd = {
-        vim.fn.expand '~/repos/semantic-code-painter/analysis-engine/build/install/semantic-code-painter-server/bin/semantic-code-painter-server',
+        vim.fn.expand '~/repos/codeintent/analysis-engine/build/install/cint-server/bin/cint-server',
       },
 
       resolve = {
@@ -15,7 +16,7 @@ return {
 
       rules = {
         CONCEAL = { conceal = { lines = true } },
-        SHOW = { highlight = true },
+        SHOW = false,
         HIGHLIGHT = { highlight = true },
         IGNORE = { ignore = { fg = '#555555' } },
       },
@@ -33,4 +34,11 @@ return {
       },
     }
   end,
+  keys = {
+    {
+      '<leader>pr',
+      '<cmd>CintServerRestart<cr>',
+      desc = 'Restart server',
+    },
+  },
 }
