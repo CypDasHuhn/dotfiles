@@ -1,22 +1,50 @@
+local steam_ignore_hosts = {
+	"steampowered.com",
+	"steamcommunity.com",
+	"steamstatic.com",
+	"steamcontent.com",
+	"steamusercontent.com",
+	"steamserver.net",
+	"steam-chat.com",
+	"steamgames.com",
+	"valvesoftware.com",
+	"steamcdn-a.akamaihd.net",
+	"steampipe.akamaized.net",
+}
+
+local function flag(name, values)
+	local args = {}
+	for _, value in ipairs(values) do
+		table.insert(args, name)
+		table.insert(args, value)
+	end
+	return args
+end
+
+local function concat(parts)
+	local args = {}
+	for _, part in ipairs(parts) do
+		for _, value in ipairs(part) do
+			table.insert(args, value)
+		end
+	end
+	return args
+end
+
+local command = concat({
+	{ "mitmdump", "--quiet", "--listen-host", "127.0.0.1", "--listen-port", "8080" },
+	flag("--ignore-hosts", steam_ignore_hosts),
+	{ "-s", "~/.config/mitmproxy/reddit_filter.py", "--set", "ssl_insecure=true" },
+})
+
 return {
-    name = "mitmweb",
-    description = "Headless mitmproxy",
-    command = {
-        "mitmdump",
-        "--quiet",
-        "--listen-host",
-        "127.0.0.1",
-        "--listen-port",
-        "8080",
-        "-s",
-        "~/.config/mitmproxy/reddit_filter.py",
-        "--set",
-        "ssl_insecure=true",
-    },
-    restart = "on-failure",
-    environment = {
-        PYTHONPYCACHEPREFIX = "${HOME}/.cache/python",
-    },
-    wanted_by = "default.target",
-    only = { os = "unix" },
+	name = "mitmweb",
+	description = "Headless mitmproxy",
+	command = command,
+	restart = "on-failure",
+	environment = {
+		PYTHONPYCACHEPREFIX = "${HOME}/.cache/python",
+	},
+	wanted_by = "default.target",
+	only = { os = "unix" },
 }
