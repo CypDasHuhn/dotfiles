@@ -5,8 +5,8 @@ local paths = {
 	{ "${me}/.zvm/self" },
 	{ "${me}/.zvm/master" },
 	{ "${me}/repos/fcp/build/install/fcp/bin" },
-	{ "${me}/repos/codeintent/analysis-engine/build/install/cint/bin" },
-	{ "${me}/repos/codeintent/analysis-engine/build/install/cint-server/bin" },
+	{ "${me}/repos/code-intent/analysis-engine/build/install/cint/bin" },
+	{ "${me}/repos/code-intent/analysis-engine/build/install/cint-server/bin" },
 	{ "${me}/.cargo/bin" },
 }
 paths.only = { os = "unix" }

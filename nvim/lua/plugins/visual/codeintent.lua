@@ -1,12 +1,12 @@
 return {
-  dir = '~/repos/codeintent/nvim-renderer',
+  dir = '~/repos/code-intent/nvim-renderer',
   lazy = false,
   config = function()
     require('cint').setup {
       auto_render = true,
       scope = 'global',
       server_cmd = {
-        vim.fn.expand '~/repos/codeintent/analysis-engine/build/install/cint-server/bin/cint-server',
+        vim.fn.expand '~/repos/code-intent/analysis-engine/build/install/cint-server/bin/cint-server',
       },
 
       resolve = {
