@@ -1,12 +1,19 @@
+local plugin_dir = vim.fn.stdpath 'data' .. '/lazy/code-intent'
+
 return {
-  dir = '~/repos/code-intent/nvim-renderer',
+  'CypDasHuhn/code-intent',
+  name = 'code-intent',
   lazy = false,
+  build = './analysis-engine/gradlew -p analysis-engine :server:installDist',
+  init = function()
+    vim.opt.rtp:append(plugin_dir .. '/nvim-renderer')
+  end,
   config = function()
     require('cint').setup {
       auto_render = true,
       scope = 'global',
       server_cmd = {
-        vim.fn.expand '~/repos/code-intent/analysis-engine/build/install/cint-server/bin/cint-server',
+        plugin_dir .. '/analysis-engine/build/install/cint-server/bin/cint-server',
       },
 
       resolve = {
