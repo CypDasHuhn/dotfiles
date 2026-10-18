@@ -34,6 +34,22 @@ local function patch_render_markdown(plugin)
       .. '    end\n'
       .. '    filetype = filetype or name'
   )
+
+  patch_source(
+    plugin.dir .. '/lua/render-markdown/lib/node.lua',
+    '    local start_row, start_col, end_row, end_col = node:range%(%)',
+    "    local start_row, start_col, end_row, end_col = require('lib.ts-node-text').range(node, buf)"
+  )
+  patch_source(
+    plugin.dir .. '/lua/render-markdown/lib/node.lua',
+    '    self%.text = vim%.treesitter%.get_node_text%(node, buf%)',
+    "    self.text = require('lib.ts-node-text').get(node, buf)"
+  )
+  patch_source(
+    plugin.dir .. '/lua/render-markdown/lib/node.lua',
+    '    return str%.level%(vim%.treesitter%.get_node_text%(node, self%.buf%)%)',
+    "    return str.level(require('lib.ts-node-text').get(node, self.buf))"
+  )
 end
 
 return {
@@ -47,6 +63,9 @@ return {
   ---@type render.md.UserConfig
   opts = {
     render_modes = true,
+    win_options = {
+      conceallevel = { default = vim.o.conceallevel, rendered = 3 },
+    },
     latex = { enabled = false },
   },
 }

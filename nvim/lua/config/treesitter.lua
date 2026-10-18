@@ -1,3 +1,5 @@
+require('lib.ts-node-text').install()
+
 local allowed = {}
 local parser_dir = vim.fn.stdpath 'data' .. '/site/parser'
 
