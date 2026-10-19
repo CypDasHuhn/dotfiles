@@ -18,6 +18,14 @@ def --wrapped "worklog calendar" [...args: string] {
     ^nu --no-config-file ($env.dotfiles | path join misc worklog calendar.nu) ...$args
 }
 
+def --wrapped "worklog log" [...args: string] {
+    ^nu --no-config-file ($env.dotfiles | path join misc worklog log.nu) ...$args
+}
+
+def --wrapped "worklog retrospective" [...args: string] {
+    ^nu --no-config-file ($env.dotfiles | path join misc worklog log.nu) --retrospective ...$args
+}
+
 def --wrapped "worklog summarize" [...args: string] {
     ^nu --no-config-file ($env.dotfiles | path join misc worklog summarize.nu) ...$args
 }

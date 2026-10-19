@@ -68,6 +68,26 @@ The machine name is read from `.machine.local.lua`. A single-day upload uses
 `YYYY-MM-DD-to-YYYY-MM-DD-machine-name-work.md`. Collecting again on the same
 device and period replaces that device's previous report.
 
+Record an ad hoc work note. Positional values after the quoted note are stored
+as free-form `key=value` fields:
+
+```nu
+worklog log "Reviewed the deployment plan with Max" project=cvm ticket=1234
+worklog log "Follow up with customer tomorrow" --no-upload
+```
+
+Each entry records the Berlin timestamp and machine automatically, is saved as
+its own JSON source, and is included by `worklog summarize` for that date.
+
+Record a retrospective summary for an already completed inclusive range:
+
+```nu
+worklog retrospective --from 2026-10-12 --to 2026-10-16 "Finished migration and customer handover" project=cvm
+```
+
+It is a separate range source, so `worklog summarize --from 2026-10-12 --to
+2026-10-16` includes it alongside the Outlook calendar export and other sources.
+
 After all sources have uploaded, generate one combined summary:
 
 ```sh
@@ -88,6 +108,8 @@ worklog collect
 worklog teams msteams-2026-10-01:2026-10-12
 worklog prompts --from 2026-10-01 --to 2026-10-12
 worklog calendar --from 2026-10-01 --to 2026-10-12
+worklog log "Reviewed the deployment plan with Max" project=cvm ticket=1234
+worklog retrospective --from 2026-10-12 --to 2026-10-16 "Finished migration and customer handover" project=cvm
 worklog summarize
 worklog cleanup --dry-run
 worklog cleanup
