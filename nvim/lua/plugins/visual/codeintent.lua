@@ -3,12 +3,14 @@ local plugin_dir = vim.fn.stdpath 'data' .. '/lazy/code-intent'
 return {
   'CypDasHuhn/code-intent',
   name = 'code-intent',
+  enabled = false,
   lazy = false,
   build = './analysis-engine/gradlew -p analysis-engine :server:installDist',
   init = function()
     vim.opt.rtp:append(plugin_dir .. '/nvim-renderer')
   end,
   config = function()
+    vim.cmd.runtime 'plugin/cint.lua'
     require('cint').setup {
       auto_render = true,
       scope = 'global',
