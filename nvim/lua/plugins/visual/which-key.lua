@@ -73,6 +73,7 @@ return {
       { 'gU',  desc = 'Prev return' },
       { 'ga',  desc = 'Next assignment' },
       { 'gA',  desc = 'Prev assignment' },
+      { '<leader>c',  group = 'Code Neighbours' },
       { '<leader>s',  group = '[S]earch' },
       { '<leader>sf', group = '[F]iles by scope' },
       { '<leader>sg', group = '[G]rep by scope' },
