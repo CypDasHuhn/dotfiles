@@ -156,7 +156,18 @@ function M.accept_current()
       return notify_failure(result)
     end
     vim.notify('Accepted grouped changes for ' .. file.path, vim.log.levels.INFO)
-    return open_group_view(root, group)
+    local groups = run({ 'group', 'list', '--json' }, root)
+    if groups.code ~= 0 then
+      return notify_failure(groups)
+    end
+    for _, candidate in ipairs(vim.json.decode(groups.stdout)) do
+      if candidate.name == group then
+        return open_group_view(root, group)
+      end
+    end
+    group_views[root] = nil
+    vim.notify('review: group is complete', vim.log.levels.INFO)
+    return M.open()
   end
   if view.rev_arg ~= review.reviewedRef then
     return vim.notify('review: open the reviewed-state view first', vim.log.levels.WARN)
