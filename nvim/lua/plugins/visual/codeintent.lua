@@ -21,7 +21,7 @@ local function annotate(range)
 end
 
 local function annotate_visual()
-  annotate({ vim.fn.line("'<"), vim.fn.line("'>") })
+  annotate { vim.fn.line "'<", vim.fn.line "'>" }
 end
 
 return {
@@ -150,6 +150,11 @@ return {
     {
       '<leader>pcr',
       '<cmd>CintConfigRemove<cr>',
+      desc = 'Cint: remove symbol from rule config field',
+    },
+    {
+      '<leader>pi',
+      '<cmd>CintUI<cr>',
       desc = 'Cint: remove symbol from rule config field',
     },
   },
