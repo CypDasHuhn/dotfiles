@@ -1,6 +1,16 @@
 local M = {}
 local group_views = {}
 
+local function open_diffview(root, revision)
+  local lib = require 'diffview.lib'
+  local current = lib.get_current_view()
+  if current then
+    current:close()
+    lib.dispose_view(current)
+  end
+  vim.cmd({ cmd = 'DiffviewOpen', args = { '-C=' .. root, revision } })
+end
+
 local function run(args, cwd)
   return vim.system(vim.list_extend({ 'git-review' }, args), { cwd = cwd, text = true }):wait()
 end
@@ -58,7 +68,21 @@ function M.open()
   if view and view.rev_arg == review.reviewedRef then
     return refresh(view, review.reviewedRef)
   end
-  vim.cmd({ cmd = 'DiffviewOpen', args = { '-C=' .. root, review.reviewedRef } })
+  open_diffview(root, review.reviewedRef)
+end
+
+local function open_group_view(root, name)
+  local review = status(root)
+  if not review then
+    return
+  end
+  local projection = run({ 'group', 'view', '--name', name }, root)
+  if projection.code ~= 0 then
+    return notify_failure(projection)
+  end
+  local view = vim.json.decode(projection.stdout)
+  group_views[root] = name
+  open_diffview(root, review.reviewedRef .. '..' .. view.ref)
 end
 
 function M.open_group()
@@ -100,13 +124,7 @@ function M.open_group()
         if not entry then
           return
         end
-        local projection = run({ 'group', 'view', '--name', entry.value.name }, root)
-        if projection.code ~= 0 then
-          return notify_failure(projection)
-        end
-        local view = vim.json.decode(projection.stdout)
-        group_views[root] = entry.value.name
-        vim.cmd({ cmd = 'DiffviewOpen', args = { '-C=' .. root, review.reviewedRef .. '..' .. view.ref } })
+        open_group_view(root, entry.value.name)
       end)
       return true
     end,
@@ -137,9 +155,8 @@ function M.accept_current()
     if result.code ~= 0 then
       return notify_failure(result)
     end
-    group_views[root] = nil
     vim.notify('Accepted grouped changes for ' .. file.path, vim.log.levels.INFO)
-    return M.open_group()
+    return open_group_view(root, group)
   end
   if view.rev_arg ~= review.reviewedRef then
     return vim.notify('review: open the reviewed-state view first', vim.log.levels.WARN)
