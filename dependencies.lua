@@ -17,6 +17,18 @@ return {
             windows = h.winget("Git.Git", "git"),
         })
         :once(),
+    go = h.dep({
+            unix = h.pacman("go"),
+        })
+        :once(),
+    git_review = h.dep({
+            unix = {
+                command = 'GOBIN="$HOME/.local/bin" go install github.com/CypDasHuhn/git-review/cmd/git-review@v0.1.2',
+                condition = h.which("go"),
+                verify = h.which("git-review"),
+                once = true,
+            },
+        }),
     make = h.dep({
             unix = h.pacman("make"),
             windows = h.winget("ezwinports.make", "make"),

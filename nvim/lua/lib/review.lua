@@ -1,317 +1,96 @@
 local M = {}
 
-M.config = {
-  ref_prefix = 'refs/reviews/',
-  base = nil,
-}
-
-local function git(args, cwd, env)
-  local cmd = { 'git' }
-  vim.list_extend(cmd, args)
-  return vim.system(cmd, { cwd = cwd, text = true, env = env }):wait()
+local function run(args, cwd)
+  return vim.system(vim.list_extend({ 'git-review' }, args), { cwd = cwd, text = true }):wait()
 end
 
-local function git_out(args, cwd, env)
-  local res = git(args, cwd, env)
-  if res.code ~= 0 then
-    error(('git %s: %s'):format(table.concat(args, ' '), vim.trim(res.stderr or '')))
-  end
-  return vim.trim(res.stdout or '')
-end
-
-local function git_ok(args, cwd)
-  return git(args, cwd).code == 0
-end
-
-local function git_lines(args, cwd)
-  local res = git(args, cwd)
-  if res.code ~= 0 then
-    error(('git %s: %s'):format(table.concat(args, ' '), vim.trim(res.stderr or '')))
-  end
-  local out = {}
-  for line in vim.gsplit(res.stdout or '', '\n', { plain = true }) do
-    if line ~= '' then
-      out[#out + 1] = line
-    end
-  end
-  return out
+local function notify_failure(result)
+  vim.notify(vim.trim(result.stderr or result.stdout or 'git-review failed'), vim.log.levels.ERROR)
 end
 
 local function toplevel()
-  return git_out({ 'rev-parse', '--show-toplevel' }, vim.uv.cwd())
-end
-
-local function branch(tl)
-  local b = git_out({ 'rev-parse', '--abbrev-ref', 'HEAD' }, tl)
-  return b == 'HEAD' and 'detached' or b
-end
-
-local function comparison_branch(tl)
-  if M.config.base then
-    return M.config.base
+  local result = vim.system({ 'git', 'rev-parse', '--show-toplevel' }, { cwd = vim.uv.cwd(), text = true }):wait()
+  if result.code ~= 0 then
+    notify_failure(result)
+    return nil
   end
-  local configured = git({ 'config', '--local', '--get', 'diffview.comparisonBranch' }, tl)
-  if configured.code == 0 and vim.trim(configured.stdout or '') ~= '' then
-    return vim.trim(configured.stdout)
+  return vim.trim(result.stdout)
+end
+
+local function status(root)
+  local result = run({ 'status', '--json' }, root)
+  if result.code == 0 then
+    return vim.json.decode(result.stdout)
   end
-  if git_ok({ 'rev-parse', '--verify', '--quiet', 'origin/HEAD' }, tl) then
-    return 'origin/HEAD'
+  result = run({ 'init' }, root)
+  if result.code ~= 0 then
+    notify_failure(result)
+    return nil
   end
-  return 'HEAD'
-end
-
-local function resolve_base(tl)
-  return git_out({ 'rev-parse', '--verify', comparison_branch(tl) .. '^{commit}' }, tl)
-end
-
-local function review_context(tl)
-  local source = branch(tl)
-  local target = comparison_branch(tl)
-  local base = resolve_base(tl)
-  local key = vim.fn.sha256(source .. '\0' .. target):sub(1, 12) .. '-' .. base:sub(1, 12)
-  return M.config.ref_prefix .. key, target, base
-end
-
-local function review_ref(tl)
-  return review_context(tl)
-end
-
-local function ensure_ref(tl)
-  local ref, _, base = review_context(tl)
-  if not git_ok({ 'rev-parse', '--verify', '--quiet', ref }, tl) then
-    git_out({ 'update-ref', ref, base }, tl)
+  result = run({ 'status', '--json' }, root)
+  if result.code ~= 0 then
+    notify_failure(result)
+    return nil
   end
-  return ref
+  return vim.json.decode(result.stdout)
 end
 
-local function accept_entries(tl, entries, subject)
-  local ref = ensure_ref(tl)
-  local head = git_out({ 'rev-parse', ref }, tl)
-  local index = vim.fn.tempname()
-  local env = { GIT_INDEX_FILE = index }
-
-  local ok, changed = pcall(function()
-    git_out({ 'read-tree', head }, tl, env)
-
-    local paths = {}
-    local seen = {}
-    for _, entry in ipairs(entries) do
-      for _, path in ipairs({ entry.path, entry.oldpath }) do
-        if path and path ~= '' and not seen[path] then
-          seen[path] = true
-          paths[#paths + 1] = path
-        end
-      end
-    end
-    git_out(vim.list_extend({ 'add', '-A', '--' }, paths), tl, env)
-
-    local tree = git_out({ 'write-tree' }, tl, env)
-    if tree == git_out({ 'rev-parse', head .. '^{tree}' }, tl) then
-      return false
-    end
-
-    local new = git_out({ 'commit-tree', tree, '-p', head, '-m', 'accept: ' .. subject }, tl)
-    git_out({ 'update-ref', ref, new, head }, tl)
-    return true
-  end)
-
-  vim.fn.delete(index)
-  if not ok then
-    error(changed)
-  end
-  return changed
-end
-
-function M.accept(tl, path, oldpath)
-  return accept_entries(tl, { { path = path, oldpath = oldpath } }, path)
-end
-
-function M.undo(tl)
-  local ref = review_ref(tl)
-  local cur = git_out({ 'rev-parse', '--verify', ref }, tl)
-  local subject = git_out({ 'log', '-1', '--format=%s', cur }, tl)
-  if not subject:match '^accept:' then
-    return false, 'nothing to un-accept'
-  end
-  local parent = git_out({ 'rev-parse', '--verify', cur .. '^' }, tl)
-  git_out({ 'update-ref', ref, parent, cur }, tl)
-  return true, subject
-end
-
-local function refresh_view(view)
-  local tl = view.adapter.ctx.toplevel
-  local ref = review_ref(tl)
-  if view.rev_arg == ref and view.left and view.left.type == require('diffview.vcs.rev').RevType.COMMIT then
-    view.left.commit = git_out({ 'rev-parse', '--verify', ref }, tl)
+local function refresh(view, reviewed_ref)
+  if view.left and view.left.type == require('diffview.vcs.rev').RevType.COMMIT then
+    view.left.commit = reviewed_ref
   end
   require('diffview').emit 'refresh_files'
 end
 
-function M.accept_current()
-  local ok, lib = pcall(require, 'diffview.lib')
-  if not ok then
-    return vim.notify('review: diffview not loaded', vim.log.levels.WARN)
-  end
-
-  local view = lib.get_current_view()
-  if not view then
-    return vim.notify('review: no diffview open', vim.log.levels.WARN)
-  end
-
-  local file = view:infer_cur_file(true)
-  if not file then
-    return vim.notify('review: no entry under cursor', vim.log.levels.WARN)
-  end
-
-  local entries = { file }
-  local subject = file.path
-  local is_directory = type(file.collapsed) == 'boolean'
-  if is_directory then
-    local prefix = file.path == '' and '' or file.path .. '/'
-    entries = {}
-    for _, candidate in ipairs(view.panel:ordered_file_list()) do
-      if prefix == '' or vim.startswith(candidate.path, prefix) then
-        entries[#entries + 1] = candidate
-      end
-    end
-    subject = 'directory ' .. file.path
-  end
-
-  if #entries == 0 then
-    return vim.notify('review: no files under ' .. subject, vim.log.levels.INFO)
-  end
-
-  local ok2, changed = pcall(accept_entries, view.adapter.ctx.toplevel, entries, subject)
-  if not ok2 then
-    return vim.notify('review: ' .. tostring(changed), vim.log.levels.ERROR)
-  end
-
-  vim.notify(
-    changed and ('review: accepted ' .. subject) or ('review: ' .. subject .. ' already accepted'),
-    vim.log.levels.INFO
-  )
-  refresh_view(view)
-end
-
-function M.undo_current()
-  local ok, lib = pcall(require, 'diffview.lib')
-  if not ok then
-    return vim.notify('review: diffview not loaded', vim.log.levels.WARN)
-  end
-
-  local view = lib.get_current_view()
-  if not view then
-    return vim.notify('review: no diffview open', vim.log.levels.WARN)
-  end
-
-  local ok2, undone, subject = pcall(M.undo, view.adapter.ctx.toplevel)
-  if not ok2 then
-    return vim.notify('review: ' .. tostring(undone), vim.log.levels.ERROR)
-  end
-
-  vim.notify(undone and ('review: un-accepted ' .. subject) or 'review: nothing to un-accept', vim.log.levels.INFO)
-  if undone then
-    refresh_view(view)
-  end
-end
-
 function M.open()
-  local tl = toplevel()
-  local ref = ensure_ref(tl)
+  local root = toplevel()
+  if not root then
+    return
+  end
+  local review = status(root)
+  if not review then
+    return
+  end
   local ok, lib = pcall(require, 'diffview.lib')
   local view = ok and lib.get_current_view()
-  if view and view.rev_arg == ref then
-    return refresh_view(view)
+  if view and view.rev_arg == review.reviewedRef then
+    return refresh(view, review.reviewedRef)
   end
-  vim.cmd('DiffviewOpen ' .. vim.fn.fnameescape(ref))
+  vim.cmd({ cmd = 'DiffviewOpen', args = { '-C=' .. root, review.reviewedRef } })
 end
 
-local function collect_accepts(tl, ref)
-  local entries = {}
-  for _, line in ipairs(git_lines({ 'log', '--format=%H%x09%h%x09%cr%x09%s', ref }, tl)) do
-    local sha, short, rel, subject = line:match '^(%x+)\t(%x+)\t(.-)\t(.*)$'
-    entries[#entries + 1] = {
-      value = sha,
-      short = short,
-      rel = rel,
-      subject = subject,
-      display = ('%s  %-16s %s'):format(short, rel, subject),
-    }
-    if not subject:match '^accept:' then
-      break
-    end
+function M.open_group()
+  local root = toplevel()
+  if not root then
+    return
   end
-  return entries
-end
-
-function M.reset(tl, ref, sha)
-  local cur = git_out({ 'rev-parse', '--verify', ref }, tl)
-  sha = git_out({ 'rev-parse', '--verify', sha }, tl)
-  if sha == cur then
-    return false, 'already at ' .. sha:sub(1, 7)
+  local review = status(root)
+  if not review then
+    return
   end
-  git_out({ 'update-ref', ref, sha, cur }, tl)
-  return true
-end
-
-local function apply_reset(tl, ref, entry)
-  local ok, changed = pcall(M.reset, tl, ref, entry.value)
-  if not ok then
-    return vim.notify('review: ' .. tostring(changed), vim.log.levels.ERROR)
+  local result = run({ 'group', 'list', '--json' }, root)
+  if result.code ~= 0 then
+    return notify_failure(result)
   end
-  vim.notify(
-    changed and ('review: reset to ' .. entry.short .. ' (' .. entry.rel .. ')') or ('review: ' .. changed),
-    vim.log.levels.INFO
-  )
-  local lib = require 'diffview.lib'
-  local view = lib and lib.get_current_view()
-  if view then
-    refresh_view(view)
+  local groups = vim.json.decode(result.stdout)
+  if #groups == 0 then
+    return vim.notify('review: no review groups', vim.log.levels.INFO)
   end
-end
-
-function M.log()
-  local tl = toplevel()
-  local ref = ensure_ref(tl)
-  local entries = collect_accepts(tl, ref)
-  local prompt = 'Accepted (' .. comparison_branch(tl) .. ')'
-
-  local ok, pickers = pcall(require, 'telescope.pickers')
-  if not ok then
-    return vim.ui.select(entries, {
-      prompt = prompt,
-      format_item = function(e)
-        return e.display
-      end,
-    }, function(entry)
-      if entry then
-        apply_reset(tl, ref, entry)
-      end
-    end)
-  end
-
+  local pickers = require 'telescope.pickers'
   local finders = require 'telescope.finders'
   local conf = require('telescope.config').values
-  local previewers = require 'telescope.previewers'
   local actions = require 'telescope.actions'
   local action_state = require 'telescope.actions.state'
-
   pickers.new({}, {
-    prompt_title = prompt,
-    finder = finders.new_table {
-      results = entries,
-      entry_maker = function(e)
-        return { value = e.value, display = e.display, ordinal = e.subject .. ' ' .. e.short, entry = e }
+    prompt_title = 'Review groups',
+    finder = finders.new_table({
+      results = groups,
+      entry_maker = function(group)
+        local display = string.format('%s  %d hunks', group.name, #group.hunks)
+        return { value = group, display = display, ordinal = display }
       end,
-    },
-    sorter = conf.generic_sorter {},
-    previewer = previewers.new_buffer_previewer {
-      define_preview = function(self, entry)
-        local lines = git_lines({ 'show', '--stat', '--patch', entry.value }, tl)
-        vim.api.nvim_buf_set_lines(self.state.bufnr, 0, -1, false, lines)
-        vim.bo[self.state.bufnr].filetype = 'git'
-      end,
-    },
+    }),
+    sorter = conf.generic_sorter({}),
     attach_mappings = function(prompt_bufnr)
       actions.select_default:replace(function()
         local entry = action_state.get_selected_entry()
@@ -319,9 +98,100 @@ function M.log()
         if not entry then
           return
         end
-        if vim.fn.confirm(('Reset accepted to %s (%s)?'):format(entry.entry.short, entry.entry.rel), '&Yes\n&No', 2) == 1 then
-          apply_reset(tl, ref, entry.entry)
+        local projection = run({ 'group', 'view', '--name', entry.value.name }, root)
+        if projection.code ~= 0 then
+          return notify_failure(projection)
         end
+        local view = vim.json.decode(projection.stdout)
+        vim.cmd({ cmd = 'DiffviewOpen', args = { '-C=' .. root, view.ref, review.reviewedRef } })
+      end)
+      return true
+    end,
+  }):find()
+end
+
+function M.accept_current()
+  local ok, lib = pcall(require, 'diffview.lib')
+  if not ok then
+    return vim.notify('review: Diffview is not loaded', vim.log.levels.WARN)
+  end
+  local view = lib.get_current_view()
+  if not view then
+    return vim.notify('review: no Diffview is open', vim.log.levels.WARN)
+  end
+  local root = view.adapter.ctx.toplevel
+  local review = status(root)
+  if not review or view.rev_arg ~= review.reviewedRef then
+    return vim.notify('review: open the reviewed-state view first', vim.log.levels.WARN)
+  end
+  local file = view:infer_cur_file(true)
+  if not file then
+    return vim.notify('review: no file under cursor', vim.log.levels.WARN)
+  end
+  local args = { 'accept', '--path', file.path }
+  if file.oldpath and file.oldpath ~= file.path then
+    vim.list_extend(args, { '--path', file.oldpath })
+  end
+  local result = run(args, root)
+  if result.code ~= 0 then
+    return notify_failure(result)
+  end
+  vim.notify(vim.trim(result.stdout), vim.log.levels.INFO)
+  refresh(view, review.reviewedRef)
+end
+
+function M.undo_current()
+  local ok, lib = pcall(require, 'diffview.lib')
+  if not ok then
+    return vim.notify('review: Diffview is not loaded', vim.log.levels.WARN)
+  end
+  local view = lib.get_current_view()
+  if not view then
+    return vim.notify('review: no Diffview is open', vim.log.levels.WARN)
+  end
+  local result = run({ 'undo' }, view.adapter.ctx.toplevel)
+  if result.code ~= 0 then
+    return notify_failure(result)
+  end
+  vim.notify(vim.trim(result.stdout), vim.log.levels.INFO)
+  local review = status(view.adapter.ctx.toplevel)
+  if review then
+    refresh(view, review.reviewedRef)
+  end
+end
+
+function M.log()
+  local root = toplevel()
+  if not root then return end
+  local result = run({ 'history' }, root)
+  if result.code ~= 0 then return notify_failure(result) end
+  local entries = {}
+  for _, line in ipairs(vim.json.decode(result.stdout)) do
+    local sha, short, relative, subject = line:match('^(%x+)\t(%x+)\t(.-)\t(.*)$')
+    if sha then entries[#entries + 1] = { sha = sha, display = short .. '  ' .. relative .. '  ' .. subject } end
+  end
+  local pickers = require 'telescope.pickers'
+  local finders = require 'telescope.finders'
+  local conf = require('telescope.config').values
+  local previewers = require 'telescope.previewers'
+  local actions = require 'telescope.actions'
+  local action_state = require 'telescope.actions.state'
+  pickers.new({}, {
+    prompt_title = 'Accepted changes',
+    finder = finders.new_table({ results = entries, entry_maker = function(entry) return { value = entry, display = entry.display, ordinal = entry.display } end }),
+    sorter = conf.generic_sorter({}),
+    previewer = previewers.new_buffer_previewer({ define_preview = function(self, entry) local output = vim.system({ 'git', '-C', root, 'show', '--stat', '--patch', entry.value.sha }, { text = true }):wait(); vim.api.nvim_buf_set_lines(self.state.bufnr, 0, -1, false, vim.split(output.stdout, '\n')); vim.bo[self.state.bufnr].filetype = 'git' end }),
+    attach_mappings = function(prompt_bufnr)
+      actions.select_default:replace(function()
+        local entry = action_state.get_selected_entry()
+        actions.close(prompt_bufnr)
+        if not entry or vim.fn.confirm('Reset reviewed state to ' .. entry.value.sha:sub(1, 7) .. '?', '&Yes\n&No', 2) ~= 1 then return end
+        local reset = run({ 'reset', '--commit', entry.value.sha }, root)
+        if reset.code ~= 0 then return notify_failure(reset) end
+        local ok, lib = pcall(require, 'diffview.lib')
+        local view = ok and lib.get_current_view()
+        local review = status(root)
+        if view and review then refresh(view, review.reviewedRef) end
       end)
       return true
     end,

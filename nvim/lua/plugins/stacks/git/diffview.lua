@@ -217,6 +217,7 @@ return {
         { '<leader>gcr', '<cmd>DiffviewRefresh<cr>',        desc = 'Refresh Diffview' },
         { '<leader>gcf', '<cmd>DiffviewFileHistory<cr>',    desc = 'Open Diffview File History' },
         { '<leader>gcv', function() require('lib.review').open() end, desc = 'Review: working tree vs accepted' },
+        { '<leader>gcV', function() require('lib.review').open_group() end, desc = 'Review: select group' },
         { '<leader>gcl', function() require('lib.review').log() end, desc = 'Review: accepted log' },
     },
     config = function(_, opts)
