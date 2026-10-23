@@ -1,4 +1,5 @@
 local M = {}
+local group_views = {}
 
 local function run(args, cwd)
   return vim.system(vim.list_extend({ 'git-review' }, args), { cwd = cwd, text = true }):wait()
@@ -51,6 +52,7 @@ function M.open()
   if not review then
     return
   end
+  group_views[root] = nil
   local ok, lib = pcall(require, 'diffview.lib')
   local view = ok and lib.get_current_view()
   if view and view.rev_arg == review.reviewedRef then
@@ -103,7 +105,8 @@ function M.open_group()
           return notify_failure(projection)
         end
         local view = vim.json.decode(projection.stdout)
-        vim.cmd({ cmd = 'DiffviewOpen', args = { '-C=' .. root, view.ref, review.reviewedRef } })
+        group_views[root] = entry.value.name
+        vim.cmd({ cmd = 'DiffviewOpen', args = { '-C=' .. root, review.reviewedRef .. '..' .. view.ref } })
       end)
       return true
     end,
@@ -121,7 +124,24 @@ function M.accept_current()
   end
   local root = view.adapter.ctx.toplevel
   local review = status(root)
-  if not review or view.rev_arg ~= review.reviewedRef then
+  if not review then
+    return
+  end
+  local group = group_views[root]
+  if group then
+    local file = view:infer_cur_file(true)
+    if not file then
+      return vim.notify('review: no file under cursor', vim.log.levels.WARN)
+    end
+    local result = run({ 'group', 'accept', '--name', group, '--path', file.path }, root)
+    if result.code ~= 0 then
+      return notify_failure(result)
+    end
+    group_views[root] = nil
+    vim.notify('Accepted grouped changes for ' .. file.path, vim.log.levels.INFO)
+    return M.open_group()
+  end
+  if view.rev_arg ~= review.reviewedRef then
     return vim.notify('review: open the reviewed-state view first', vim.log.levels.WARN)
   end
   local file = view:infer_cur_file(true)
