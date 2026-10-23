@@ -1,4 +1,4 @@
-local repo = vim.env.repos .. '/code-intent'
+local plugin_dir = vim.fn.stdpath 'data' .. '/lazy/code-intent'
 
 local function annotate(range)
   vim.ui.input({ prompt = 'Cint intent: ' }, function(value)
@@ -27,18 +27,21 @@ end
 return {
   'CypDasHuhn/code-intent',
   name = 'code-intent',
-  dev = true,
-  dir = repo .. '/nvim-renderer',
   lazy = false,
-  build = 'bash -c "cd .. && ./analysis-engine/gradlew -p analysis-engine :server:installDist"',
+  build = 'bash -c "cd analysis-engine && ./gradlew :server:installDist"',
+  init = function()
+    vim.opt.rtp:append(plugin_dir .. '/nvim-renderer')
+  end,
   config = function()
+    local server = plugin_dir .. '/analysis-engine/build/install/cint-server/bin/cint-server'
+    if vim.fn.executable(server) == 0 then
+      server = 'cint-server'
+    end
     vim.cmd.runtime 'plugin/cint.lua'
     require('cint').setup {
       auto_render = true,
       scope = 'global',
-      server_cmd = {
-        repo .. '/analysis-engine/build/install/cint-server/bin/cint-server',
-      },
+      server_cmd = { server },
 
       resolve = {
         precedence = { 'SHOW', 'HIGHLIGHT', 'IGNORE', 'CONCEAL' },
@@ -94,12 +97,32 @@ return {
     {
       '<leader>pa',
       '<cmd>CintReviewAccept<cr>',
-      desc = 'Cint: accept candidate under cursor',
+      desc = 'Cint: accept review group under cursor',
     },
     {
       '<leader>pd',
       '<cmd>CintReviewDeny<cr>',
-      desc = 'Cint: deny candidate group under cursor',
+      desc = 'Cint: deny review group under cursor',
+    },
+    {
+      '<leader>pV',
+      '<cmd>CintReviewList<cr>',
+      desc = 'Cint: list review groups',
+    },
+    {
+      '<leader>pc',
+      '<cmd>CintSuggestCancel<cr>',
+      desc = 'Cint: cancel AI suggestion pass',
+    },
+    {
+      '<leader>pI',
+      '<cmd>CintRestrictions<cr>',
+      desc = 'Cint: inspect AI restrictions',
+    },
+    {
+      '<leader>pA',
+      '<cmd>CintAiLog<cr>',
+      desc = 'Cint: show AI session log',
     },
     {
       '<leader>pn',
