@@ -1,4 +1,14 @@
-local plugin_dir = vim.fn.stdpath 'data' .. '/lazy/code-intent'
+local function find_server()
+  local candidates = {
+    vim.fn.expand '~/repos/code-intent/analysis-engine/apps/server/build/install/cint-server/bin/cint-server',
+  }
+  for _, path in ipairs(candidates) do
+    if vim.fn.executable(path) == 1 then
+      return path
+    end
+  end
+  return 'cint-server'
+end
 
 local function annotate(range)
   vim.ui.input({ prompt = 'Cint intent: ' }, function(value)
@@ -25,19 +35,13 @@ local function annotate_visual()
 end
 
 return {
-  'CypDasHuhn/code-intent',
-  name = 'code-intent',
+  'CypDasHuhn/code-intent.nvim',
   lazy = false,
-  build = 'bash -c "cd analysis-engine && ./gradlew :server:installDist"',
-  init = function()
-    vim.opt.rtp:append(plugin_dir .. '/nvim-renderer')
-  end,
   config = function()
-    local server = plugin_dir .. '/analysis-engine/build/install/cint-server/bin/cint-server'
-    if vim.fn.executable(server) == 0 then
-      server = 'cint-server'
+    local server = vim.env.CINT_SERVER
+    if not server or server == '' then
+      server = find_server()
     end
-    vim.cmd.runtime 'plugin/cint.lua'
     require('cint').setup {
       auto_render = true,
       scope = 'global',
