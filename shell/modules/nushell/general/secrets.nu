@@ -22,17 +22,32 @@ def "secrets add" [
     }
 
     let lines = (open --raw $path | lines)
+    let closes = ($lines | enumerate | where {|row| ($row.item | str trim) == '}' })
+    if ($closes | is-empty) {
+        error make { msg: $"could not find the closing '}}' in ($path)" }
+    }
+    let closing_index = ($closes | last | get index)
+    let entries = ($lines | enumerate | where {|row|
+        $row.index < $closing_index and not (($row.item | str trim) | is-empty)
+    })
+    let normalized = if ($entries | is-empty) {
+        $lines
+    } else {
+        let last_entry = ($entries | last)
+        let trimmed = ($last_entry.item | str trim)
+        if ($trimmed =~ '^[A-Za-z_][A-Za-z0-9_]*\s*=' and not ($trimmed | str ends-with ',')) {
+            $lines | update $last_entry.index ($last_entry.item + ',')
+        } else {
+            $lines
+        }
+    }
     let pattern = $'^\s*($key)\s*='
-    let existing = ($lines | enumerate | where {|row| $row.item =~ $pattern })
+    let existing = ($normalized | enumerate | where {|row| $row.item =~ $pattern })
 
     let updated = if ($existing | is-empty) {
-        let closes = ($lines | enumerate | where {|row| ($row.item | str trim) == '}' })
-        if ($closes | is-empty) {
-            error make { msg: $"could not find the closing '}}' in ($path)" }
-        }
-        $lines | insert ($closes | last | get index) $entry
+        $normalized | insert $closing_index $entry
     } else {
-        $lines | each {|line| if ($line =~ $pattern) { $entry } else { $line } }
+        $normalized | each {|line| if ($line =~ $pattern) { $entry } else { $line } }
     }
 
     ((($updated | str join "\n") + "\n")) | save --force $path
