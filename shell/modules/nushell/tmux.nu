@@ -1,6 +1,3 @@
-# With no arguments, resume tmux instead of creating a new session. On a cold
-# server, invoking tmux directly lets Continuum restore into its normal
-# temporary startup session, which Resurrect removes when appropriate.
 def --wrapped tmux [...args] {
     if not ($args | is-empty) {
         ^tmux ...$args
@@ -14,15 +11,6 @@ def --wrapped tmux [...args] {
 
     tmux-ensure-plugins
 
-    # Older versions of this wrapper created __tmux_restore__ as a bootstrap
-    # session. Remove it so it cannot be kept alive or saved again.
-    let restore = (do -i { ^tmux has-session -t "=__tmux_restore__" } | complete)
-    if $restore.exit_code == 0 {
-        ^tmux kill-session -t "=__tmux_restore__"
-    }
-
-    # Use the exit status rather than parsing output: psmux has returned an
-    # empty list for list-sessions in some versions.
     let server = (do -i { ^tmux list-sessions } | complete)
     if $server.exit_code == 0 {
         ^tmux attach-session
@@ -31,6 +19,16 @@ def --wrapped tmux [...args] {
 
     ^tmux
 }
+
+def --wrapped tmux-workspace [...args] {
+    let script = (tmux-config-file | path dirname | path join "scripts" "workspace.nu")
+    tmux-ensure-plugins
+    let action = if (($args | get -o 0 | default "") == "repin") { "repin" } else { "open" }
+    let command_args = if $action == "repin" { $args | skip 1 } else { $args }
+    ^nu --no-config-file $script $action ...$command_args
+}
+
+alias tws = tmux-workspace
 
 def tmux-config-file [] {
     let xdg = ($env.XDG_CONFIG_HOME? | default ($nu.home-dir | path join ".config"))

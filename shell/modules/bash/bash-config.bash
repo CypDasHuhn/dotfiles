@@ -18,6 +18,18 @@ shopt -s checkwinsize        # update LINES/COLUMNS after each command
 
 export EDITOR="nvim"
 
+tmux-workspace() {
+  command bash "${XDG_CONFIG_HOME:-$HOME/.config}/tmux/scripts/ensure-plugins.sh" || true
+  if [[ "${1:-}" == "repin" ]]; then
+    shift
+    command nu --no-config-file "${XDG_CONFIG_HOME:-$HOME/.config}/tmux/scripts/workspace.nu" repin "$@"
+    return
+  fi
+  command nu --no-config-file "${XDG_CONFIG_HOME:-$HOME/.config}/tmux/scripts/workspace.nu" open "$@"
+}
+
+alias tws=tmux-workspace
+
 # Prompt
 PS1='\W \$ '
 

@@ -133,6 +133,23 @@ local function node_dir(state)
   return vim.fn.fnamemodify(path, ':h')
 end
 
+local function open_workspace(state)
+  local dir = node_dir(state)
+  if not dir then
+    return
+  end
+
+  local config_home = vim.env.XDG_CONFIG_HOME or (vim.fn.expand('~') .. '/.config')
+  local script = config_home .. '/tmux/scripts/workspace.nu'
+  vim.system({ 'nu', '--no-config-file', script, 'open', dir }, { text = true }, function(result)
+    if result.code ~= 0 then
+      vim.schedule(function()
+        vim.notify(result.stderr ~= '' and result.stderr or 'Could not open workspace', vim.log.levels.ERROR)
+      end)
+    end
+  end)
+end
+
 local function toggle_tree()
   local manager = require 'neo-tree.sources.manager'
   local utils = require 'neo-tree.utils'
@@ -221,6 +238,7 @@ return {
         scoped_grep_tests = scoped_search('grep', 'tests'),
         scoped_grep_docs = scoped_search('grep', 'docs'),
         scoped_grep_all = scoped_search('grep', 'all'),
+        open_workspace = open_workspace,
         toggle_merged_dirs = function()
           toggle_merge_single_child_dirs()
         end,
@@ -450,6 +468,7 @@ return {
           [']'] = 'move_to_last_sibling',
           ['<C-h>'] = 'move_to_first_sibling',
           ['<C-l>'] = 'move_to_last_sibling',
+          T = { command = 'open_workspace', desc = 'Open directory workspace' },
           y = 'system_copy',
           Y = 'copy_system_path',
           ['<C-y>'] = 'copy_relative_path',
