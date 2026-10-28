@@ -31,10 +31,12 @@ end
 return {
   dir = repo .. '/editors/nvim',
   name = 'codenb',
+  enabled = false,
   lazy = false,
   build = 'bash -c "cd '
-    .. repo
-    .. ' && (cd analysis-engine && ./gradlew :server:installDist) && (cd renderer && ./gradlew :server:installDist :web:jsBrowserDistribution)"',
+      .. repo
+      ..
+      ' && (cd analysis-engine && ./gradlew :server:installDist) && (cd renderer && ./gradlew :server:installDist :web:jsBrowserDistribution)"',
   config = function()
     require('codenb').setup {
       renderer_url = 'http://127.0.0.1:8090',
@@ -45,14 +47,14 @@ return {
     }
   end,
   keys = {
-    { '<leader>cn', '<cmd>CodeNbServe<cr>', desc = 'Code Neighbours: serve' },
-    { '<leader>cs', '<cmd>CodeNbStatus<cr>', desc = 'Code Neighbours: status' },
-    { '<leader>ch', '<cmd>CodeNbHere<cr>', desc = 'Code Neighbours: file baseline' },
-    { '<leader>cy', '<cmd>CodeNbSymbol<cr>', desc = 'Code Neighbours: symbol under caret' },
-    { '<leader>cd', '<cmd>CodeNbDir<cr>', desc = 'Code Neighbours: directory baseline' },
+    { '<leader>cn', '<cmd>CodeNbServe<cr>',     desc = 'Code Neighbours: serve' },
+    { '<leader>cs', '<cmd>CodeNbStatus<cr>',    desc = 'Code Neighbours: status' },
+    { '<leader>ch', '<cmd>CodeNbHere<cr>',      desc = 'Code Neighbours: file baseline' },
+    { '<leader>cy', '<cmd>CodeNbSymbol<cr>',    desc = 'Code Neighbours: symbol under caret' },
+    { '<leader>cd', '<cmd>CodeNbDir<cr>',       desc = 'Code Neighbours: directory baseline' },
     { '<leader>cN', '<cmd>CodeNbNamespace<cr>', desc = 'Code Neighbours: namespace baseline' },
-    { '<leader>cl', '<cmd>CodeNbUrl<cr>', desc = 'Code Neighbours: copy URL' },
-    { '<leader>cg', '<cmd>CodeNbDot<cr>', desc = 'Code Neighbours: graph dot' },
-    { '<leader>cS', '<cmd>CodeNbStop<cr>', desc = 'Code Neighbours: stop' },
+    { '<leader>cl', '<cmd>CodeNbUrl<cr>',       desc = 'Code Neighbours: copy URL' },
+    { '<leader>cg', '<cmd>CodeNbDot<cr>',       desc = 'Code Neighbours: graph dot' },
+    { '<leader>cS', '<cmd>CodeNbStop<cr>',      desc = 'Code Neighbours: stop' },
   },
 }

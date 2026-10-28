@@ -1,6 +1,6 @@
 local function find_server()
   local candidates = {
-    vim.fn.expand '~/repos/code-intent/analysis-engine/apps/server/build/install/cint-server/bin/cint-server',
+    vim.fn.expand '~/repos/code-intent/apps/server/build/install/cint-server/bin/cint-server',
   }
   for _, path in ipairs(candidates) do
     if vim.fn.executable(path) == 1 then
@@ -37,6 +37,7 @@ end
 return {
   'CypDasHuhn/code-intent.nvim',
   lazy = false,
+  enabled = false,
   config = function()
     local server = vim.env.CINT_SERVER
     if not server or server == '' then
@@ -46,6 +47,10 @@ return {
       auto_render = true,
       scope = 'global',
       server_cmd = { server },
+      hover = {
+        enabled = true,
+        on_cursor_hold = false,
+      },
 
       resolve = {
         precedence = { 'SHOW', 'HIGHLIGHT', 'IGNORE', 'CONCEAL' },
@@ -160,6 +165,11 @@ return {
       '<leader>pi',
       '<cmd>CintUI<cr>',
       desc = 'Cint: remove symbol from rule config field',
+    },
+    {
+      '<leader>pt',
+      '<cmd>CintHover<cr>',
+      desc = 'Cint: show intent hover',
     },
   },
 }
