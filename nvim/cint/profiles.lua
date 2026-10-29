@@ -70,12 +70,12 @@ return {
     IGNORE_LOGGING = {
       tags = {
         LOGGING = { meaning = 'IGNORE' },
-      }
+      },
     },
     HIDE_LOGGING = {
       tags = {
         LOGGING = { meaning = 'CONCEAL' },
-      }
+      },
     },
   },
 }

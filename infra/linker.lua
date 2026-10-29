@@ -28,6 +28,29 @@ local machine = nil
 local fs = nil
 local resolver = nil
 
+local function to_absolute(path)
+	if not path or path == "" then
+		return path
+	end
+	local os_type = machine and machine.os.type or "unix"
+	if os_type == "windows" then
+		if path:match("^%a:[/\\]") or path:match("^[/\\]") then
+			return path
+		end
+	elseif path:sub(1, 1) == "/" then
+		return path
+	end
+	local handle = io.popen(os_type == "windows" and "cd" or "pwd")
+	local cwd = handle and handle:read("*l")
+	if handle then
+		handle:close()
+	end
+	if not cwd or cwd == "" then
+		return path
+	end
+	return cwd:gsub("[/\\]+$", "") .. "/" .. path:gsub("^%.[/\\]", "")
+end
+
 local function normalize_path(path, os_type)
 	if not path then
 		return nil
@@ -96,6 +119,8 @@ function M.link(source, target)
 	if not source or not target then
 		return false, "Source and target are required"
 	end
+
+	source = to_absolute(source)
 
 	if not fs.exists(source) then
 		return false, "Source does not exist: " .. source

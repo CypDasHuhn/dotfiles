@@ -25,7 +25,7 @@ vim.opt.shortmess:append 'F'
 vim.opt.shortmess:append 'A'
 
 vim.schedule(function()
-  if vim.env.SSH_CLIENT or vim.env.SSH_TTY then
+  if vim.env.SSH_CLIENT or vim.env.SSH_TTY or vim.env.SSH_CONNECTION then
     local osc52 = require('vim.ui.clipboard.osc52')
     local copy = {
       ['+'] = osc52.copy('+'),

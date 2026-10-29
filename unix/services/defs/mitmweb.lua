@@ -1,15 +1,5 @@
-local steam_ignore_hosts = {
-	"steampowered.com",
-	"steamcommunity.com",
-	"steamstatic.com",
-	"steamcontent.com",
-	"steamusercontent.com",
-	"steamserver.net",
-	"steam-chat.com",
-	"steamgames.com",
-	"valvesoftware.com",
-	"steamcdn-a.akamaihd.net",
-	"steampipe.akamaized.net",
+local allow_hosts = {
+	"(^|\\.)reddit\\.com(:[0-9]+)?$",
 }
 
 local function flag(name, values)
@@ -33,7 +23,7 @@ end
 
 local command = concat({
 	{ "mitmdump", "--quiet", "--listen-host", "127.0.0.1", "--listen-port", "8080" },
-	flag("--ignore-hosts", steam_ignore_hosts),
+	flag("--allow-hosts", allow_hosts),
 	{ "-s", "~/.config/mitmproxy/reddit_filter.py", "--set", "ssl_insecure=true" },
 })
 
