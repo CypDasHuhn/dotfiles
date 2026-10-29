@@ -143,6 +143,7 @@ def state-workspaces [state] {
 			id: ($item.id? | default ""),
 			root: $item.root,
 			related: ($item.related? | default []),
+			excluded: ($item.excluded? | default []),
 			last_used: ($item.last_used? | default "0")
 		}
 	}
@@ -152,7 +153,7 @@ def state-workspaces [state] {
 def state-record [state, id: string] {
 	let records = (state-workspaces $state | where { |item| $item.id == $id })
 	if ($records | is-empty) {
-		{ id: $id, root: "", related: [], last_used: "0" }
+		{ id: $id, root: "", related: [], excluded: [], last_used: "0" }
 	} else {
 		$records | first
 	}
@@ -165,21 +166,23 @@ def ensure-state-workspace [state, id: string, root: string] {
 			version: 2,
 			workspaces: ($records | each { |item|
 				if $item.id == $id {
-					{ id: $id, root: $root, related: $item.related, last_used: $item.last_used }
+					{ id: $id, root: $root, related: $item.related, excluded: $item.excluded, last_used: $item.last_used }
 				} else {
 					$item
 				}
 			})
 		}
 	} else {
-		{ version: 2, workspaces: ($records | append { id: $id, root: $root, related: [], last_used: "0" }) }
+		{ version: 2, workspaces: ($records | append { id: $id, root: $root, related: [], excluded: [], last_used: "0" }) }
 	}
 }
 
-def replace-state-record [state, id: string, root: string, related: list<string>, last_used: string] {
+def replace-state-record [state, id: string, root: string, related: list<string>, last_used: string, excluded?: list<string>] {
+	let existing = (state-record $state $id)
+	let next_excluded = if ($excluded == null) { $existing.excluded } else { $excluded }
 	let records = (state-workspaces $state | each { |item|
 		if $item.id == $id {
-			{ id: $id, root: $root, related: $related, last_used: $last_used }
+			{ id: $id, root: $root, related: $related, excluded: $next_excluded, last_used: $last_used }
 		} else {
 			$item
 		}
@@ -187,7 +190,7 @@ def replace-state-record [state, id: string, root: string, related: list<string>
 	if ($records | any { |item| $item.id == $id }) {
 		{ version: 2, workspaces: $records }
 	} else {
-		{ version: 2, workspaces: ($records | append { id: $id, root: $root, related: $related, last_used: $last_used }) }
+		{ version: 2, workspaces: ($records | append { id: $id, root: $root, related: $related, excluded: $next_excluded, last_used: $last_used }) }
 	}
 }
 
@@ -197,8 +200,10 @@ def link-workspaces [state, left_id: string, left_root: string, right_id: string
 	let right_record = (state-record $state $right_id)
 	let left_related = ($left_record.related | append $right_id | uniq)
 	let right_related = ($right_record.related | append $left_id | uniq)
-	let state = (replace-state-record $state $left_id $left_root $left_related $left_record.last_used)
-	replace-state-record $state $right_id $right_root $right_related $right_record.last_used
+	let left_excluded = ($left_record.excluded | where { |item| $item != $right_id })
+	let right_excluded = ($right_record.excluded | where { |item| $item != $left_id })
+	let state = (replace-state-record $state $left_id $left_root $left_related $left_record.last_used $left_excluded)
+	replace-state-record $state $right_id $right_root $right_related $right_record.last_used $right_excluded
 }
 
 def unlink-workspaces [state, left_id: string, left_root: string, right_id: string, right_root: string] {
@@ -209,6 +214,13 @@ def unlink-workspaces [state, left_id: string, left_root: string, right_id: stri
 	let right_related = ($right_record.related | where { |item| $item != $left_id })
 	let state = (replace-state-record $state $left_id $left_root $left_related $left_record.last_used)
 	replace-state-record $state $right_id $right_root $right_related $right_record.last_used
+}
+
+def exclude-workspace [state, id: string, root: string, target_id: string] {
+	let state = (ensure-state-workspace $state $id $root)
+	let record = (state-record $state $id)
+	let excluded = ($record.excluded | append $target_id | uniq)
+	replace-state-record $state $id $root $record.related $record.last_used $excluded
 }
 
 def configured-purposes [] {
@@ -290,8 +302,46 @@ def session-root [session: string] {
 	}
 }
 
+def git-common-for-root [root: string] {
+	if ($root | is-empty) {
+		return ""
+	}
+	let result = (do { ^git -C $root rev-parse --path-format=absolute --git-common-dir } | complete)
+	if $result.exit_code != 0 {
+		return ""
+	}
+	let common = ($result.stdout | str trim)
+	if ($common | is-empty) {
+		""
+	} else {
+		normalize-root $common
+	}
+}
+
+def ensure-git-common [session: string, root: string] {
+	let stored = (session-option $session "@workspace-git-common")
+	if ($stored | is-not-empty) {
+		return (normalize-root $stored)
+	}
+	let common = (git-common-for-root $root)
+	if ($common | is-not-empty) {
+		set-session-option $session "@workspace-git-common" $common
+	}
+	$common
+}
+
+def set-git-common [session: string, root: string] {
+	let common = (git-common-for-root $root)
+	if ($common | is-empty) {
+		^tmux set-option -t $session -u "@workspace-git-common"
+	} else {
+		set-session-option $session "@workspace-git-common" $common
+	}
+	$common
+}
+
 def session-records [] {
-	let result = (tmux-result list-sessions -F "#{session_name}\t#{@workspace-id}\t#{@workspace-root}\t#{@workspace-last-used}")
+	let result = (tmux-result list-sessions -F "#{session_name}\t#{@workspace-id}\t#{@workspace-root}\t#{@workspace-last-used}\t#{@workspace-git-common}")
 	if $result.exit_code != 0 {
 		return []
 	}
@@ -305,12 +355,14 @@ def session-records [] {
 		let id = ($parts | get -o 1 | default "")
 		let stored = ($parts | get -o 2 | default "")
 		let last_raw = ($parts | get -o 3 | default "0")
+		let common_raw = ($parts | get -o 4 | default "")
 		let root = if ($stored | is-empty) { session-root $name } else { normalize-root $stored }
 		{
 			name: $name,
 			id: $id,
 			root: $root,
-			mru: (try { $last_raw | into int } catch { 0 })
+			mru: (try { $last_raw | into int } catch { 0 }),
+			git_common: (if ($common_raw | is-empty) { "" } else { normalize-root $common_raw })
 		}
 	}
 }
@@ -380,6 +432,7 @@ def initialize-session [session: string, root: string] {
 	let normalized = (normalize-root $root)
 	let id = (ensure-workspace-id $session)
 	set-session-option $session "@workspace-root" $normalized
+	set-git-common $session $normalized | ignore
 	let state = (ensure-state-workspace (load-state) $id $normalized)
 	ensure-session-last-used $session $id $state | ignore
 	save-state $state
@@ -596,6 +649,7 @@ def repin-workspace [raw_path?: string] {
 
 	let id = (ensure-workspace-id $session)
 	set-session-option $session "@workspace-root" $root
+	set-git-common $session $root | ignore
 	let state = (ensure-state-workspace (load-state) $id $root)
 	save-state $state
 	^tmux display-message $"workspace anchored to: ($root)"
@@ -605,12 +659,62 @@ def related-records [session: string] {
 	if ($session | is-empty) {
 		return []
 	}
+	ensure-session-identities
 	let id = (ensure-workspace-id $session)
+	let root = (session-root $session)
+	let common = (ensure-git-common $session $root)
 	let state = (load-state)
-	let related = ((state-record $state $id).related | default [])
-	session-records
-	| where { |item| $item.id in $related }
-	| sort-by mru --reverse
+	let record = (state-record $state $id)
+	let manual = ($record.related | default [])
+	let excluded = ($record.excluded | default [])
+	let others = (session-records | where { |item| $item.id != $id })
+	let calculated = if ($common | is-empty) {
+		[]
+	} else {
+		$others | where { |item|
+			let item_common = if ($item.git_common | is-empty) {
+				let computed = (git-common-for-root $item.root)
+				if ($computed | is-not-empty) {
+					set-session-option $item.name "@workspace-git-common" $computed
+				}
+				$computed
+			} else {
+				normalize-root $item.git_common
+			}
+			$item_common == $common
+		}
+	}
+	let calculated_ids = ($calculated | each { |item| $item.id })
+	$others
+	| each { |item|
+		{
+			name: $item.name,
+			id: $item.id,
+			root: $item.root,
+			mru: $item.mru,
+			git_common: $item.git_common,
+			manual: ($item.id in $manual),
+			calculated: ($item.id in $calculated_ids)
+		}
+	}
+	| where { |item| ($item.manual or $item.calculated) and ($item.id not-in $excluded) }
+	| sort-by { |item| $item.name | str downcase }
+}
+
+def related-order [current: string, records: list] {
+	let sorted = ($records | sort-by { |item| $item.name | str downcase })
+	let count = ($sorted | length) + 1
+	let center = ($count // 2)
+	let current_record = {
+		name: $current,
+		id: (ensure-workspace-id $current),
+		root: (session-root $current),
+		mru: 0,
+		git_common: "",
+		manual: false,
+		calculated: false
+	}
+	($sorted | first $center) ++ [$current_record] ++ ($sorted | skip $center)
 }
 
 def clear-pending-options [kind: string, client: string] {
@@ -720,54 +824,92 @@ def select-session [action: string, client: string] {
 	}
 }
 
+def related-pending [client: string] {
+	global-option (pending-option "related" $client "pending")
+}
+
+def set-related-pending [client: string, name: string] {
+	^tmux set-option -g (pending-option "related" $client "pending") $name
+}
+
+def enter-related-table [client: string] {
+	if ($client | is-not-empty) {
+		^tmux switch-client -c $client -T workspace-related
+	} else {
+		^tmux switch-client -T workspace-related
+	}
+}
+
 def select-related [action: string, client: string] {
 	let current = (session-for $client)
-	let records = (related-records $current)
-	let count = ($records | length)
-	if $count == 0 {
-		if $action == "cancel" { clear-pending "related" $client }
+	if ($current | is-empty) {
 		return
 	}
-
-	let pending_option = (pending-option "related" $client "pending")
-	let pending_raw = (global-option $pending_option)
-	let pending_exists = ($records | any { |item| $item.name == $pending_raw })
-	let pending = if $pending_exists { $pending_raw } else { "" }
+	let records = (related-records $current)
+	let order = (related-order $current $records)
+	let count = ($order | length)
+	if $count <= 1 {
+		clear-pending "related" $client
+		return
+	}
+	let current_index = ($order | enumerate | where { |item| $item.item.name == $current } | first | get index)
+	let pending_raw = (related-pending $client)
+	let pending_index = if ($pending_raw | is-empty) {
+		$current_index
+	} else {
+		let matching = ($order | enumerate | where { |item| $item.item.name == $pending_raw })
+		if ($matching | is-empty) { $current_index } else { $matching | first | get index }
+	}
 
 	match $action {
-		"left" | "right" => {
-			let matching = ($records | enumerate | where { |item| $item.item.name == $pending })
-			let index = if ($matching | is-empty) {
-				if $action == "right" { 0 } else { $count - 1 }
-			} else {
-				$matching | first | get index
-			}
-			let target = if $action == "right" {
-				($index + 1) mod $count
-			} else {
-				($index - 1 + $count) mod $count
-			}
+		"cursor-left" | "cursor-right" => {
+			let step = if $action == "cursor-right" { 1 } else { -1 }
+			let next = (($pending_index + $step) mod $count)
+			let name = ($order | get $next | get name)
+			set-related-pending $client $name
+			arm-timeout "related" $client
+			enter-related-table $client
+			^tmux refresh-client -S
+		}
+		"direct-next" | "direct-previous" => {
+			let step = if $action == "direct-next" { 1 } else { -1 }
+			let target = (($current_index + $step) mod $count)
+			let name = ($order | get $target | get name)
 			clear-pending-options "related" $client
-			move-to-session ($records | get $target | get name) $client
+			if $name != $current {
+				move-to-session $name $client
+			}
 		}
 		"confirm" => {
-			let target = ($records | where { |item| $item.name == $pending } | get -o 0 | default null)
-			if $target != null {
-				move-to-session $target.name $client
+			let target = if ($pending_raw | is-empty) { $current } else { $pending_raw }
+			if $target != $current {
+				move-to-session $target $client
 			}
 			clear-pending "related" $client
 		}
 		"cancel" => { clear-pending "related" $client }
 		"unlink" => {
-			let target = ($records | where { |item| $item.name == $pending } | get -o 0 | default null)
-			if $target != null {
-				let current_id = (ensure-workspace-id $current)
-				let current_root = (session-root $current)
-				let state = (unlink-workspaces (load-state) $current_id $current_root $target.id $target.root)
-				save-state $state
+			let target_name = if ($pending_raw | is-empty) { $current } else { $pending_raw }
+			if $target_name != $current {
+				let target = ($order | where { |item| $item.name == $target_name } | get -o 0 | default null)
+				if $target != null {
+					let current_id = (ensure-workspace-id $current)
+					let current_root = (session-root $current)
+					let target_id = if ($target.id | is-not-empty) { $target.id } else { ensure-workspace-id $target_name }
+					let target_root = (session-root $target_name)
+					let state = (unlink-workspaces (load-state) $current_id $current_root $target_id $target_root)
+					let state = if $target.calculated {
+						exclude-workspace $state $current_id $current_root $target_id
+					} else {
+						$state
+					}
+					save-state $state
+					^tmux refresh-client -S
+				}
 			}
 			clear-pending "related" $client
 		}
+		_ => {}
 	}
 }
 
@@ -783,7 +925,8 @@ def pick-related [client: string] {
 		return
 	}
 	let related = ((state-record (load-state) $current_id).related | default [])
-	let candidates = (session-records | where { |item| $item.id != $current_id and $item.id not-in $related })
+	let already_related = (related-records $current | each { |item| $item.id })
+	let candidates = (session-records | where { |item| $item.id != $current_id and $item.id not-in $related and $item.id not-in $already_related })
 	if ($candidates | is-empty) {
 		^tmux display-message "no unlinked sessions"
 		return
@@ -811,6 +954,50 @@ def pick-related [client: string] {
 		save-state $state
 		^tmux refresh-client -S
 	}
+}
+
+def move-window-pick [client: string] {
+	let current = (session-for $client)
+	let window = (current-window $client)
+	if ($current | is-empty) or ($window | is-empty) {
+		return
+	}
+	let sessions = (session-records | where { |item| $item.name != $current } | sort-by { |item| $item.name | str downcase })
+	if ($sessions | is-empty) {
+		^tmux display-message "no other sessions"
+		return
+	}
+	let input = ($sessions | each { |item| $"($item.name)\t($item.root)" } | str join "\n")
+	let tmux_fzf = (do { ^which fzf-tmux } | complete)
+	let plain_fzf = (do { ^which fzf } | complete)
+	let picked = if $tmux_fzf.exit_code == 0 {
+		do { $input | ^fzf-tmux -p "70%,60%" --prompt "move tab> " } | complete
+	} else if $plain_fzf.exit_code == 0 {
+		do { $input | ^fzf --height "60%" --reverse --prompt "move tab> " } | complete
+	} else {
+		^tmux display-message "fzf is required to move tabs"
+		return
+	}
+	let line = ($picked.stdout | str trim)
+	if ($picked.exit_code != 0) or ($line | is-empty) {
+		return
+	}
+	let target_name = ($line | split row "\t" | first)
+	let target = ($sessions | where { |item| $item.name == $target_name } | get -o 0 | default null)
+	if $target == null {
+		return
+	}
+	let windows = (tmux-value list-windows -t $"=($current)" -F "#{window_id}" | lines | where { |item| $item != "" })
+	if ($windows | length) <= 1 {
+		create-window $current (current-purpose $current $client) | ignore
+	}
+	let result = (tmux-result move-window -s $window -t $"=($target.name):")
+	if $result.exit_code != 0 {
+		^tmux display-message $"could not move tab: ($result.stderr | str trim)"
+		return
+	}
+	move-to-session $target.name $client
+	^tmux refresh-client -S
 }
 
 def find-session [target: string] {
@@ -859,7 +1046,15 @@ def unlink-session [target: string, client: string] {
 		return
 	}
 
-	save-state (unlink-workspaces (load-state) $current_id $current_root $target_record.id $target_record.root)
+	let current_common = (ensure-git-common $current $current_root)
+	let target_common = (ensure-git-common $target_record.name $target_record.root)
+	let state = (unlink-workspaces (load-state) $current_id $current_root $target_record.id $target_record.root)
+	let state = if ($current_common | is-not-empty) and ($current_common == $target_common) {
+		exclude-workspace $state $current_id $current_root $target_record.id
+	} else {
+		$state
+	}
+	save-state $state
 	^tmux refresh-client -S
 }
 
@@ -1054,6 +1249,7 @@ def main [...args: string] {
 		"select-session" => { select-session $first $second }
 		"select-related" => { select-related $first $second }
 		"link-pick" => { pick-related $first }
+		"move-window-pick" => { move-window-pick $first }
 		"link" => { link-session $first $second }
 		"unlink" => { unlink-session $first $second }
 		"timeout" => { timeout $first $second ($rest | get -o 2 | default "") }
@@ -1064,7 +1260,7 @@ def main [...args: string] {
 		"status-related" => { status-related $first $second ($rest | get -o 2 | default "") }
 		"status-purposes" => { status-purposes $first $second }
 		_ => {
-			print -e "usage: workspace.nu open|repin|purpose|cycle-purpose|new-window|new-window-command|select-session|select-related|link-pick|link|unlink|status-sessions|status-related|status-purposes"
+			print -e "usage: workspace.nu open|repin|purpose|cycle-purpose|new-window|new-window-command|select-session|select-related|link-pick|move-window-pick|link|unlink|status-sessions|status-related|status-purposes"
 			exit 2
 		}
 	}

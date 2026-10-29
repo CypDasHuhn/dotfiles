@@ -63,8 +63,17 @@ def state-related [state, id: string] {
 	}
 }
 
+def state-excluded [state, id: string] {
+	let records = ($state.workspaces? | default [] | where { |item| $item.id? == $id })
+	if ($records | is-empty) {
+		[]
+	} else {
+		($records | first).excluded? | default []
+	}
+}
+
 def session-records [] {
-	let result = (tmux-result list-sessions -F "#{session_name}\t#{@workspace-id}\t#{@workspace-root}\t#{@workspace-last-used}")
+	let result = (tmux-result list-sessions -F "#{session_name}\t#{@workspace-id}\t#{@workspace-root}\t#{@workspace-last-used}\t#{@workspace-git-common}")
 	if $result.exit_code != 0 {
 		return []
 	}
@@ -77,7 +86,8 @@ def session-records [] {
 			name: ($parts | get -o 0 | default ""),
 			id: ($parts | get -o 1 | default ""),
 			root: ($parts | get -o 2 | default ""),
-			mru: (try { ($parts | get -o 3 | default "0") | into int } catch { 0 })
+			mru: (try { ($parts | get -o 3 | default "0") | into int } catch { 0 }),
+			git_common: ($parts | get -o 4 | default "")
 		}
 	}
 }
@@ -87,10 +97,39 @@ def related-records [current: string] {
 	if ($id | is-empty) {
 		return []
 	}
-	let related = (state-related (load-state) $id)
-	session-records
-	| where { |item| $item.id in $related }
-	| sort-by mru --reverse
+	let common = (session-option $current "@workspace-git-common")
+	let state = (load-state)
+	let manual = (state-related $state $id)
+	let excluded = (state-excluded $state $id)
+	let others = (session-records | where { |item| $item.id != $id })
+	$others
+	| each { |item|
+		{
+			name: $item.name,
+			id: $item.id,
+			root: $item.root,
+			mru: $item.mru,
+			manual: ($item.id in $manual),
+			calculated: (($common | is-not-empty) and ($item.git_common == $common))
+		}
+	}
+	| where { |item| ($item.manual or $item.calculated) and ($item.id not-in $excluded) }
+	| sort-by { |item| $item.name | str downcase }
+}
+
+def related-order [current: string, records: list] {
+	let sorted = ($records | sort-by { |item| $item.name | str downcase })
+	let count = ($sorted | length) + 1
+	let center = ($count // 2)
+	let current_record = {
+		name: $current,
+		id: (session-option $current "@workspace-id"),
+		root: "",
+		mru: 0,
+		manual: false,
+		calculated: false
+	}
+	($sorted | first $center) ++ [$current_record] ++ ($sorted | skip $center)
 }
 
 def configured-purposes [] {
@@ -147,17 +186,31 @@ def status-sessions [current: string, client: string] {
 
 def status-related [current: string, client: string] {
 	let pending = (global-option (pending-option "related" $client))
-	let rows = (related-records $current)
-	if ($rows | is-empty) {
-		print -n (status-style "fg=#a7a7c4,bg=#2f3045" " related: none ")
-		return
-	}
-	let output = ($rows | reduce --fold "" { |row, acc|
+	let rows = (related-order $current (related-records $current))
+	let configured = (global-option "@workspace-related-max")
+	let parsed = (try { $configured | into int } catch { 12 })
+	let limit = if $parsed > 0 { $parsed } else { 12 }
+	let index = ($rows | enumerate | where { |item| $item.item.name == $current } | first | get index)
+	let half = ($limit // 2)
+	let start = if ($index - $half) > 0 { $index - $half } else { 0 }
+	let end = if ($start + $limit) < ($rows | length) { $start + $limit } else { $rows | length }
+	let visible = ($rows | skip $start | first ($end - $start))
+	let output = ($visible | reduce --fold "" { |row, acc|
 		let separator = if ($acc | is-empty) { "" } else { " " }
-		let style = if $row.name == $pending { "fg=#000000,bg=#e0af68,bold" } else { "fg=#ffffff,bg=#111111" }
+		let style = if $row.name == $current {
+			"fg=#1a1b26,bg=#bb9af7,bold"
+		} else if $row.name == $pending {
+			"fg=#000000,bg=#e0af68,bold"
+		} else if $row.calculated and (not $row.manual) {
+			"fg=#a7a7c4,bg=#111111"
+		} else {
+			"fg=#ffffff,bg=#111111"
+		}
 		$acc + $separator + (status-style $style (" " + $row.name + " "))
 	})
-	print -n ($output + "#[fg=#ffffff,bg=#2f3045,nobold]")
+	let prefix = if $start > 0 { (status-style "fg=#a7a7c4,bg=#2f3045" " … ") } else { "" }
+	let suffix = if $end < ($rows | length) { (status-style "fg=#a7a7c4,bg=#2f3045" " … ") } else { "" }
+	print -n ($prefix + $output + $suffix + "#[fg=#ffffff,bg=#2f3045,nobold]")
 }
 
 def status-purposes [session: string, current_window: string] {
