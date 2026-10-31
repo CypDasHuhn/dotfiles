@@ -51,6 +51,110 @@ def git-rebase-default [] {
 }
 alias gpr = git-rebase-default
 
+def git-worktree-repo-name [] {
+    let result = (do -i { ^git rev-parse --path-format=absolute --git-common-dir } | complete)
+    if $result.exit_code != 0 {
+        error make { msg: "Not inside a Git repository." }
+    }
+
+    let common_dir = ($result.stdout | str trim | path expand)
+    let common_name = ($common_dir | path basename)
+    if $common_name == ".git" {
+        $common_dir | path dirname | path basename
+    } else {
+        $common_name | str replace --regex "\\.git$" ""
+    }
+}
+
+def "nu-complete git-worktree-local-branches" [] {
+    let result = (do -i { ^git for-each-ref --format="%(refname:short)" refs/heads } | complete)
+    if $result.exit_code != 0 {
+        return []
+    }
+
+    $result.stdout
+    | lines
+    | where { |branch| $branch | is-not-empty }
+    | each { |branch| { value: $branch, description: "local branch" } }
+}
+
+def "nu-complete git-worktree-base-refs" [] {
+    let result = (do -i { ^git for-each-ref --format="%(refname:short)" refs/heads refs/remotes } | complete)
+    if $result.exit_code != 0 {
+        return []
+    }
+
+    $result.stdout
+    | lines
+    | where { |ref| $ref | is-not-empty }
+    | each { |ref| { value: $ref, description: "base ref" } }
+}
+
+def git-worktree [
+    branch: string@"nu-complete git-worktree-local-branches"
+    --from: string@"nu-complete git-worktree-base-refs"
+] {
+    let repo_name = (git-worktree-repo-name)
+    let ref_check = (do -i { ^git check-ref-format --branch $branch } | complete)
+    if $ref_check.exit_code != 0 {
+        error make { msg: $"Invalid branch name '($branch)'." }
+    }
+
+    let branch_slug = ($branch | str replace --all "/" "-")
+    let target_path = ("~/worktree" | path expand | path join $repo_name | path join $branch_slug)
+    if ($target_path | path exists) {
+        error make { msg: $"The worktree path already exists: ($target_path)" }
+    }
+
+    let branch_check = (do -i { ^git show-ref --verify --quiet $"refs/heads/($branch)" } | complete)
+    if $branch_check.exit_code == 0 and $from != null {
+        error make { msg: $"Branch '($branch)' already exists; --from is only for new branches." }
+    }
+    if $branch_check.exit_code != 0 and $from == null {
+        error make { msg: $"Local branch '($branch)' was not found. Pass --from <base> to create it." }
+    }
+
+    if $from != null {
+        let base_check = (do -i { ^git rev-parse --verify --quiet $"($from)^{commit}" } | complete)
+        if $base_check.exit_code != 0 {
+            error make { msg: $"Base ref '($from)' was not found." }
+        }
+    }
+
+    let parent = ($target_path | path dirname)
+    if not ($parent | path exists) {
+        mkdir $parent
+    }
+
+    let args = if $branch_check.exit_code == 0 {
+        [worktree add $target_path $branch]
+    } else {
+        [worktree add -b $branch $target_path $from]
+    }
+    let result = (do -i { ^git ...$args } | complete)
+    if $result.exit_code != 0 {
+        let message = if ($result.stderr | str trim | is-empty) {
+            $result.stdout | str trim
+        } else {
+            $result.stderr | str trim
+        }
+        error make { msg: $message }
+    }
+
+    print $"Created worktree '($branch)' at '($target_path)'."
+}
+
+def gwt [
+    branch: string@"nu-complete git-worktree-local-branches"
+    --from: string@"nu-complete git-worktree-base-refs"
+] {
+    if $from == null {
+        git-worktree $branch
+    } else {
+        git-worktree $branch --from $from
+    }
+}
+
 #region rotate branch
 
 def git-rotate-branch-diff [

@@ -141,7 +141,8 @@ def state-workspaces [state] {
 	| each { |item|
 		{
 			id: ($item.id? | default ""),
-			root: $item.root,
+			name: ($item.name? | default ""),
+			root: ($item.root? | default ""),
 			related: ($item.related? | default []),
 			excluded: ($item.excluded? | default []),
 			last_used: ($item.last_used? | default "0")
@@ -150,31 +151,44 @@ def state-workspaces [state] {
 	| where { |item| ($item.id | is-not-empty) and ($item.root | is-not-empty) }
 }
 
+def persisted-workspace [state, name: string, root: string] {
+	state-workspaces $state
+	| where { |item| $item.name == $name and $item.root == $root }
+	| get -o 0
+	| default null
+}
+
 def state-record [state, id: string] {
 	let records = (state-workspaces $state | where { |item| $item.id == $id })
 	if ($records | is-empty) {
-		{ id: $id, root: "", related: [], excluded: [], last_used: "0" }
+		{ id: $id, name: "", root: "", related: [], excluded: [], last_used: "0" }
 	} else {
 		$records | first
 	}
 }
 
-def ensure-state-workspace [state, id: string, root: string] {
+def ensure-state-workspace [state, id: string, root: string, name?: string] {
 	let records = (state-workspaces $state)
-	if ($records | any { |item| $item.id == $id }) {
-		{
-			version: 2,
-			workspaces: ($records | each { |item|
-				if $item.id == $id {
-					{ id: $id, root: $root, related: $item.related, excluded: $item.excluded, last_used: $item.last_used }
-				} else {
-					$item
-				}
-			})
+	let existing = ($records | where { |item| $item.id == $id } | get -o 0 | default null)
+	let workspace_name = if ($name != null and ($name | is-not-empty)) {
+		$name
+	} else if $existing != null {
+		$existing.name
+	} else {
+		""
+	}
+	let workspaces = if $existing != null {
+		$records | each { |item|
+			if $item.id == $id {
+				{ id: $id, name: $workspace_name, root: $root, related: $item.related, excluded: $item.excluded, last_used: $item.last_used }
+			} else {
+				$item
+			}
 		}
 	} else {
-		{ version: 2, workspaces: ($records | append { id: $id, root: $root, related: [], excluded: [], last_used: "0" }) }
+		$records | append { id: $id, name: $workspace_name, root: $root, related: [], excluded: [], last_used: "0" }
 	}
+	{ version: 2, workspaces: $workspaces }
 }
 
 def replace-state-record [state, id: string, root: string, related: list<string>, last_used: string, excluded?: list<string>] {
@@ -182,7 +196,7 @@ def replace-state-record [state, id: string, root: string, related: list<string>
 	let next_excluded = if ($excluded == null) { $existing.excluded } else { $excluded }
 	let records = (state-workspaces $state | each { |item|
 		if $item.id == $id {
-			{ id: $id, root: $root, related: $related, excluded: $next_excluded, last_used: $last_used }
+			{ id: $id, name: $item.name, root: $root, related: $related, excluded: $next_excluded, last_used: $last_used }
 		} else {
 			$item
 		}
@@ -190,7 +204,7 @@ def replace-state-record [state, id: string, root: string, related: list<string>
 	if ($records | any { |item| $item.id == $id }) {
 		{ version: 2, workspaces: $records }
 	} else {
-		{ version: 2, workspaces: ($records | append { id: $id, root: $root, related: $related, excluded: $next_excluded, last_used: $last_used }) }
+		{ version: 2, workspaces: ($records | append { id: $id, name: ($existing.name? | default ""), root: $root, related: $related, excluded: $next_excluded, last_used: $last_used }) }
 	}
 }
 
@@ -249,13 +263,23 @@ def new-workspace-id [] {
 	$"ws-($timestamp)-($nonce)"
 }
 
-def ensure-workspace-id [session: string] {
+def ensure-workspace-id [session: string, root?: string] {
 	let stored = (session-option $session "@workspace-id")
 	if ($stored | is-not-empty) {
 		return $stored
 	}
 
-	let id = (new-workspace-id)
+	let normalized = if ($root != null and ($root | is-not-empty)) {
+		normalize-root $root
+	} else {
+		session-root $session
+	}
+	let persisted = if ($normalized | is-not-empty) {
+		persisted-workspace (load-state) $session $normalized
+	} else {
+		null
+	}
+	let id = if $persisted != null { $persisted.id } else { new-workspace-id }
 	set-session-option $session "@workspace-id" $id
 	$id
 }
@@ -276,14 +300,14 @@ def mark-session-used [session: string] {
 	if ($session | is-empty) {
 		return
 	}
-	let id = (ensure-workspace-id $session)
 	let root = (session-root $session)
 	if ($root | is-empty) {
 		return
 	}
+	let id = (ensure-workspace-id $session $root)
 	let timestamp = (date now | into int | into string)
 	set-session-option $session "@workspace-last-used" $timestamp
-	let state = (ensure-state-workspace (load-state) $id $root)
+	let state = (ensure-state-workspace (load-state) $id $root $session)
 	let record = (state-record $state $id)
 	save-state (replace-state-record $state $id $root $record.related $timestamp)
 }
@@ -369,8 +393,8 @@ def session-records [] {
 
 def ensure-session-identities [] {
 	for session in (session-records) {
-		if ($session.id | is-empty) {
-			ensure-workspace-id $session.name | ignore
+		if ($session.root | is-not-empty) {
+			synchronize-session-state $session.name $session.root | ignore
 		}
 	}
 }
@@ -428,14 +452,20 @@ def record-window-use [session: string, window: string, purpose?: string] {
 	tmux-result ...$args | ignore
 }
 
-def initialize-session [session: string, root: string] {
+def synchronize-session-state [session: string, root: string] {
 	let normalized = (normalize-root $root)
-	let id = (ensure-workspace-id $session)
+	let id = (ensure-workspace-id $session $normalized)
 	set-session-option $session "@workspace-root" $normalized
 	set-git-common $session $normalized | ignore
-	let state = (ensure-state-workspace (load-state) $id $normalized)
+	let state = (ensure-state-workspace (load-state) $id $normalized $session)
 	ensure-session-last-used $session $id $state | ignore
 	save-state $state
+	$id
+}
+
+def initialize-session [session: string, root: string] {
+	let normalized = (normalize-root $root)
+	synchronize-session-state $session $normalized | ignore
 
 	for window in (window-records $session) {
 		ensure-window-purpose $window.id
@@ -647,11 +677,7 @@ def repin-workspace [raw_path?: string] {
 		return
 	}
 
-	let id = (ensure-workspace-id $session)
-	set-session-option $session "@workspace-root" $root
-	set-git-common $session $root | ignore
-	let state = (ensure-state-workspace (load-state) $id $root)
-	save-state $state
+	synchronize-session-state $session $root | ignore
 	^tmux display-message $"workspace anchored to: ($root)"
 }
 
@@ -1217,8 +1243,10 @@ def rename-session [new_name: string, client: string] {
 	let pending = (global-option (pending-option "session" $client "pending"))
 	let name = if ($pending | is-not-empty) { $pending } else { $current }
 	let target = ($records | where { |item| $item.name == $name } | get -o 0 | default null)
-	if $target != null and ($new_name | str trim | is-not-empty) {
-		^tmux rename-session -t $"=($target.name)" ($new_name | str trim)
+	let renamed = ($new_name | str trim)
+	if $target != null and ($renamed | is-not-empty) {
+		^tmux rename-session -t $"=($target.name)" $renamed
+		synchronize-session-state $renamed (session-root $renamed) | ignore
 	}
 	clear-pending "session" $client
 }

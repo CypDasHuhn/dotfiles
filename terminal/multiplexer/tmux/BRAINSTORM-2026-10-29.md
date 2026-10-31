@@ -8,7 +8,7 @@ the direction is settled.
 - One git worktree = one tmux session.
 - Serious work never happens on `main`; `main` is a hub for looking around and
   quickfixes.
-- Predictable layout: `~/workspaces/<repo>/<branch>`.
+- Predictable layout: `~/worktree/<repo>/<branch>`.
 - Sessions of the same repo are linked (siblings) and reachable without
   remembering session names.
 - Everything must degrade gracefully for non-git sessions.
@@ -18,20 +18,20 @@ the direction is settled.
 Three options for the main worktree:
 
 - **A — start here.** Main worktree stays at `~/repos/<repo>`; linked worktrees
-  live at `~/workspaces/<repo>/<branch>`. Rule: `main` = `~/repos`, everything
-  else = `~/workspaces`. Optional convenience symlink
-  `~/workspaces/<repo>/main -> ~/repos/<repo>` (session root canonicalizes to
+  live at `~/worktree/<repo>/<branch>`. Rule: `main` = `~/repos`, everything
+  else = `~/worktree`. Optional convenience symlink
+  `~/worktree/<repo>/main -> ~/repos/<repo>` (session root canonicalizes to
   `~/repos/<repo>`).
 - **B — endgame.** Bare canonical clone at `~/repos/<repo>.git`; *all*
-  worktrees, including `main`, under `~/workspaces/<repo>/<branch>`. No
+  worktrees, including `main`, under `~/worktree/<repo>/<branch>`. No
   exceptions. Cost: one-time migration, and `~/repos/<repo>` stops being a
   working tree.
-- **C — rejected.** Move the main checkout into `~/workspaces` by hand.
+- **C — rejected.** Move the main checkout into `~/worktree` by hand.
   `git worktree move` refuses the main worktree, and a manual move breaks the
   linked worktrees' `gitdir` files.
 
 Core principle: `git worktree list --porcelain` is the source of truth for
-*branch → path*. `~/workspaces/...` is only the **default for creation**. That
+*branch → path*. `~/worktree/...` is only the **default for creation**. That
 keeps agent-created worktrees discoverable even when they live somewhere else.
 
 Path rules:
@@ -42,7 +42,7 @@ Path rules:
   collision, or mirror slashes as nested dirs (open decision).
 - Repo basename collisions (`api` in two orgs): fall back to `<owner>-<repo>`,
   or keep a common-dir → slug map in state.
-- `~/workspaces/<repo>/` is never a session root; only branch dirs are.
+- `~/worktree/<repo>/` is never a session root; only branch dirs are.
 
 ## Branch-scoped identity
 
@@ -61,6 +61,8 @@ Path rules:
 Creation / navigation:
 
 - `wt new <branch> [--from base] [--agent cmd]` — ensure worktree + session.
+- `git-worktree <branch> [--from base]` — create a linked worktree at
+  `~/worktree/<repo>/<branch-slug>`, independently of the current branch.
 - `wt go <branch>` / `wt switch <branch>` — jump to worktree/session, create if
   missing.
 - `wt home` — jump to the hub session (main worktree).
@@ -108,7 +110,7 @@ Case 1 — feature branch sitting in the hub:
 ```nu
 if dirty: git stash push -u -m "ascend:($current)"
 git switch $default                                   # frees the branch
-git worktree add ~/workspaces/<repo>/<slug(current)> $current
+git worktree add ~/worktree/<repo>/<slug(current)> $current
 if stashed: git -C <new> stash pop
 # optional --sync: git reset --hard origin/$default (or merge --ff-only)
 ```
@@ -119,7 +121,7 @@ Case 2 — hub on default (or detached) with quickfix commits/changes
 ```nu
 git branch $name HEAD                    # preserve commits before resetting hub
 if dirty: git stash push -u -m "ascend:($name)"
-git worktree add ~/workspaces/<repo>/<slug(name)> $name
+git worktree add ~/worktree/<repo>/<slug(name)> $name
 if stashed: git -C <new> stash pop
 git reset --hard origin/$default         # hub returns to remote head
 ```
@@ -175,7 +177,7 @@ extension can come later). `git-wt-ascend [branch]`:
 5. If the main worktree is not on `branch`:
    - If the branch is not local → error.
    - `git worktree add <path> <branch>`.
-6. Path: `~/workspaces/<repo>/<slug(branch)>`. `git worktree add` creates
+6. Path: `~/worktree/<repo>/<slug(branch)>`. `git worktree add` creates
    parents; `mkdir -p` the repo dir anyway.
 7. Print the new path.
 
@@ -312,7 +314,7 @@ ordering logic between `workspace.nu` and `status.nu` (extract to
 - `excluded` is the only persisted negative state; it exists so `unlink` can
   opt out of an otherwise automatic sibling. It is keyed by workspace id.
 - Non-git sessions have no calculated relations and keep manual edges only.
-- Worktrees are related whether or not they live under `~/workspaces`; the
+- Worktrees are related whether or not they live under `~/worktree`; the
   common-dir is the source of truth, not the path.
 
 ## Attach / pin discovery
@@ -358,7 +360,7 @@ Trigger: `tws [dir]` / `open-workspace`, not the tmux `client-attached` hook.
 ## Decisions (best-effort, 2026-10-29)
 
 - Layout: A. Main stays `~/repos/<repo>`; linked worktrees under
-  `~/workspaces/<repo>/<branch>`. Bare-clone endgame (B) is deferred.
+  `~/worktree/<repo>/<branch>`. Bare-clone endgame (B) is deferred.
 - Branch slug: flatten `/` → `-` for both the directory and the session name.
 - Hub after ascend: switch-only by default; `--sync` resets to remote default.
   Case 2 (quickfix commits on main) always resets.
