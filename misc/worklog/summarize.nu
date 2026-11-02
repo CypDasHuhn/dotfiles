@@ -108,7 +108,7 @@ def main [
         print $"  ($resource.name)"
     }
     let acceptance = input "Invoke Codex with these sources? [y/N] "
-    if ($acceptance | str trim | str downcase) not-in ["y" "yes"] {
+    if ($acceptance | str trim | str lowercase) not-in ["y" "yes"] {
         print "Cancelled."
         return
     }

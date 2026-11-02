@@ -23,6 +23,11 @@ tmux() {
 
 tmux-workspace() {
   command bash "${XDG_CONFIG_HOME:-$HOME/.config}/tmux/scripts/ensure-plugins.sh" || true
+  if [[ "${1:-}" == "ascend" ]]; then
+    shift
+    wt ascend "$@"
+    return
+  fi
   if [[ "${1:-}" == "repin" ]]; then
     shift
     command nu --no-config-file "${XDG_CONFIG_HOME:-$HOME/.config}/tmux/scripts/workspace.nu" repin "$@"

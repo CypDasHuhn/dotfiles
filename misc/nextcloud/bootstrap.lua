@@ -22,6 +22,7 @@ local SECRET_KEY = "NEXTCLOUD_APP_PASSWORD"
 local TARGET_VAR = "vault"
 local UNIT = "nextcloud-vault"
 local ENV_FILE = "/etc/nextcloud-vault.env"
+local SYNC_EXCLUDES = { ".obsidian/workspace*.json", "*/.obsidian/workspace*.json" }
 
 local os_type = platform.os_type()
 
@@ -124,6 +125,79 @@ local function resolve_target()
 	end
 	local home = os.getenv("HOME") or os.getenv("USERPROFILE") or ""
 	return home .. "/vault"
+end
+
+local function sync_exclude_path()
+	if os_type == "windows" then
+		local appdata = os.getenv("APPDATA")
+		if not appdata then
+			return nil
+		end
+		return appdata .. "\\Nextcloud\\sync-exclude.lst"
+	end
+	local home = os.getenv("HOME")
+	if not home then
+		return nil
+	end
+	local base = os.getenv("XDG_CONFIG_HOME")
+	if not base or base == "" then
+		base = home .. "/.config"
+	end
+	return base .. "/Nextcloud/sync-exclude.lst"
+end
+
+local function ensure_parent_dir(path)
+	local dir = path:match("^(.+)[/\\][^/\\]+$")
+	if not dir then
+		return
+	end
+	if os_type == "windows" then
+		local native = dir:gsub("/", "\\")
+		os.execute('if not exist "' .. native .. '" mkdir "' .. native .. '" >NUL 2>NUL')
+	else
+		os.execute('mkdir -p "' .. dir .. '"')
+	end
+end
+
+local function append_line_if_missing(path, line)
+	local handle = io.open(path, "r")
+	local content = ""
+	if handle then
+		content = handle:read("*a") or ""
+		handle:close()
+	end
+	for existing in content:gmatch("[^\r\n]+") do
+		if existing == line then
+			return false
+		end
+	end
+	local write_handle = io.open(path, "a")
+	if not write_handle then
+		return false
+	end
+	if content ~= "" and content:sub(-1) ~= "\n" then
+		write_handle:write("\n")
+	end
+	write_handle:write(line, "\n")
+	write_handle:close()
+	return true
+end
+
+local function ensure_sync_excludes()
+	local path = sync_exclude_path()
+	if not path then
+		return
+	end
+	ensure_parent_dir(path)
+	local changed = false
+	for _, pattern in ipairs(SYNC_EXCLUDES) do
+		if append_line_if_missing(path, pattern) then
+			changed = true
+		end
+	end
+	if changed then
+		c.tag("nextcloud", "excluded Obsidian workspace files from sync")
+	end
 end
 
 -- Write a root-owned file via sudo (content via temp file, no quoting).
@@ -295,6 +369,7 @@ end
 if os_type == "windows" then
 	local user = os.getenv("USERNAME") or ""
 	decommission_seafile(user)
+	ensure_sync_excludes()
 	if not command_exists("nextcloud") then
 		c.tag("nextcloud", "desktop client not installed yet; run bootstrap deps")
 		return
@@ -309,6 +384,7 @@ else
 	end
 
 	decommission_seafile(user)
+	ensure_sync_excludes()
 
 	if is_headless() then
 		if not command_exists("nextcloudcmd") then

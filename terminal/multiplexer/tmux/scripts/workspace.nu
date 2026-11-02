@@ -1,5 +1,8 @@
 #!/usr/bin/env nu
 
+const workspace_lib = ($nu.home-dir | path join ".config" "tmux" "scripts" "workspace-lib.nu")
+use $workspace_lib [git-toplevel git-current-branch worktree-entries worktree-main-entry worktree-repo-name worktree-branch-slug worktree-session-name worktree-entry-label]
+
 def --wrapped tmux-result [...args: string] {
 	do { ^tmux ...$args } | complete
 }
@@ -95,7 +98,17 @@ def normalize-root [value: string] {
 
 	let normalized = ($resolved | path expand | str replace -a "\\" "/")
 	if (is-windows) {
-		$normalized | str downcase
+		$normalized | str lowercase
+	} else {
+		$normalized
+	}
+}
+
+def resolve-root [value: string] {
+	let normalized = (normalize-root $value)
+	let toplevel = (git-toplevel $normalized)
+	if ($toplevel | is-not-empty) {
+		normalize-root $toplevel
 	} else {
 		$normalized
 	}
@@ -107,6 +120,11 @@ def state-file [] {
 	let dir = ($base | path join "tmux")
 	mkdir $dir
 	$dir | path join "workspaces.json"
+}
+
+def snapshot-file [] {
+	let state = (state-file)
+	$state | path dirname | path join "workspaces-resurrect.json"
 }
 
 def empty-state [] {
@@ -152,10 +170,24 @@ def state-workspaces [state] {
 }
 
 def persisted-workspace [state, name: string, root: string] {
-	state-workspaces $state
-	| where { |item| $item.name == $name and $item.root == $root }
-	| get -o 0
-	| default null
+	let by_name = (
+		state-workspaces $state
+		| where { |item| $item.name == $name and $item.root == $root }
+		| get -o 0
+		| default null
+	)
+	if $by_name != null {
+		return $by_name
+	}
+	let by_root = (
+		state-workspaces $state
+		| where { |item| $item.root == $root and ($item.name | is-empty) }
+	)
+	if ($by_root | length) == 1 {
+		$by_root | first
+	} else {
+		null
+	}
 }
 
 def state-record [state, id: string] {
@@ -364,8 +396,51 @@ def set-git-common [session: string, root: string] {
 	$common
 }
 
+def set-branch [session: string, root: string] {
+	let branch = (git-current-branch $root)
+	if ($branch | is-empty) {
+		^tmux set-option -t $session -u "@workspace-branch"
+	} else {
+		set-session-option $session "@workspace-branch" $branch
+	}
+	$branch
+}
+
+def build-worktree-sessions [root: string] {
+	let entries = (worktree-entries $root)
+	if ($entries | is-empty) {
+		return
+	}
+	let main = (worktree-main-entry $entries)
+	if $main == null {
+		return
+	}
+	let repo = (worktree-repo-name $entries)
+	let main_root = (normalize-root $main.path)
+	for entry in $entries {
+		if $entry.bare or $entry.prunable or $entry.locked {
+			continue
+		}
+		let entry_root = (normalize-root $entry.path)
+		if ($entry_root | is-empty) or (not ($entry_root | path exists)) {
+			continue
+		}
+		let existing = (session-records | where { |item| $item.root == $entry_root } | get -o 0 | default null)
+		if $existing != null {
+			continue
+		}
+		let label = (worktree-entry-label $entry)
+		let name = if $entry_root == $main_root {
+			$repo
+		} else {
+			(worktree-session-name $entries $label)
+		}
+		create-session $entry_root $name | ignore
+	}
+}
+
 def session-records [] {
-	let result = (tmux-result list-sessions -F "#{session_name}\t#{@workspace-id}\t#{@workspace-root}\t#{@workspace-last-used}\t#{@workspace-git-common}")
+	let result = (tmux-result list-sessions -F "#{session_name}\t#{@workspace-id}\t#{@workspace-root}\t#{@workspace-last-used}\t#{@workspace-git-common}\t#{@workspace-branch}")
 	if $result.exit_code != 0 {
 		return []
 	}
@@ -380,13 +455,15 @@ def session-records [] {
 		let stored = ($parts | get -o 2 | default "")
 		let last_raw = ($parts | get -o 3 | default "0")
 		let common_raw = ($parts | get -o 4 | default "")
+		let branch = ($parts | get -o 5 | default "")
 		let root = if ($stored | is-empty) { session-root $name } else { normalize-root $stored }
 		{
 			name: $name,
 			id: $id,
 			root: $root,
 			mru: (try { $last_raw | into int } catch { 0 }),
-			git_common: (if ($common_raw | is-empty) { "" } else { normalize-root $common_raw })
+			git_common: (if ($common_raw | is-empty) { "" } else { normalize-root $common_raw }),
+			branch: $branch
 		}
 	}
 }
@@ -457,6 +534,7 @@ def synchronize-session-state [session: string, root: string] {
 	let id = (ensure-workspace-id $session $normalized)
 	set-session-option $session "@workspace-root" $normalized
 	set-git-common $session $normalized | ignore
+	set-branch $session $normalized | ignore
 	let state = (ensure-state-workspace (load-state) $id $normalized $session)
 	ensure-session-last-used $session $id $state | ignore
 	save-state $state
@@ -497,9 +575,13 @@ def current-purpose [session: string, client?: string] {
 	}
 }
 
-def session-name-for [root: string] {
-	let base_raw = ($root | path basename)
-	let base = if ($base_raw | is-empty) { "workspace" } else { $base_raw | str replace -ra "[^A-Za-z0-9._-]" "-" }
+def session-name-for [root: string, preferred?: string] {
+	let base_raw = if ($preferred != null and ($preferred | is-not-empty)) {
+		$preferred
+	} else {
+		$root | path basename
+	}
+	let base = if ($base_raw | is-empty) { "workspace" } else { $base_raw | str replace -ra "[^A-Za-z0-9._/-]" "-" }
 	mut candidate = $base
 	mut suffix = 1
 	mut occupied = true
@@ -513,8 +595,8 @@ def session-name-for [root: string] {
 	$candidate
 }
 
-def create-session [root: string] {
-	let name = (session-name-for $root)
+def create-session [root: string, preferred?: string] {
+	let name = (session-name-for $root $preferred)
 	let result = (tmux-result new-session -d -s $name -c $root)
 	if $result.exit_code != 0 {
 		^tmux display-message $"could not create workspace: ($result.stderr | str trim)"
@@ -632,7 +714,7 @@ def open-workspace [raw_path?: string, purpose?: string] {
 		$env.PWD
 	}
 
-	let root = (normalize-root $requested)
+	let root = (resolve-root $requested)
 	if not ($root | path exists) {
 		^tmux display-message $"directory does not exist: ($root)"
 		return
@@ -648,6 +730,9 @@ def open-workspace [raw_path?: string, purpose?: string] {
 
 	if ($session | is-empty) {
 		return
+	}
+	if (global-option "@workspace-auto-worktrees") != "off" {
+		build-worktree-sessions $root | ignore
 	}
 	if ($purpose != null and ($purpose | is-not-empty)) {
 		activate-purpose $session $purpose
@@ -671,13 +756,16 @@ def repin-workspace [raw_path?: string] {
 		$env.PWD
 	}
 
-	let root = (normalize-root $requested)
+	let root = (resolve-root $requested)
 	if not ($root | path exists) {
 		^tmux display-message $"directory does not exist: ($root)"
 		return
 	}
 
 	synchronize-session-state $session $root | ignore
+	if (global-option "@workspace-auto-worktrees") != "off" {
+		build-worktree-sessions $root | ignore
+	}
 	^tmux display-message $"workspace anchored to: ($root)"
 }
 
@@ -724,11 +812,11 @@ def related-records [session: string] {
 		}
 	}
 	| where { |item| ($item.manual or $item.calculated) and ($item.id not-in $excluded) }
-	| sort-by { |item| $item.name | str downcase }
+	| sort-by { |item| $item.name | str lowercase }
 }
 
 def related-order [current: string, records: list] {
-	let sorted = ($records | sort-by { |item| $item.name | str downcase })
+	let sorted = ($records | sort-by { |item| $item.name | str lowercase })
 	let count = ($sorted | length) + 1
 	let center = ($count // 2)
 	let current_record = {
@@ -988,12 +1076,39 @@ def move-window-pick [client: string] {
 	if ($current | is-empty) or ($window | is-empty) {
 		return
 	}
-	let sessions = (session-records | where { |item| $item.name != $current } | sort-by { |item| $item.name | str downcase })
-	if ($sessions | is-empty) {
-		^tmux display-message "no other sessions"
+	let sessions = (session-records | where { |item| $item.name != $current } | sort-by { |item| $item.name | str lowercase })
+	let current_root = (session-root $current)
+	let current_common = (ensure-git-common $current $current_root)
+	let worktree_candidates = if ($current_common | is-empty) {
+		[]
+	} else {
+		let entries = (worktree-entries $current_root)
+		let repo = (worktree-repo-name $entries)
+		$entries
+		| where { |entry| (not $entry.bare) and (not $entry.prunable) and (not $entry.locked) and ($entry.path | path exists) }
+		| each { |entry|
+			let entry_root = (normalize-root $entry.path)
+			let existing = ($sessions | where { |item| $item.root == $entry_root } | get -o 0 | default null)
+			if $existing == null {
+				let label = (worktree-entry-label $entry)
+				let planned = if (worktree-entry-is-main $entries $entry) {
+					$repo
+				} else {
+					(worktree-session-name $entries $label)
+				}
+				{ name: $planned, root: $entry_root, kind: "worktree" }
+			} else {
+				null
+			}
+		}
+		| compact
+	}
+	let candidates = (($sessions | each { |item| { name: $item.name, root: $item.root, kind: "session" } }) ++ $worktree_candidates)
+	if ($candidates | is-empty) {
+		^tmux display-message "no other sessions or worktrees"
 		return
 	}
-	let input = ($sessions | each { |item| $"($item.name)\t($item.root)" } | str join "\n")
+	let input = ($candidates | each { |item| $"($item.name)\t($item.root)" } | str join "\n")
 	let tmux_fzf = (do { ^which fzf-tmux } | complete)
 	let plain_fzf = (do { ^which fzf } | complete)
 	let picked = if $tmux_fzf.exit_code == 0 {
@@ -1008,21 +1123,30 @@ def move-window-pick [client: string] {
 	if ($picked.exit_code != 0) or ($line | is-empty) {
 		return
 	}
-	let target_name = ($line | split row "\t" | first)
-	let target = ($sessions | where { |item| $item.name == $target_name } | get -o 0 | default null)
-	if $target == null {
+	let selected_root = ($line | split row "\t" | get -o 1 | default "")
+	let selected = ($candidates | where { |item| $item.root == $selected_root } | get -o 0 | default null)
+	if $selected == null {
 		return
+	}
+	let target_name = if $selected.kind == "worktree" {
+		let created = (create-session $selected.root $selected.name)
+		if ($created | is-empty) {
+			return
+		}
+		$created
+	} else {
+		$selected.name
 	}
 	let windows = (tmux-value list-windows -t $"=($current)" -F "#{window_id}" | lines | where { |item| $item != "" })
 	if ($windows | length) <= 1 {
 		create-window $current (current-purpose $current $client) | ignore
 	}
-	let result = (tmux-result move-window -s $window -t $"=($target.name):")
+	let result = (tmux-result move-window -s $window -t $"=($target_name):")
 	if $result.exit_code != 0 {
 		^tmux display-message $"could not move tab: ($result.stderr | str trim)"
 		return
 	}
-	move-to-session $target.name $client
+	move-to-session $target_name $client
 	^tmux refresh-client -S
 }
 
@@ -1174,7 +1298,7 @@ def status-purposes [session: string, window: string] {
 		} else {
 			"fg=#707080,bg=#08080d,bold"
 		}
-		let header = (status-style $header_style (" " + ($purpose | str upcase) + " "))
+		let header = (status-style $header_style (" " + ($purpose | str uppercase) + " "))
 		let tabs = ($rows | where { |row| $row.purpose == $purpose } | reduce --fold "" { |row, acc|
 			let separator = if ($acc | is-empty) { "" } else { " " }
 			let style = if $row.id == $window {
@@ -1215,11 +1339,14 @@ def after-new-window [session: string, window: string] {
 	} else {
 		default-purpose
 	}
-	set-window-option $window "@workspace-purpose" $inherited
+	let existing = (window-option $window "@workspace-purpose")
+	if ($existing | is-empty) {
+		set-window-option $window "@workspace-purpose" $inherited
+		record-window-use $session $window $inherited
+	}
 	if ($pending | is-not-empty) {
 		set-session-option $session "@workspace-new-purpose" ""
 	}
-	record-window-use $session $window $inherited
 }
 
 def session-created [session: string] {
@@ -1233,6 +1360,91 @@ def initialize-all [] {
 	for session in (session-records) {
 		if ($session.root | is-not-empty) {
 			initialize-session $session.name $session.root | ignore
+		}
+	}
+}
+
+def save-workspace-snapshot [] {
+	let sessions = (session-records | each { |session|
+		{
+			name: $session.name,
+			id: $session.id,
+			root: $session.root,
+			last_used: (session-option $session.name "@workspace-last-used"),
+			git_common: $session.git_common,
+			branch: $session.branch,
+			active_purpose: (session-option $session.name "@workspace-active-purpose"),
+			windows: (window-records $session.name | each { |window|
+				{
+					index: $window.index,
+					name: $window.name,
+					purpose: $window.purpose,
+					last_used: ($window.last | into string)
+				}
+			})
+		}
+	})
+	let snapshot = { version: 1, saved_at: ((date now | into int) | into string), sessions: $sessions }
+	$snapshot | to json | save -f (snapshot-file)
+}
+
+def restore-workspace-snapshot [] {
+	let path = (snapshot-file)
+	if not ($path | path exists) {
+		return
+	}
+
+	let snapshot = (try { open --raw $path | from json } catch { return })
+	if (($snapshot.version? | default 0) != 1) {
+		return
+	}
+
+	for session in ($snapshot.sessions? | default []) {
+		let name = ($session.name? | default "")
+		if ($name | is-empty) {
+			continue
+		}
+		let id = ($session.id? | default "")
+		let root = ($session.root? | default "")
+		let last_used = ($session.last_used? | default "")
+		let git_common = ($session.git_common? | default "")
+		let branch = ($session.branch? | default "")
+		let active_purpose = ($session.active_purpose? | default "")
+		let probe = (tmux-result has-session -t $"=($name)")
+		if $probe.exit_code != 0 {
+			if ($root | is-empty) or (not ($root | path exists)) {
+				continue
+			}
+			let created = (tmux-result new-session -d -s $name -c $root)
+			if $created.exit_code != 0 {
+				continue
+			}
+		}
+
+		if ($id | is-not-empty) { set-session-option $name "@workspace-id" $id }
+		if ($root | is-not-empty) { set-session-option $name "@workspace-root" $root }
+		if ($last_used | is-not-empty) { set-session-option $name "@workspace-last-used" $last_used }
+		if ($git_common | is-not-empty) { set-session-option $name "@workspace-git-common" $git_common }
+		if ($active_purpose | is-not-empty) { set-session-option $name "@workspace-active-purpose" $active_purpose }
+		if ($root | is-not-empty) and ($root | path exists) {
+			synchronize-session-state $name $root | ignore
+		}
+		if ($branch | is-not-empty) { set-session-option $name "@workspace-branch" $branch }
+
+		let current = (window-records $name)
+		for saved in ($session.windows? | default []) {
+			let index = ($saved.index? | default (-1))
+			let window_name = ($saved.name? | default "")
+			let match = ($current | where { |window|
+				($window.index == $index) and (($window_name | is-empty) or ($window.name == $window_name))
+			} | get -o 0 | default null)
+			if $match == null {
+				continue
+			}
+			let purpose = ($saved.purpose? | default "")
+			let used = ($saved.last_used? | default "")
+			if ($purpose | is-not-empty) { set-window-option $match.id "@workspace-purpose" $purpose }
+			if ($used | is-not-empty) { set-window-option $match.id "@workspace-last-used" $used }
 		}
 	}
 }
@@ -1259,6 +1471,7 @@ def main [...args: string] {
 
 	match $action {
 		"open" => { open-workspace $first ($rest | get -o 1 | default null) }
+		"discover" => { build-worktree-sessions (resolve-root $first) }
 		"repin" => { repin-workspace $first }
 		"purpose" => {
 			let session = if ($second | is-empty) { session-for "" } else { $second }
@@ -1272,6 +1485,8 @@ def main [...args: string] {
 		}
 		"session-created" => { session-created $first }
 		"initialize-all" => { initialize-all }
+		"resurrect-save" => { save-workspace-snapshot }
+		"resurrect-restore" => { restore-workspace-snapshot }
 		"after-select-window" => { after-select-window $first $second }
 		"after-new-window" => { after-new-window $first $second }
 		"select-session" => { select-session $first $second }
@@ -1288,7 +1503,7 @@ def main [...args: string] {
 		"status-related" => { status-related $first $second ($rest | get -o 2 | default "") }
 		"status-purposes" => { status-purposes $first $second }
 		_ => {
-			print -e "usage: workspace.nu open|repin|purpose|cycle-purpose|new-window|new-window-command|select-session|select-related|link-pick|move-window-pick|link|unlink|status-sessions|status-related|status-purposes"
+			print -e "usage: workspace.nu open|discover|repin|purpose|cycle-purpose|new-window|new-window-command|select-session|select-related|link-pick|move-window-pick|link|unlink|resurrect-save|resurrect-restore|status-sessions|status-related|status-purposes"
 			exit 2
 		}
 	}

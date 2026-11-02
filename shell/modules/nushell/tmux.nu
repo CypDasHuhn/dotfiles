@@ -21,6 +21,11 @@ def --wrapped tmux [...args] {
 }
 
 def --wrapped tmux-workspace [...args] {
+    if (($args | get -o 0 | default "") == "ascend") {
+        wt ascend ...$args
+        return
+    }
+
     let script = (tmux-config-file | path dirname | path join "scripts" "workspace.nu")
     tmux-ensure-plugins
     let action = if (($args | get -o 0 | default "") == "repin") { "repin" } else { "open" }
