@@ -114,11 +114,11 @@ def related-records [current: string] {
 		}
 	}
 	| where { |item| ($item.manual or $item.calculated) and ($item.id not-in $excluded) }
-	| sort-by { |item| $item.name | str downcase }
+	| sort-by { |item| $item.name | str lowercase }
 }
 
 def related-order [current: string, records: list] {
-	let sorted = ($records | sort-by { |item| $item.name | str downcase })
+	let sorted = ($records | sort-by { |item| $item.name | str lowercase })
 	let count = ($sorted | length) + 1
 	let center = ($count // 2)
 	let current_record = {

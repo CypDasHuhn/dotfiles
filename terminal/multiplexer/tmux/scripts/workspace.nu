@@ -97,7 +97,7 @@ def normalize-root [value: string] {
 
 	let normalized = ($resolved | path expand | str replace -a "\\" "/")
 	if (is-windows) {
-		$normalized | str downcase
+		$normalized | str lowercase
 	} else {
 		$normalized
 	}
@@ -811,11 +811,11 @@ def related-records [session: string] {
 		}
 	}
 	| where { |item| ($item.manual or $item.calculated) and ($item.id not-in $excluded) }
-	| sort-by { |item| $item.name | str downcase }
+	| sort-by { |item| $item.name | str lowercase }
 }
 
 def related-order [current: string, records: list] {
-	let sorted = ($records | sort-by { |item| $item.name | str downcase })
+	let sorted = ($records | sort-by { |item| $item.name | str lowercase })
 	let count = ($sorted | length) + 1
 	let center = ($count // 2)
 	let current_record = {
@@ -1075,7 +1075,7 @@ def move-window-pick [client: string] {
 	if ($current | is-empty) or ($window | is-empty) {
 		return
 	}
-	let sessions = (session-records | where { |item| $item.name != $current } | sort-by { |item| $item.name | str downcase })
+	let sessions = (session-records | where { |item| $item.name != $current } | sort-by { |item| $item.name | str lowercase })
 	let current_root = (session-root $current)
 	let current_common = (ensure-git-common $current $current_root)
 	let worktree_candidates = if ($current_common | is-empty) {
