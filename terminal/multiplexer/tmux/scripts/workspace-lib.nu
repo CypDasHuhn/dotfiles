@@ -19,7 +19,7 @@ export def normalize-path [value: string] {
 	}
 	let normalized = ($resolved | str replace -a "\\" "/")
 	if (is-windows) {
-		$normalized | str lowercase
+		$normalized | str downcase
 	} else {
 		$normalized
 	}

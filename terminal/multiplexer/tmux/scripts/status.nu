@@ -114,11 +114,11 @@ def related-records [current: string] {
 		}
 	}
 	| where { |item| ($item.manual or $item.calculated) and ($item.id not-in $excluded) }
-	| sort-by { |item| $item.name | str lowercase }
+	| sort-by { |item| $item.name | str downcase }
 }
 
 def related-order [current: string, records: list] {
-	let sorted = ($records | sort-by { |item| $item.name | str lowercase })
+	let sorted = ($records | sort-by { |item| $item.name | str downcase })
 	let count = ($sorted | length) + 1
 	let center = ($count // 2)
 	let current_record = {
@@ -219,7 +219,7 @@ def status-purposes [session: string, current_window: string] {
 	let active = if $active_row == null or ($active_row.purpose | is-empty) { default-purpose } else { $active_row.purpose }
 	let sections = (configured-purposes | each { |purpose|
 		let header_style = if $purpose == $active { "fg=#1a1b26,bg=#68D57A,bold" } else { "fg=#707080,bg=#08080d,bold" }
-		let header = (status-style $header_style (" " + ($purpose | str uppercase) + " "))
+		let header = (status-style $header_style (" " + ($purpose | str upcase) + " "))
 		let tabs = ($rows | where { |row| (if ($row.purpose | is-empty) { default-purpose } else { $row.purpose }) == $purpose } | reduce --fold "" { |row, acc|
 			let separator = if ($acc | is-empty) { "" } else { " " }
 			let style = if $row.id == $current_window { "fg=#1a1b26,bg=#5cb2ed,bold" } else { "fg=#ffffff,bg=#111111" }

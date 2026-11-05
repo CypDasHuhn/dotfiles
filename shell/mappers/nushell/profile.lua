@@ -26,8 +26,9 @@ local function expand_env_vars(value)
 	end)
 end
 
-local function ensure_source_line(config_path, stable_path)
+local function ensure_source_line(config_path, stable_path, legacy_path)
 	local source_line = 'source "' .. stable_path .. '"'
+	local legacy_source_line = legacy_path and ('source "' .. legacy_path .. '"') or nil
 
 	local f = io.open(config_path, "r")
 	if not f then
@@ -44,23 +45,56 @@ local function ensure_source_line(config_path, stable_path)
 	local content = f:read("*a")
 	f:close()
 
-	-- Check for an active (uncommented) source line pointing to the stable path
+	-- Keep one active stable source line and remove the old direct profile source
+	-- left behind by the pre-shim implementation.
+	local lines = {}
+	local found_source = false
+	local changed = false
+	local removed_legacy = false
 	for line in (content .. "\n"):gmatch("([^\n]*)\n") do
 		local trimmed = line:match("^%s*(.-)%s*$")
 		if trimmed == source_line then
-			print("Nushell config already sources profile")
-			return true
+			if found_source then
+				changed = true
+			else
+				found_source = true
+				table.insert(lines, line)
+			end
+		elseif legacy_source_line and trimmed == legacy_source_line then
+			changed = true
+			removed_legacy = true
+			if lines[#lines] == "# Dotfiles profile" then
+				table.remove(lines)
+			end
+		else
+			table.insert(lines, line)
+		end
+	end
+	if removed_legacy then
+		while lines[1] == "" do
+			table.remove(lines, 1)
 		end
 	end
 
-	f = io.open(config_path, "a")
+	if not found_source then
+		table.insert(lines, "# Dotfiles profile")
+		table.insert(lines, source_line)
+		changed = true
+	end
+
+	if not changed then
+		print("Nushell config already sources profile")
+		return true
+	end
+
+	f = io.open(config_path, "w")
 	if not f then
 		return false, "Could not write to " .. config_path
 	end
-	f:write("\n# Dotfiles profile\n" .. source_line .. "\n")
+	f:write(table.concat(lines, "\n"))
 	f:close()
 
-	print("Added source line to nushell config")
+	print("Updated nushell config source")
 	return true
 end
 
@@ -135,7 +169,7 @@ function M.link(output_dir)
 		print("Linked: " .. stable_path .. " -> " .. profile)
 	end
 
-	ensure_source_line(config_dir .. "/config.nu", stable_path)
+	ensure_source_line(config_dir .. "/config.nu", stable_path, profile)
 	return true
 end
 

@@ -1,7 +1,6 @@
 #!/usr/bin/env nu
 
-const workspace_lib = ($nu.home-dir | path join ".config" "tmux" "scripts" "workspace-lib.nu")
-use $workspace_lib [git-toplevel git-current-branch worktree-entries worktree-main-entry worktree-repo-name worktree-branch-slug worktree-session-name worktree-entry-label]
+use ./workspace-lib.nu [git-toplevel git-current-branch worktree-entries worktree-main-entry worktree-repo-name worktree-branch-slug worktree-session-name worktree-entry-label]
 
 def --wrapped tmux-result [...args: string] {
 	do { ^tmux ...$args } | complete
@@ -98,7 +97,7 @@ def normalize-root [value: string] {
 
 	let normalized = ($resolved | path expand | str replace -a "\\" "/")
 	if (is-windows) {
-		$normalized | str lowercase
+		$normalized | str downcase
 	} else {
 		$normalized
 	}
@@ -812,11 +811,11 @@ def related-records [session: string] {
 		}
 	}
 	| where { |item| ($item.manual or $item.calculated) and ($item.id not-in $excluded) }
-	| sort-by { |item| $item.name | str lowercase }
+	| sort-by { |item| $item.name | str downcase }
 }
 
 def related-order [current: string, records: list] {
-	let sorted = ($records | sort-by { |item| $item.name | str lowercase })
+	let sorted = ($records | sort-by { |item| $item.name | str downcase })
 	let count = ($sorted | length) + 1
 	let center = ($count // 2)
 	let current_record = {
@@ -1076,7 +1075,7 @@ def move-window-pick [client: string] {
 	if ($current | is-empty) or ($window | is-empty) {
 		return
 	}
-	let sessions = (session-records | where { |item| $item.name != $current } | sort-by { |item| $item.name | str lowercase })
+	let sessions = (session-records | where { |item| $item.name != $current } | sort-by { |item| $item.name | str downcase })
 	let current_root = (session-root $current)
 	let current_common = (ensure-git-common $current $current_root)
 	let worktree_candidates = if ($current_common | is-empty) {
@@ -1298,7 +1297,7 @@ def status-purposes [session: string, window: string] {
 		} else {
 			"fg=#707080,bg=#08080d,bold"
 		}
-		let header = (status-style $header_style (" " + ($purpose | str uppercase) + " "))
+		let header = (status-style $header_style (" " + ($purpose | str upcase) + " "))
 		let tabs = ($rows | where { |row| $row.purpose == $purpose } | reduce --fold "" { |row, acc|
 			let separator = if ($acc | is-empty) { "" } else { " " }
 			let style = if $row.id == $window {

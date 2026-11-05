@@ -1,8 +1,12 @@
-const workspace_lib = ($nu.home-dir | path join ".config" "tmux" "scripts" "workspace-lib.nu")
-use $workspace_lib *
+use ../../../terminal/multiplexer/tmux/scripts/workspace-lib.nu *
 
 def workspace-script [] {
-	($env.XDG_CONFIG_HOME? | default ($nu.home-dir | path join ".config")) | path join "tmux" "scripts" "workspace.nu"
+	let config_script = (($env.XDG_CONFIG_HOME? | default ($nu.home-dir | path join ".config")) | path join "tmux" "scripts" "workspace.nu")
+	if ($config_script | path exists) {
+		$config_script
+	} else {
+		($env.dotfiles? | default "") | path join "terminal" "multiplexer" "tmux" "scripts" "workspace.nu"
+	}
 }
 
 def "nu-complete worktree-local-branches" [] {
@@ -167,7 +171,10 @@ def open-session [path: string] {
 }
 
 def session-roots [] {
-	let result = (do { ^tmux list-sessions -F "#{session_name}" } | complete)
+	if (which ^tmux | is-empty) {
+		return []
+	}
+	let result = (do -i { ^tmux list-sessions -F "#{session_name}" } | complete)
 	if $result.exit_code != 0 {
 		return []
 	}
