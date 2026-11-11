@@ -35,9 +35,65 @@ def "nu-complete git-review commits" [] {
     }
 }
 
+def "nu-complete git-review refs" [] {
+    let result = (do -i { ^git for-each-ref --format="%(refname:short)" } | complete)
+    if $result.exit_code != 0 {
+        return []
+    }
+
+    $result.stdout
+    | lines
+    | each { |ref| { value: $ref } }
+}
+
+def "nu-complete git-review fragments" [] {
+    let result = (do -i { ^git-review fragment list --json } | complete)
+    if $result.exit_code != 0 {
+        return []
+    }
+
+    try {
+        $result.stdout
+        | from json
+        | each { |fragment|
+            {
+                value: $fragment.shortId
+                description: $fragment.path
+                extra: [$fragment.id]
+            }
+        }
+    } catch {
+        []
+    }
+}
+
+export extern "git-review init" [
+    --base: string@"nu-complete git-review refs"
+]
+
+export extern "git-review sync-base" [
+    --hook
+]
+
 export extern "git-review status" [
     --json
     --no-init
+]
+
+export extern "git-review accept" [
+    --path: path
+]
+
+export extern "git-review undo" []
+
+export extern "git-review history" []
+
+export extern "git-review reset" [
+    --commit: string@"nu-complete git-review commits"
+]
+
+export extern "git-review changes" [
+    --json
 ]
 
 export extern "git-review fragment inspect" [
@@ -61,6 +117,7 @@ export extern "git-review group add" [
 
 export extern "git-review group assign" [
     --name: string@"nu-complete git-review groups"
+    --fragment: string@"nu-complete git-review fragments"
     --commit: string@"nu-complete git-review commits"
     --path: path
     --path-glob: string
