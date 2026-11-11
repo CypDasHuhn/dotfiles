@@ -33,6 +33,7 @@ display + keyring exist:
 - **Linux desktop** (`$DISPLAY`/`$WAYLAND_DISPLAY` set) → desktop client.
   Installs `~/.config/autostart/nextcloud.desktop` (XWayland, `--background`)
   and removes any leftover headless `nextcloudcmd` units.
+- **WSL/WSLg** → headless `nextcloudcmd`, even when display variables are set.
 - **Linux headless** → `nextcloudcmd` driven by a systemd service + 3-min timer.
   The desktop client needs a keyring/display, so headless uses the CLI instead
   (poll-based, no push).

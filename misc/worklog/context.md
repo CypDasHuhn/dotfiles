@@ -35,3 +35,11 @@ My girlfriend, usually not work related
 ## Ciaran
 
 Friend / Colleague
+
+## Diana Malyshko
+
+External Scrum master in CVM
+
+## Thomas Wiegand
+
+My boss

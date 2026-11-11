@@ -56,9 +56,21 @@ local function systemd_available()
 	return file_exists("/run/systemd/system") and command_exists("systemctl")
 end
 
+local function is_wsl()
+	if os_type == "windows" then
+		return false
+	end
+	local distro = os.getenv("WSL_DISTRO_NAME")
+	local interop = os.getenv("WSL_INTEROP")
+	return (distro ~= nil and distro ~= "") or (interop ~= nil and interop ~= "")
+end
+
 local function is_headless()
 	if os_type == "windows" then
 		return false
+	end
+	if is_wsl() then
+		return true
 	end
 	local display = os.getenv("DISPLAY") or os.getenv("WAYLAND_DISPLAY")
 	return display == nil or display == ""
@@ -274,6 +286,25 @@ local function configure_desktop_unix(home, target)
 	c.tag_ok("nextcloud", "log in once in the client and set the sync folder to " .. target)
 end
 
+local function remove_generated_desktop_autostart(home)
+	local path = home .. "/.config/autostart/nextcloud.desktop"
+	local handle = io.open(path, "r")
+	if not handle then
+		return
+	end
+	local content = handle:read("*a") or ""
+	handle:close()
+	local expected = "[Desktop Entry]\n"
+		.. "Type=Application\n"
+		.. "Name=Nextcloud\n"
+		.. "Exec=env QT_QPA_PLATFORM=xcb nextcloud --background\n"
+		.. "X-GNOME-Autostart-enabled=true\n"
+		.. "Terminal=false\n"
+	if content == expected and os.remove(path) then
+		c.tag("nextcloud", "removed desktop autostart for headless sync")
+	end
+end
+
 local function configure_desktop_windows(target)
 	local appdata = os.getenv("APPDATA")
 	if not appdata then
@@ -396,6 +427,7 @@ else
 			c.tag_err("nextcloud", "missing " .. SECRET_KEY .. " in secrets.lua; cannot sync")
 			return
 		end
+		remove_generated_desktop_autostart(home)
 		headless_sync(user, home, resolve_target(), password)
 	else
 		if not command_exists("nextcloud") then
