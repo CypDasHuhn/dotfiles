@@ -346,7 +346,7 @@ def mark-session-used [session: string] {
 def session-root [session: string] {
 	let stored = (session-option $session "@workspace-root")
 	if ($stored | is-not-empty) {
-		return (normalize-root $stored)
+		return $stored
 	}
 
 	let paths = (tmux-value list-panes -t $"=($session)" -F "#{pane_current_path}" | lines | where { |item| $item != "" })
@@ -376,7 +376,7 @@ def git-common-for-root [root: string] {
 def ensure-git-common [session: string, root: string] {
 	let stored = (session-option $session "@workspace-git-common")
 	if ($stored | is-not-empty) {
-		return (normalize-root $stored)
+		return $stored
 	}
 	let common = (git-common-for-root $root)
 	if ($common | is-not-empty) {
@@ -455,13 +455,13 @@ def session-records [] {
 		let last_raw = ($parts | get -o 3 | default "0")
 		let common_raw = ($parts | get -o 4 | default "")
 		let branch = ($parts | get -o 5 | default "")
-		let root = if ($stored | is-empty) { session-root $name } else { normalize-root $stored }
+		let root = if ($stored | is-empty) { session-root $name } else { $stored }
 		{
 			name: $name,
 			id: $id,
 			root: $root,
 			mru: (try { $last_raw | into int } catch { 0 }),
-			git_common: (if ($common_raw | is-empty) { "" } else { normalize-root $common_raw }),
+			git_common: $common_raw,
 			branch: $branch
 		}
 	}
@@ -772,7 +772,6 @@ def related-records [session: string] {
 	if ($session | is-empty) {
 		return []
 	}
-	ensure-session-identities
 	let id = (ensure-workspace-id $session)
 	let root = (session-root $session)
 	let common = (ensure-git-common $session $root)
@@ -833,8 +832,8 @@ def related-order [current: string, records: list] {
 def clear-pending-options [kind: string, client: string] {
 	let pending = (pending-option $kind $client "pending")
 	let token = (pending-option $kind $client "token")
-	^tmux set-option -gu $pending
-	^tmux set-option -gu $token
+	let args = ["set-option", "-gu", $pending, ";", "set-option", "-gu", $token]
+	tmux-result ...$args | ignore
 }
 
 def clear-pending [kind: string, client: string] {
@@ -876,8 +875,8 @@ def arm-session-commit [client: string] {
 	let token = (date now | into int | into string)
 	let pending = (pending-option "commit" $client "pending")
 	let token_option = (pending-option "commit" $client "token")
-	^tmux set-option -g $pending $session
-	^tmux set-option -g $token_option $token
+	let args = ["set-option", "-g", $pending, $session, ";", "set-option", "-g", $token_option, $token]
+	tmux-result ...$args | ignore
 	^tmux run-shell -b $"nu --no-config-file ~/.config/tmux/scripts/workspace.nu session-commit-timeout '($token)' '($client)'"
 }
 
@@ -1297,7 +1296,7 @@ def status-purposes [session: string, window: string] {
 		} else {
 			"fg=#707080,bg=#08080d,bold"
 		}
-		let header = (status-style $header_style (" " + ($purpose | str upcase) + " "))
+		let header = (status-style $header_style (" " + ($purpose | str uppercase) + " "))
 		let tabs = ($rows | where { |row| $row.purpose == $purpose } | reduce --fold "" { |row, acc|
 			let separator = if ($acc | is-empty) { "" } else { " " }
 			let style = if $row.id == $window {
