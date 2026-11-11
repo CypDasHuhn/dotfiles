@@ -13,6 +13,11 @@ return {
 		},
 	},
 
+	worktrees = {
+		"${me}/worktrees",
+		dir_function = true,
+	},
+
 	dotfiles = {
 		"${me}/dotfiles",
 		dir_function = true,

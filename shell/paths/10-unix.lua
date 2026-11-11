@@ -1,6 +1,7 @@
 local paths = {
 	{ "/home/linuxbrew/.linuxbrew/bin" },
 	{ "${me}/.local/bin" },
+	{ "${me}/go/bin" },
 	{ "${me}/.zvm/bin" },
 	{ "${me}/.zvm/self" },
 	{ "${me}/.zvm/master" },

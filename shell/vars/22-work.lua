@@ -6,19 +6,20 @@ local vars = {
 	sgProj = { "/i2s.SecGate.CentralUpdater" },
 }
 
-for _, v in pairs(vars) do
+local worktree_vars = {}
+
+for project, v in pairs(vars) do
+	local project_path = v[1]
 	v.dir_function = true
-	v[1] = "${repos}" .. v[1]
+	v[1] = "${repos}" .. project_path
+	worktree_vars[project .. "Worktrees"] = {
+		"${worktrees}" .. project_path,
+		dir_function = true,
+	}
 end
 
-local projekt = "${vault}/02-work/ihk/projekt/"
-local projektDirs = {
-	lastenheft = "02-Planung/Lastenheft",
-	pflichtenheft = "03-Entwurf/Pflichtenheft",
-	ihkDoku = "06-Doku",
-}
-for k, v in pairs(projektDirs) do
-	vars[k] = { projekt .. v, dir_function = true }
+for project, v in pairs(worktree_vars) do
+	vars[project] = v
 end
 
 return vars
