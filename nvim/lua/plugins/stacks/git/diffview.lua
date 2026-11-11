@@ -156,6 +156,22 @@ local function open_configured_comparison()
     open_comparison(root, get_comparison_branch(root))
 end
 
+local function close_previous_diffviews(current_view)
+    local lib = require 'diffview.lib'
+    local previous_views = {}
+
+    for _, view in ipairs(lib.views) do
+        if view ~= current_view then
+            previous_views[#previous_views + 1] = view
+        end
+    end
+
+    for _, view in ipairs(previous_views) do
+        view:close()
+        lib.dispose_view(view)
+    end
+end
+
 local null_windows_were_resized = false
 
 local function resize_null_windows()
@@ -205,6 +221,71 @@ local function resize_null_windows()
     null_windows_were_resized = true
 end
 
+local function expand_file_panel_width(panel)
+    if not panel:is_open() or not panel:buf_loaded() then
+        return
+    end
+
+    local window_info = vim.fn.getwininfo(panel.winid)[1]
+    local textoff = window_info and window_info.textoff or 0
+
+    for _ = 1, 2 do
+        local current_width = vim.api.nvim_win_get_width(panel.winid)
+        local desired_width = textoff
+        for _, line in ipairs(vim.api.nvim_buf_get_lines(panel.bufid, 0, -1, false)) do
+            desired_width = math.max(desired_width, vim.fn.strdisplaywidth(line) + textoff)
+        end
+
+        if desired_width <= current_width then
+            return
+        end
+
+        vim.api.nvim_win_set_width(panel.winid, desired_width)
+        panel:render()
+        panel:redraw()
+    end
+end
+
+local function toggle_file_panel_auto_expand_width()
+    local view = require('diffview.lib').get_current_view()
+    local panel = view and view.panel
+    if not panel or not panel:is_open() then
+        return
+    end
+
+    local config = panel:get_config()
+    if config.type ~= 'split' or panel.state.form ~= 'column' then
+        return
+    end
+
+    if panel.auto_expand_width then
+        panel.auto_expand_width = false
+        local width = panel.last_user_width or config.width
+        if width then
+            vim.api.nvim_win_set_width(panel.winid, width)
+            panel:render()
+            panel:redraw()
+        end
+        panel.last_user_width = nil
+        return
+    end
+
+    panel.auto_expand_width = true
+    panel.last_user_width = vim.api.nvim_win_get_width(panel.winid)
+    expand_file_panel_width(panel)
+
+    if not panel.auto_expand_width_listener then
+        panel.auto_expand_width_listener = true
+        view.emitter:on('files_updated', function()
+            if panel.auto_expand_width then
+                vim.schedule(function()
+                    expand_file_panel_width(panel)
+                end)
+            end
+        end)
+    end
+end
+
 return {
     'sindrets/diffview.nvim',
     cmd = { 'DiffviewOpen', 'DiffviewFileHistory' },
@@ -218,6 +299,7 @@ return {
         { '<leader>gcf', '<cmd>DiffviewFileHistory<cr>',    desc = 'Open Diffview File History' },
         { '<leader>gcv', function() require('lib.review').open() end, desc = 'Review: working tree vs accepted' },
         { '<leader>gcV', function() require('lib.review').open_group() end, desc = 'Review: select group' },
+        { '<leader>gca', function() require('lib.review').assign_current() end, desc = 'Review: assign current file' },
         { '<leader>gcl', function() require('lib.review').log() end, desc = 'Review: accepted log' },
     },
     config = function(_, opts)
@@ -239,11 +321,15 @@ return {
     opts = function()
         local actions = require 'diffview.actions'
         return {
+            hooks = {
+                view_opened = close_previous_diffviews,
+            },
             keymaps = {
                 -- active in the diff buffers themselves
                 view = {
                     { 'n', 'Y',     copy_absolute_path, { desc = 'Copy absolute path' } },
                     { 'n', '<C-y>', copy_relative_path, { desc = 'Copy relative path' } },
+                    { 'n', '<leader>e', actions.toggle_files, { desc = 'Toggle the file panel' } },
                     { 'n', 'A',     function() require('lib.review').accept_current() end, { desc = 'Accept entry' } },
                     { 'n', 'gA',    function() require('lib.review').undo_current() end,   { desc = 'Un-accept last entry' } },
                 },
@@ -252,6 +338,8 @@ return {
                 file_panel = {
                     { 'n', 'Y',     copy_absolute_path,      { desc = 'Copy absolute path' } },
                     { 'n', '<C-y>', copy_relative_path,      { desc = 'Copy relative path' } },
+                    { 'n', '<leader>e', actions.toggle_files, { desc = 'Toggle the file panel' } },
+                    { 'n', 'e',     toggle_file_panel_auto_expand_width, { desc = 'Toggle auto-expand width' } },
                     { 'n', 'L',     false },
                     { 'n', 'gL',    actions.open_commit_log, { desc = 'Open the commit log panel' } },
                     { 'n', 'A',     function() require('lib.review').accept_current() end, { desc = 'Accept entry' } },

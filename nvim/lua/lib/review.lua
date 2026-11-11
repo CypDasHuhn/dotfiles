@@ -1,6 +1,13 @@
 local M = {}
 local group_views = {}
 
+local function as_list(value)
+  if type(value) == 'table' then
+    return value
+  end
+  return {}
+end
+
 local function open_diffview(root, revision)
   local lib = require 'diffview.lib'
   local current = lib.get_current_view()
@@ -28,22 +35,29 @@ local function toplevel()
   return vim.trim(result.stdout)
 end
 
-local function status(root)
-  local result = run({ 'status', '--json' }, root)
-  if result.code == 0 then
-    return vim.json.decode(result.stdout)
+local function status(root, initialize)
+  local result = run({ 'status', '--no-init', '--json' }, root)
+  if result.code ~= 0 then
+    notify_failure(result)
+    return nil
+  end
+  local review = vim.json.decode(result.stdout)
+  if review.sessionExists then
+    return review
+  end
+  if not initialize then
+    return nil
   end
   result = run({ 'init' }, root)
   if result.code ~= 0 then
     notify_failure(result)
     return nil
   end
-  result = run({ 'status', '--json' }, root)
-  if result.code ~= 0 then
-    notify_failure(result)
-    return nil
-  end
-  return vim.json.decode(result.stdout)
+  return status(root, false)
+end
+
+local function ensure_status(root)
+  return status(root, true)
 end
 
 local function refresh(view, reviewed_ref)
@@ -58,7 +72,7 @@ function M.open()
   if not root then
     return
   end
-  local review = status(root)
+  local review = ensure_status(root)
   if not review then
     return
   end
@@ -72,16 +86,31 @@ function M.open()
 end
 
 local function open_group_view(root, name)
-  local review = status(root)
+  local review = status(root, false)
   if not review then
     return
   end
-  local projection = run({ 'group', 'view', '--name', name }, root)
+  local projection = run({ 'group', 'project', '--name', name }, root)
   if projection.code ~= 0 then
     return notify_failure(projection)
   end
   local view = vim.json.decode(projection.stdout)
-  group_views[root] = name
+  local fragments = as_list(view.fragments)
+  local blocked = as_list(view.blocked)
+  if view.complete then
+    group_views[root] = nil
+    vim.notify('review: group is complete', vim.log.levels.INFO)
+    return M.open()
+  end
+  if #fragments == 0 then
+    group_views[root] = nil
+    vim.notify('review: group is blocked by dependencies', vim.log.levels.WARN)
+    return M.open()
+  end
+  if #blocked > 0 then
+    vim.notify(string.format('review: %d group fragments are blocked by dependencies', #blocked), vim.log.levels.WARN)
+  end
+  group_views[root] = { name = name, ref = view.ref }
   open_diffview(root, review.reviewedRef .. '..' .. view.ref)
 end
 
@@ -90,7 +119,7 @@ function M.open_group()
   if not root then
     return
   end
-  local review = status(root)
+  local review = ensure_status(root)
   if not review then
     return
   end
@@ -98,7 +127,7 @@ function M.open_group()
   if result.code ~= 0 then
     return notify_failure(result)
   end
-  local groups = vim.json.decode(result.stdout)
+  local groups = as_list(vim.json.decode(result.stdout))
   if #groups == 0 then
     return vim.notify('review: no review groups', vim.log.levels.INFO)
   end
@@ -112,7 +141,8 @@ function M.open_group()
     finder = finders.new_table({
       results = groups,
       entry_maker = function(group)
-        local display = string.format('%s  %d hunks', group.name, #group.hunks)
+        local fragments = as_list(group.fragments)
+        local display = string.format('%s  %d fragments', group.name, #fragments)
         return { value = group, display = display, ordinal = display }
       end,
     }),
@@ -131,6 +161,41 @@ function M.open_group()
   }):find()
 end
 
+function M.assign_current()
+  local ok, lib = pcall(require, 'diffview.lib')
+  if not ok then
+    return vim.notify('review: Diffview is not loaded', vim.log.levels.WARN)
+  end
+  local view = lib.get_current_view()
+  if not view then
+    return vim.notify('review: no Diffview is open', vim.log.levels.WARN)
+  end
+  local root = view.adapter.ctx.toplevel
+  if not status(root, false) then
+    return vim.notify('review: no review session exists', vim.log.levels.WARN)
+  end
+  local file = view:infer_cur_file(true)
+  if not file then
+    return vim.notify('review: no file under cursor', vim.log.levels.WARN)
+  end
+  vim.ui.input({ prompt = 'Review group: ' }, function(name)
+    name = name and vim.trim(name) or ''
+    if name == '' then
+      return
+    end
+    local args = { 'group', 'assign', '--name', name, '--path', file.path, '--json' }
+    if file.oldpath and file.oldpath ~= file.path then
+      vim.list_extend(args, { '--path', file.oldpath })
+    end
+    local result = run(args, root)
+    if result.code ~= 0 then
+      return notify_failure(result)
+    end
+    local assignment = vim.json.decode(result.stdout)
+    vim.notify(string.format('Assigned %d of %d fragments to %s', assignment.assigned or 0, assignment.matched or 0, name), vim.log.levels.INFO)
+  end)
+end
+
 function M.accept_current()
   local ok, lib = pcall(require, 'diffview.lib')
   if not ok then
@@ -141,33 +206,28 @@ function M.accept_current()
     return vim.notify('review: no Diffview is open', vim.log.levels.WARN)
   end
   local root = view.adapter.ctx.toplevel
-  local review = status(root)
+  local review = status(root, false)
   if not review then
-    return
+    return vim.notify('review: no review session exists', vim.log.levels.WARN)
   end
-  local group = group_views[root]
-  if group then
+  local group_view = group_views[root]
+  if group_view then
+    local group = group_view.name
     local file = view:infer_cur_file(true)
     if not file then
       return vim.notify('review: no file under cursor', vim.log.levels.WARN)
     end
-    local result = run({ 'group', 'accept', '--name', group, '--path', file.path }, root)
+    local args = { 'group', 'accept', '--name', group, '--path', file.path }
+    if file.oldpath and file.oldpath ~= file.path then
+      vim.list_extend(args, { '--path', file.oldpath })
+    end
+    local result = run(args, root)
     if result.code ~= 0 then
       return notify_failure(result)
     end
-    vim.notify('Accepted grouped changes for ' .. file.path, vim.log.levels.INFO)
-    local groups = run({ 'group', 'list', '--json' }, root)
-    if groups.code ~= 0 then
-      return notify_failure(groups)
-    end
-    for _, candidate in ipairs(vim.json.decode(groups.stdout)) do
-      if candidate.name == group then
-        return open_group_view(root, group)
-      end
-    end
-    group_views[root] = nil
-    vim.notify('review: group is complete', vim.log.levels.INFO)
-    return M.open()
+    local accepted = vim.json.decode(result.stdout)
+    vim.notify(string.format('Accepted %d grouped fragments for %s', #as_list(accepted.accepted), file.path), vim.log.levels.INFO)
+    return open_group_view(root, group)
   end
   if view.rev_arg ~= review.reviewedRef then
     return vim.notify('review: open the reviewed-state view first', vim.log.levels.WARN)
@@ -184,7 +244,8 @@ function M.accept_current()
   if result.code ~= 0 then
     return notify_failure(result)
   end
-  vim.notify(vim.trim(result.stdout), vim.log.levels.INFO)
+  local accepted = vim.json.decode(result.stdout)
+  vim.notify(string.format('Accepted %d fragments (%d materialized, %d pending)', #as_list(accepted.accepted), #as_list(accepted.materialized), #as_list(accepted.pending)), vim.log.levels.INFO)
   refresh(view, review.reviewedRef)
 end
 
@@ -197,12 +258,17 @@ function M.undo_current()
   if not view then
     return vim.notify('review: no Diffview is open', vim.log.levels.WARN)
   end
-  local result = run({ 'undo' }, view.adapter.ctx.toplevel)
+  local root = view.adapter.ctx.toplevel
+  local group_view = group_views[root]
+  local result = run({ 'undo' }, root)
   if result.code ~= 0 then
     return notify_failure(result)
   end
   vim.notify(vim.trim(result.stdout), vim.log.levels.INFO)
-  local review = status(view.adapter.ctx.toplevel)
+  if group_view then
+    return open_group_view(root, group_view.name)
+  end
+  local review = status(root, false)
   if review then
     refresh(view, review.reviewedRef)
   end
@@ -214,7 +280,7 @@ function M.log()
   local result = run({ 'history' }, root)
   if result.code ~= 0 then return notify_failure(result) end
   local entries = {}
-  for _, line in ipairs(vim.json.decode(result.stdout)) do
+  for _, line in ipairs(as_list(vim.json.decode(result.stdout))) do
     local sha, short, relative, subject = line:match('^(%x+)\t(%x+)\t(.-)\t(.*)$')
     if sha then entries[#entries + 1] = { sha = sha, display = short .. '  ' .. relative .. '  ' .. subject } end
   end
@@ -239,6 +305,10 @@ function M.log()
         local ok, lib = pcall(require, 'diffview.lib')
         local view = ok and lib.get_current_view()
         local review = status(root)
+        if group_views[root] then
+          group_views[root] = nil
+          return M.open()
+        end
         if view and review then refresh(view, review.reviewedRef) end
       end)
       return true
