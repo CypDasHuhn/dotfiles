@@ -61,10 +61,8 @@ local function ensure_status(root)
 end
 
 local function refresh(view, reviewed_ref)
-  if view.left and view.left.type == require('diffview.vcs.rev').RevType.COMMIT then
-    view.left.commit = reviewed_ref
-  end
-  require('diffview').emit 'refresh_files'
+  local root = view.adapter.ctx.toplevel
+  open_diffview(root, reviewed_ref)
 end
 
 function M.open()
