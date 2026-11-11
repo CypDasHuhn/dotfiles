@@ -2,7 +2,7 @@
 
 local machine = require 'config.machine'
 local windsurf_machine = machine.windsurf or {}
-local codeium_enabled = windsurf_machine.enabled ~= false
+local codeium_enabled = false
 
 return {
   'saghen/blink.cmp',
@@ -42,7 +42,7 @@ return {
     sources = {
       default = codeium_enabled
           and { 'lsp', 'path', 'snippets', 'lazydev', 'codeium' }
-        or { 'lsp', 'path', 'snippets', 'lazydev' },
+          or { 'lsp', 'path', 'snippets', 'lazydev' },
       per_filetype = {
         -- mssql.nvim provides SQL Server completion; Dadbod remains available too.
         sql = { 'lsp', 'dadbod', 'buffer', 'path', 'snippets' },
