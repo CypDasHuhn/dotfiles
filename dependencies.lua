@@ -23,9 +23,9 @@ return {
         :once(),
     git_review = h.dep({
             unix = {
-                command = 'GOBIN="$HOME/.local/bin" go install github.com/CypDasHuhn/git-review/cmd/git-review@v0.4.11',
+                command = 'GOBIN="$HOME/.local/bin" go install github.com/CypDasHuhn/git-review/cmd/git-review@v0.4.12',
                 condition = h.which("go"),
-                verify = 'git-review --version | grep -q "^git-review 0.4.11$"',
+                verify = 'git-review --version | grep -q "^git-review 0.4.12$"',
                 once = true,
             },
         }),
