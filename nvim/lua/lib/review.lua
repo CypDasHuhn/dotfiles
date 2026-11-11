@@ -243,7 +243,12 @@ function M.accept_current()
     return notify_failure(result)
   end
   local accepted = vim.json.decode(result.stdout)
-  vim.notify(string.format('Accepted %d fragments (%d materialized, %d pending)', #as_list(accepted.accepted), #as_list(accepted.materialized), #as_list(accepted.pending)), vim.log.levels.INFO)
+  local message = string.format('Accepted %d fragments (%d materialized, %d pending)', #as_list(accepted.accepted), #as_list(accepted.materialized), #as_list(accepted.pending))
+  local reconciled = as_list(accepted.reconciled)
+  if #reconciled > 0 then
+    message = message .. string.format(', %d stale paths reconciled', #reconciled)
+  end
+  vim.notify(message, vim.log.levels.INFO)
   refresh(view, review.reviewedRef)
 end
 
